@@ -1,7 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export async function middleware(request: NextRequest) {
+// Redirect while preserving Supabase auth cookies set during this request
+function createRedirect(url: URL, supabaseResponse: NextResponse): NextResponse {
+  const redirect = NextResponse.redirect(url);
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie.name, cookie.value);
+  });
+  return redirect;
+}
+
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -39,7 +48,7 @@ export async function middleware(request: NextRequest) {
 
   if (!user) {
     if (!isLoginPage && !isAuthRoute) {
-      return NextResponse.redirect(new URL('/login', origin));
+      return createRedirect(new URL('/login', origin), supabaseResponse);
     }
     return supabaseResponse;
   }
@@ -56,27 +65,27 @@ export async function middleware(request: NextRequest) {
   if (!profile || !profile.is_active) {
     // Authenticated but not yet activated — show pending page
     if (!isLoginPage && !isAuthRoute && path !== '/pending') {
-      return NextResponse.redirect(new URL('/pending', origin));
+      return createRedirect(new URL('/pending', origin), supabaseResponse);
     }
     return supabaseResponse;
   }
 
-  // Redirect active users away from login
-  if (isLoginPage) {
-    return NextResponse.redirect(new URL('/', origin));
+  // Redirect active users away from login and pending pages
+  if (isLoginPage || path === '/pending') {
+    return createRedirect(new URL('/', origin), supabaseResponse);
   }
 
   // First-login forced password change
   if (profile.must_change_password) {
     if (!isChangePasswordPage) {
-      return NextResponse.redirect(new URL('/change-password', origin));
+      return createRedirect(new URL('/change-password', origin), supabaseResponse);
     }
     return supabaseResponse;
   }
 
   // Password already changed — redirect away from change-password page
   if (isChangePasswordPage) {
-    return NextResponse.redirect(new URL('/', origin));
+    return createRedirect(new URL('/', origin), supabaseResponse);
   }
 
   // Attach role to request headers for use in Server Components

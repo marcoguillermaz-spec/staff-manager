@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const router = useRouter();
   const supabase = createClient();
 
   const inputCls =
@@ -21,8 +23,12 @@ export default function LoginPage() {
     setError(null);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError('Email o password non corretti');
-    setLoading(false);
+    if (error) {
+      setError('Email o password non corretti');
+      setLoading(false);
+      return;
+    }
+    router.push('/');
   };
 
   const spinner = (

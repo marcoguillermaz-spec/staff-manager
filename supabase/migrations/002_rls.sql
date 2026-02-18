@@ -149,10 +149,10 @@ create policy "collaborators_admin_write" on collaborators
 -- ============================================================
 -- COLLABORATOR COMMUNITIES
 -- ============================================================
+-- Uses security definer get_my_collaborator_id() to avoid infinite recursion:
+-- collaborators policy → collaborator_communities policy → collaborators (loop)
 create policy "collab_communities_own_read" on collaborator_communities
-  for select using (
-    exists (select 1 from collaborators c where c.id = collaborator_id and c.user_id = auth.uid())
-  );
+  for select using (collaborator_id = get_my_collaborator_id());
 
 create policy "collab_communities_admin_all" on collaborator_communities
   for all using (get_my_role() in ('amministrazione','super_admin'));
