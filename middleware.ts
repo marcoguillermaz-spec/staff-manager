@@ -47,9 +47,11 @@ export async function middleware(request: NextRequest) {
   // User is authenticated — check they have an active UserProfile (invite-only gate)
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('is_active, role, member_status')
+    .select('is_active, role, member_status, must_change_password')
     .eq('user_id', user.id)
     .single();
+
+  const isChangePasswordPage = path === '/change-password';
 
   if (!profile || !profile.is_active) {
     // Authenticated but not yet activated — show pending page
@@ -61,6 +63,19 @@ export async function middleware(request: NextRequest) {
 
   // Redirect active users away from login
   if (isLoginPage) {
+    return NextResponse.redirect(new URL('/', origin));
+  }
+
+  // First-login forced password change
+  if (profile.must_change_password) {
+    if (!isChangePasswordPage) {
+      return NextResponse.redirect(new URL('/change-password', origin));
+    }
+    return supabaseResponse;
+  }
+
+  // Password already changed — redirect away from change-password page
+  if (isChangePasswordPage) {
     return NextResponse.redirect(new URL('/', origin));
   }
 
