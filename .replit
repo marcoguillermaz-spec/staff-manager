@@ -1,0 +1,5 @@
+run = "HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+
+[deployment]
+build = ["sh", "-c", "npm install && npm run build && cp -r .next/static .next/standalone/.next/static"]
+run = ["sh", "-c", "HOSTNAME=0.0.0.0 node .next/standalone/server.js"]
