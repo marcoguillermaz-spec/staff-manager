@@ -26,47 +26,53 @@ export async function middleware(request: NextRequest) {
   // Always use getUser() — never getSession() — for server-side token validation
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/auth');
-  const isLoginPage = request.nextUrl.pathname === '/login';
+  const path = request.nextUrl.pathname;
+  const isAuthRoute = path.startsWith('/auth');
+  const isLoginPage = path === '/login';
 
-  if (!user && !isLoginPage && !isAuthRoute) {
-    // Redirect unauthenticated users to login
-    // Use x-forwarded-host for correct redirect behind reverse proxy (Replit)
-    const forwardedHost = request.headers.get('x-forwarded-host');
-    const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
-    const origin = forwardedHost
-      ? `${forwardedProto}://${forwardedHost}`
-      : request.nextUrl.origin;
-    return NextResponse.redirect(new URL('/login', origin));
+  // Helper: build correct origin behind Replit reverse proxy
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : request.nextUrl.origin;
+
+  if (!user) {
+    if (!isLoginPage && !isAuthRoute) {
+      return NextResponse.redirect(new URL('/login', origin));
+    }
+    return supabaseResponse;
   }
 
-  if (user) {
-    // Domain check: only @testbusters.it accounts allowed
-    const email = user.email ?? '';
-    if (!email.endsWith('@testbusters.it')) {
-      await supabase.auth.signOut();
-      const forwardedHost = request.headers.get('x-forwarded-host');
-      const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
-      const origin = forwardedHost
-        ? `${forwardedProto}://${forwardedHost}`
-        : request.nextUrl.origin;
-      return NextResponse.redirect(new URL('/login?error=unauthorized_domain', origin));
-    }
+  // User is authenticated — check they have an active UserProfile (invite-only gate)
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('is_active, role, member_status')
+    .eq('user_id', user.id)
+    .single();
 
-    // Redirect authenticated users away from login
-    if (isLoginPage) {
-      const forwardedHost = request.headers.get('x-forwarded-host');
-      const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
-      const origin = forwardedHost
-        ? `${forwardedProto}://${forwardedHost}`
-        : request.nextUrl.origin;
-      return NextResponse.redirect(new URL('/', origin));
+  if (!profile || !profile.is_active) {
+    // Authenticated but not yet activated — show pending page
+    if (!isLoginPage && !isAuthRoute && path !== '/pending') {
+      return NextResponse.redirect(new URL('/pending', origin));
     }
+    return supabaseResponse;
   }
+
+  // Redirect active users away from login
+  if (isLoginPage) {
+    return NextResponse.redirect(new URL('/', origin));
+  }
+
+  // Attach role to request headers for use in Server Components
+  supabaseResponse.headers.set('x-user-role', profile.role);
+  supabaseResponse.headers.set('x-member-status', profile.member_status);
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
