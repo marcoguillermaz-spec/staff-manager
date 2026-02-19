@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 
 export default function ChangePasswordPage() {
   const [password, setPassword] = useState('');
@@ -10,7 +9,6 @@ export default function ChangePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const inputCls =
     'w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm text-gray-100 ' +
@@ -29,15 +27,20 @@ export default function ChangePasswordPage() {
     setLoading(true);
     setError(null);
 
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) {
-      setError("Errore durante l'aggiornamento della password. Riprova.");
+    // Single server-side call: updates password + clears must_change_password atomically
+    // (avoids race condition from client-side updateUser invalidating the session cookie)
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? "Errore durante l'aggiornamento della password.");
       setLoading(false);
       return;
     }
-
-    // Clear the must_change_password flag server-side
-    await fetch('/api/auth/clear-force-change', { method: 'POST' });
 
     router.push('/');
   };
