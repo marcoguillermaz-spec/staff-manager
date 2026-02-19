@@ -40,5 +40,6 @@ export async function POST(request: Request) {
     .eq('user_id', user.id);
   console.log('[change-password] clear flag:', flagErr?.message ?? 'ok');
 
-  return NextResponse.json({ ok: true });
+  // Return email so the client can re-sign-in (password change invalidates the JWT)
+  return NextResponse.json({ ok: true, email: user.email });
 }

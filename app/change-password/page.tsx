@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function ChangePasswordPage() {
   const [password, setPassword] = useState('');
@@ -35,12 +36,22 @@ export default function ChangePasswordPage() {
       body: JSON.stringify({ password }),
     });
 
+    const data = await res.json();
+
     if (!res.ok) {
-      const data = await res.json();
       setError(data.error ?? "Errore durante l'aggiornamento della password.");
       setLoading(false);
       return;
     }
+
+    // Password change invalidates the current JWT — re-sign-in with the new password
+    // so the browser gets a fresh session cookie before we redirect to the dashboard.
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password,
+    });
+    console.log('[change-password] re-sign-in:', signInError?.message ?? 'ok');
 
     router.push('/');
   };
