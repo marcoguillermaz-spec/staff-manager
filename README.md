@@ -1,36 +1,170 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Staff Manager
+
+Internal portal for managing collaborators, compensation/reimbursement approvals, documents, and support tickets. Role-based access control (email/password, invite-only) via Supabase Auth.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router, TypeScript, `output: 'standalone'`)
+- **Styling**: Tailwind CSS — no component libraries
+- **Auth**: Supabase Auth (email/password, invite-only, forced password change on first login)
+- **Database**: Supabase Postgres with Row Level Security
+- **Testing**: Vitest + @vitest/coverage-v8
+
+## Roles
+
+| Role | Access |
+|------|--------|
+| `collaboratore` | Own profile, compensation requests, reimbursements, documents |
+| `responsabile` | Approve compensations/reimbursements for assigned communities |
+| `amministrazione` | Full approval queue, payments, user management, exports |
+| `super_admin` | Same as amministrazione + settings |
+
+## Compensation Flow (State Machine)
+
+```
+BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
+                ↘ INTEGRAZIONI_RICHIESTE ↗
+                                        ↘ RIFIUTATO
+```
+
+| Action | From | To | Role |
+|--------|------|----|------|
+| submit | BOZZA | INVIATO | collaboratore |
+| withdraw | INVIATO | BOZZA | collaboratore |
+| resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
+| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
+| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
+| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
+| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
+| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
+
+## Reimbursement Flow (State Machine)
+
+No BOZZA state — reimbursements are submitted directly as INVIATO.
+
+```
+INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
+        ↘ INTEGRAZIONI_RICHIESTE ↗
+                                ↘ RIFIUTATO
+```
+
+| Action | From | To | Role |
+|--------|------|----|------|
+| resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
+| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
+| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
+| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
+| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
+| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
+
+## Project Structure
+
+```
+app/
+  (app)/
+    page.tsx                     → Dashboard (placeholder)
+    layout.tsx                   → Protected layout (auth guard + Sidebar)
+    profilo/page.tsx             → Profile editor
+    impostazioni/page.tsx        → User management (admin only)
+    compensi/page.tsx            → Collaboratore: list own compensations
+    compensi/nuova/page.tsx      → Compensation creation wizard (3 steps)
+    compensi/[id]/page.tsx       → Compensation detail + timeline + actions
+    rimborsi/page.tsx            → Collaboratore: list own reimbursements
+    rimborsi/nuova/page.tsx      → Reimbursement creation form (single step)
+    rimborsi/[id]/page.tsx       → Reimbursement detail + timeline + actions
+    approvazioni/page.tsx        → Responsabile: pending queue (?tab=compensi|rimborsi)
+    coda/page.tsx                → Admin: pre-approved + approved queue (?tab=compensi|rimborsi)
+  api/
+    profile/route.ts             → PATCH own profile fields
+    auth/change-password/        → POST forced password change
+    auth/clear-force-change/     → POST clear must_change_password flag
+    admin/create-user/           → POST invite new user
+    admin/communities/           → GET list communities
+    compensations/route.ts       → GET (list, role-filtered) + POST (create)
+    compensations/[id]/route.ts  → GET (detail + history + attachments)
+    compensations/[id]/transition/route.ts → POST (state machine transition)
+    compensations/[id]/attachments/route.ts → POST (register uploaded file)
+    compensations/communities/route.ts → GET (collaboratore's communities)
+    expenses/route.ts            → GET (list) + POST (create, always INVIATO)
+    expenses/[id]/route.ts       → GET (detail + history + attachments)
+    expenses/[id]/transition/route.ts → POST (reimbursement state machine)
+    expenses/[id]/attachments/route.ts → POST (register uploaded file)
+  auth/callback/route.ts
+  login/page.tsx
+  change-password/page.tsx
+  pending/page.tsx
+  layout.tsx
+  globals.css
+
+components/
+  Sidebar.tsx                    → Role-based navigation sidebar
+  ProfileForm.tsx                → Profile edit form
+  compensation/
+    StatusBadge.tsx              → Pill badge for CompensationStatus | ExpenseStatus
+    CompensationWizard.tsx       → 3-step creation wizard (client)
+    CompensationList.tsx         → Table with status filter
+    CompensationDetail.tsx       → Read-only detail card
+    Timeline.tsx                 → Chronological event list (accepts HistoryEvent[])
+    ActionPanel.tsx              → Role-aware action buttons + modals
+  expense/
+    ExpenseList.tsx              → Reimbursement table with status filter
+    ExpenseDetail.tsx            → Read-only reimbursement detail card
+    ExpenseActionPanel.tsx       → Role-aware action buttons + modals for reimbursements
+    ExpenseForm.tsx              → Single-step creation form (categoria, data, importo, descrizione + file upload)
+
+lib/
+  supabase/client.ts             → Browser Supabase client
+  supabase/server.ts             → Server Supabase client (SSR)
+  types.ts                       → Role, status enums, DB row interfaces (Compensation, Expense, HistoryEvent)
+  nav.ts                         → NAV_BY_ROLE config
+  compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (8 actions)
+  expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (6 actions)
+
+supabase/migrations/
+  001_schema.sql                 → Full schema (compensations, expense_reimbursements, communities, etc.)
+  002_rls.sql                    → Row Level Security policies
+  003_must_change_password.sql   → must_change_password column
+
+__tests__/
+  compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
+  expense-transitions.test.ts      → State machine unit tests for reimbursements (31 cases)
+
+proxy.ts                         → Auth middleware (active check + password change redirect)
+vitest.config.ts                 → Vitest configuration
+package.json
+next.config.ts
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm test           # Run unit tests (45 cases)
+npm run build      # Production build (TypeScript check included)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Storage Setup (Supabase)
 
-## Learn More
+Before using file uploads, create the storage buckets and policies via SQL Editor:
 
-To learn more about Next.js, take a look at the following resources:
+- `compensations` bucket — for compensation attachments
+- `expenses` bucket — for reimbursement attachments
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See the storage SQL blocks in the implementation plan for exact policy definitions.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Standalone Next.js output. Build and start with:
+```bash
+npm run build
+HOSTNAME=0.0.0.0 node .next/standalone/server.js
+```

@@ -24,6 +24,18 @@ export type ExpenseStatus =
   | 'RIFIUTATO'
   | 'PAGATO';
 
+export const EXPENSE_CATEGORIES = [
+  'Trasporto',
+  'Vitto',
+  'Alloggio',
+  'Materiale di consumo',
+  'Formazione',
+  'Telefonia',
+  'Altro',
+] as const;
+
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+
 // ── Document ─────────────────────────────────────────────────
 export type DocumentType = 'CONTRATTO_OCCASIONALE' | 'RICEVUTA_PAGAMENTO' | 'CU';
 export type DocumentSignStatus = 'DA_FIRMARE' | 'FIRMATO' | 'NON_RICHIESTO';
@@ -105,5 +117,109 @@ export interface Collaborator {
   data_ingresso: string | null;
   ha_figli_a_carico: boolean;
   figli_dettaglio: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// ── Compensation DB row types ────────────────────────────────
+export interface Compensation {
+  id: string;
+  collaborator_id: string;
+  community_id: string;
+  tipo: CompensationType;
+  descrizione: string;
+  periodo_riferimento: string | null;
+  data_competenza: string | null;
+  // Occasionale
+  importo_lordo: number | null;
+  ritenuta_acconto: number | null;
+  importo_netto: number | null;
+  // P.IVA
+  numero_fattura: string | null;
+  data_fattura: string | null;
+  imponibile: number | null;
+  iva_percentuale: number | null;
+  totale_fattura: number | null;
+  // State machine
+  stato: CompensationStatus;
+  manager_approved_by: string | null;
+  manager_approved_at: string | null;
+  admin_approved_by: string | null;
+  admin_approved_at: string | null;
+  integration_note: string | null;
+  integration_reasons: string[] | null;
+  paid_at: string | null;
+  paid_by: string | null;
+  payment_reference: string | null;
+  note_interne: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompensationAttachment {
+  id: string;
+  compensation_id: string;
+  file_url: string;
+  file_name: string;
+  created_at: string;
+}
+
+export interface CompensationHistory {
+  id: string;
+  compensation_id: string;
+  stato_precedente: string | null;
+  stato_nuovo: string;
+  changed_by: string | null;
+  role_label: string;
+  note: string | null;
+  created_at: string;
+}
+
+// ── Shared timeline event shape ───────────────────────────
+export interface HistoryEvent {
+  id: string;
+  stato_precedente: string | null;
+  stato_nuovo: string;
+  role_label: string;
+  note: string | null;
+  created_at: string;
+}
+
+// ── Expense DB row types ──────────────────────────────────
+export interface Expense {
+  id: string;
+  collaborator_id: string;
+  categoria: ExpenseCategory;
+  data_spesa: string;
+  importo: number;
+  descrizione: string;
+  stato: ExpenseStatus;
+  manager_approved_by: string | null;
+  manager_approved_at: string | null;
+  admin_approved_by: string | null;
+  admin_approved_at: string | null;
+  integration_note: string | null;
+  paid_at: string | null;
+  paid_by: string | null;
+  payment_reference: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpenseAttachment {
+  id: string;
+  reimbursement_id: string;
+  file_url: string;
+  file_name: string;
+  created_at: string;
+}
+
+export interface ExpenseHistory {
+  id: string;
+  reimbursement_id: string;
+  stato_precedente: string | null;
+  stato_nuovo: string;
+  changed_by: string | null;
+  role_label: string;
+  note: string | null;
   created_at: string;
 }

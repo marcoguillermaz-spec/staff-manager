@@ -1,0 +1,73 @@
+import type { Role, ExpenseStatus } from './types';
+
+export type ExpenseAction =
+  | 'resubmit'
+  | 'approve_manager'
+  | 'request_integration'
+  | 'approve_admin'
+  | 'reject'
+  | 'mark_paid';
+
+interface TransitionDef {
+  fromStates: ExpenseStatus[];
+  allowedRoles: Role[];
+  requiresNote: boolean;
+}
+
+export const ALLOWED_EXPENSE_TRANSITIONS: Record<ExpenseAction, TransitionDef> = {
+  resubmit:            { fromStates: ['INTEGRAZIONI_RICHIESTE'],            allowedRoles: ['collaboratore'],                  requiresNote: false },
+  approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                   requiresNote: false },
+  request_integration: { fromStates: ['INVIATO'],                           allowedRoles: ['responsabile'],                   requiresNote: true  },
+  approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
+  reject:              { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
+  mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                   allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
+};
+
+export const EXPENSE_ACTION_TO_STATE: Record<ExpenseAction, ExpenseStatus> = {
+  resubmit:            'INVIATO',
+  approve_manager:     'PRE_APPROVATO_RESP',
+  request_integration: 'INTEGRAZIONI_RICHIESTE',
+  approve_admin:       'APPROVATO_ADMIN',
+  reject:              'RIFIUTATO',
+  mark_paid:           'PAGATO',
+};
+
+export type TransitionResult =
+  | { ok: true }
+  | { ok: false; reason: string };
+
+/**
+ * Pure function — zero side effects, no Supabase.
+ * Checks if the given role can perform `action` on an expense in state `stato`.
+ * If `requiresNote` is true, validates that note is present and ≥ 20 chars.
+ */
+export function canExpenseTransition(
+  role: Role,
+  stato: ExpenseStatus,
+  action: ExpenseAction,
+  note?: string,
+): TransitionResult {
+  const def = ALLOWED_EXPENSE_TRANSITIONS[action];
+  if (!def) return { ok: false, reason: 'Azione non riconosciuta' };
+
+  if (!def.allowedRoles.includes(role)) {
+    return { ok: false, reason: 'Ruolo non autorizzato per questa azione' };
+  }
+
+  if (!def.fromStates.includes(stato)) {
+    return { ok: false, reason: `Transizione non consentita dallo stato ${stato}` };
+  }
+
+  if (def.requiresNote) {
+    if (!note || note.trim().length < 20) {
+      return { ok: false, reason: 'La nota deve essere di almeno 20 caratteri' };
+    }
+  }
+
+  return { ok: true };
+}
+
+/** Returns the target state for a given expense action. */
+export function applyExpenseTransition(action: ExpenseAction): ExpenseStatus {
+  return EXPENSE_ACTION_TO_STATE[action];
+}
