@@ -63,10 +63,10 @@ describe('canExpenseTransition', () => {
     expect((result as { ok: false; reason: string }).reason).toMatch(/20/);
   });
 
-  it('responsabile NON può fare request_integration senza nota', () => {
+  it('responsabile PUÒ fare request_integration senza nota (UI visibility check)', () => {
+    // No note = UI visibility check: skip note validation, show the button
     const result = canExpenseTransition('responsabile', 'INVIATO', 'request_integration');
-    expect(result.ok).toBe(false);
-    expect((result as { ok: false; reason: string }).reason).toMatch(/20/);
+    expect(result.ok).toBe(true);
   });
 
   it('responsabile NON può fare approve_admin', () => {

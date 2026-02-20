@@ -64,8 +64,10 @@ export function canTransition(
     return { ok: false, reason: `Transizione non consentita dallo stato ${stato}` };
   }
 
-  if (def.requiresNote) {
-    if (!note || note.trim().length < 20) {
+  // Note validation: only run when note is provided (used by API routes).
+  // When note is undefined (UI visibility checks), skip — the modal enforces the minimum.
+  if (def.requiresNote && note !== undefined) {
+    if (note.trim().length < 20) {
       return { ok: false, reason: 'La nota deve essere di almeno 20 caratteri' };
     }
   }
