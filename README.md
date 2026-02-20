@@ -80,6 +80,7 @@ app/
     ticket/page.tsx              → Ticket list (collaboratore: own; admin/responsabile: all + Collaboratore column)
     ticket/nuova/page.tsx        → Create new ticket form
     ticket/[id]/page.tsx         → Ticket detail: message thread + reply form + status change buttons
+    contenuti/page.tsx           → Content hub: 4 URL-based tabs (bacheca/agevolazioni/guide/eventi), per-tab fetch
   api/
     profile/route.ts             → PATCH own profile fields
     auth/change-password/        → POST forced password change
@@ -105,6 +106,14 @@ app/
     tickets/[id]/route.ts        → GET (detail + messages + signed attachment URLs + author role labels)
     tickets/[id]/messages/route.ts → POST (reply FormData + optional file, service role, notification on reply)
     tickets/[id]/status/route.ts → PATCH (change status APERTO/IN_LAVORAZIONE/CHIUSO, admin/responsabile)
+    announcements/route.ts       → GET (pinned first) + POST (admin/super_admin/responsabile)
+    announcements/[id]/route.ts  → PATCH + DELETE
+    benefits/route.ts            → GET + POST (admin/super_admin)
+    benefits/[id]/route.ts       → PATCH + DELETE
+    resources/route.ts           → GET + POST with tag[] (admin/super_admin)
+    resources/[id]/route.ts      → PATCH + DELETE
+    events/route.ts              → GET (ordered by start_datetime asc) + POST (admin/super_admin)
+    events/[id]/route.ts         → PATCH + DELETE
   auth/callback/route.ts
   login/page.tsx
   change-password/page.tsx
@@ -142,6 +151,11 @@ components/
     TicketForm.tsx               → Create form (fixed category dropdown, oggetto, optional initial message)
     TicketThread.tsx             → Server-side message thread with author labels, closed banner, signed URLs
     TicketMessageForm.tsx        → Reply form (textarea + file) + status change buttons (admin/responsabile)
+  contenuti/
+    AnnouncementBoard.tsx        → Announcement CRUD with pin, community scope, expiry-unaware display
+    BenefitList.tsx              → Benefit CRUD with expiry badge (Attivo/In scadenza/Scaduto), discount code
+    ResourceList.tsx             → Resource CRUD with comma-separated tag → chip display, link + file_url
+    EventList.tsx                → Event CRUD with datetime, location, Luma external link + iframe embed
 
 lib/
   supabase/client.ts             → Browser Supabase client
@@ -174,6 +188,14 @@ e2e/
   rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)
   export.spec.ts                   → Playwright UAT: export page S1–S8 (CSV/XLSX/mark-paid, 8 tests)
   documents.spec.ts                → Playwright UAT: documents + CU batch S1–S10 (upload, sign flow, 10 tests)
+  notifications.spec.ts            → Playwright UAT: in-app notifications S1–S9 (bell, badge, mark-read, 9 tests)
+  ticket.spec.ts                   → Playwright UAT: ticket full flow S1–S9 (create, thread, notify, states, 9 tests)
+  contenuti.spec.ts                → Playwright UAT: content hub S1–S12 (tabs, CRUD, iframe embed, RBAC, 12 tests)
+
+e2e/
+  rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)
+  export.spec.ts                   → Playwright UAT: export page S1–S8 (CSV/XLSX/mark-paid, 8 tests)
+  documents.spec.ts                → Playwright UAT: documents + CU batch S1–S10 (upload, sign flow, 10 tests)
   notifications.spec.ts            → Playwright UAT: in-app notifications S1–S9 (bell, badge, mark-read, navigate, 9 tests)
   ticket.spec.ts                   → Playwright UAT: ticket full flow S1–S9 (create, thread, notify, states, DB, 9 tests)
 
@@ -188,7 +210,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases)
+npm test           # Run unit tests (81 cases) + Playwright e2e (59 tests across 6 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 

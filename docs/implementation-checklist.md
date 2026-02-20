@@ -26,7 +26,7 @@
 | Documenti + CU batch | ✅ | 11 vitest | 10 Playwright | §4.3 req. Bucket privato `documents`, upload via service role, signed URL 1h, CU batch ZIP+CSV |
 | Ticket | ✅ | 6 vitest | 9 Playwright | §4.4 req. Bucket `tickets`, thread messaggi, allegati, notifiche in-app, stati APERTO/IN_LAVORAZIONE/CHIUSO |
 | Notifiche in-app | ✅ | 12 vitest | 9 Playwright | §8 req. Bell + badge + dropdown, mark-read, trigger su compensi/rimborsi/documenti |
-| Contenuti (Bacheca, Agevolazioni, Guide, Eventi) | 🔲 | — | — | Vedere §5 requirements.md |
+| Contenuti (Bacheca, Agevolazioni, Guide, Eventi) | ✅ | — | 12 Playwright | §5 req. 4 tab URL-based, CRUD inline, RBAC write per sezione, iframe Luma embed |
 
 ---
 
@@ -64,6 +64,13 @@
 ---
 
 ## Log blocchi completati
+
+### Contenuti — completato 2026-02-20
+- File: `app/(app)/contenuti/page.tsx`, `components/contenuti/` (4 componenti), `app/api/announcements/`, `app/api/benefits/`, `app/api/resources/`, `app/api/events/`
+- Modificati: `lib/types.ts` (Announcement, Benefit, Resource, ContentEvent interfaces), `CLAUDE.md` (pipeline ottimizzata: Fase 0, output sintetici, MEMORY.md compatto, commit intermedio)
+- Test: — unit + 12 Playwright (S1–S12, tutti verdi)
+- RBAC: Bacheca → admin/super_admin/responsabile; Agevolazioni/Guide/Eventi → solo admin/super_admin
+- Pattern Playwright: inline edit form sostituisce il card content → il locatore `:has(h3:has-text(...))` non trova più i figli dopo il click su "Modifica". Fix: separare il click dal fill usando selettore page-level dopo l'apertura del form
 
 ### Ticket — completato 2026-02-20
 - File: `app/api/tickets/`, `components/ticket/`, `app/(app)/ticket/`

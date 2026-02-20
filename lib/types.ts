@@ -117,6 +117,53 @@ export interface TicketMessage {
   created_at: string;
 }
 
+// ── Content ──────────────────────────────────────────────────
+export interface Announcement {
+  id: string;
+  community_id: string | null;
+  titolo: string;
+  contenuto: string;
+  pinned: boolean;
+  published_at: string;
+  created_at: string;
+}
+
+export interface Benefit {
+  id: string;
+  community_id: string | null;
+  titolo: string;
+  descrizione: string | null;
+  codice_sconto: string | null;
+  link: string | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  created_at: string;
+}
+
+export interface Resource {
+  id: string;
+  community_id: string | null;
+  titolo: string;
+  descrizione: string | null;
+  link: string | null;
+  file_url: string | null;
+  tag: string[] | null;
+  created_at: string;
+}
+
+export interface ContentEvent {
+  id: string;
+  community_id: string | null;
+  titolo: string;
+  descrizione: string | null;
+  start_datetime: string | null;
+  end_datetime: string | null;
+  location: string | null;
+  luma_url: string | null;
+  luma_embed_url: string | null;
+  created_at: string;
+}
+
 // ── Integration reasons checklist ───────────────────────────
 export const INTEGRATION_REASONS = [
   'Allegato mancante',
