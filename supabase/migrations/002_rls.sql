@@ -285,13 +285,26 @@ create policy "expenses_own_update_inviato" on expense_reimbursements
     and get_my_role() = 'collaboratore'
   );
 
+-- community_id is nullable on expense_reimbursements (expenses are not community-scoped),
+-- so we check via collab_communities whether the collaborator belongs to a managed community.
 create policy "expenses_responsabile_read" on expense_reimbursements
-  for select using (can_manage_community(community_id));
+  for select using (
+    get_my_role() = 'responsabile'
+    and exists (
+      select 1 from collab_communities cc
+      where cc.collaborator_id = expense_reimbursements.collaborator_id
+        and can_manage_community(cc.community_id)
+    )
+  );
 
 create policy "expenses_responsabile_update" on expense_reimbursements
   for update using (
     get_my_role() = 'responsabile'
-    and can_manage_community(community_id)
+    and exists (
+      select 1 from collab_communities cc
+      where cc.collaborator_id = expense_reimbursements.collaborator_id
+        and can_manage_community(cc.community_id)
+    )
     and stato in ('INVIATO','INTEGRAZIONI_RICHIESTE')
   );
 
@@ -322,10 +335,12 @@ create policy "exp_attachments_own_insert" on expense_attachments
 
 create policy "exp_attachments_manager_read" on expense_attachments
   for select using (
-    exists (
+    get_my_role() = 'responsabile'
+    and exists (
       select 1 from expense_reimbursements e
+      join collab_communities cc on cc.collaborator_id = e.collaborator_id
       where e.id = reimbursement_id
-        and can_manage_community(e.community_id)
+        and can_manage_community(cc.community_id)
     )
   );
 
@@ -346,10 +361,12 @@ create policy "exp_history_own_read" on expense_history
 
 create policy "exp_history_manager_read" on expense_history
   for select using (
-    exists (
+    get_my_role() = 'responsabile'
+    and exists (
       select 1 from expense_reimbursements e
+      join collab_communities cc on cc.collaborator_id = e.collaborator_id
       where e.id = reimbursement_id
-        and can_manage_community(e.community_id)
+        and can_manage_community(cc.community_id)
     )
   );
 
