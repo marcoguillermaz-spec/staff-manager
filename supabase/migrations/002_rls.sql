@@ -285,15 +285,16 @@ create policy "expenses_own_update_inviato" on expense_reimbursements
     and get_my_role() = 'collaboratore'
   );
 
--- community_id is nullable on expense_reimbursements (expenses are not community-scoped),
--- so we check via user_community_access whether the collaborator belongs to a managed community.
+-- community_id is nullable on expense_reimbursements (expenses are not community-scoped).
+-- Join collaborator_communities (collaborator→community) + user_community_access (responsabile→community).
 create policy "expenses_responsabile_read" on expense_reimbursements
   for select using (
     get_my_role() = 'responsabile'
     and exists (
-      select 1 from user_community_access cc
+      select 1 from collaborator_communities cc
+      join user_community_access uca on uca.community_id = cc.community_id
       where cc.collaborator_id = expense_reimbursements.collaborator_id
-        and can_manage_community(cc.community_id)
+        and uca.user_id = auth.uid()
     )
   );
 
@@ -301,9 +302,10 @@ create policy "expenses_responsabile_update" on expense_reimbursements
   for update using (
     get_my_role() = 'responsabile'
     and exists (
-      select 1 from user_community_access cc
+      select 1 from collaborator_communities cc
+      join user_community_access uca on uca.community_id = cc.community_id
       where cc.collaborator_id = expense_reimbursements.collaborator_id
-        and can_manage_community(cc.community_id)
+        and uca.user_id = auth.uid()
     )
     and stato in ('INVIATO','INTEGRAZIONI_RICHIESTE')
   );
@@ -338,9 +340,10 @@ create policy "exp_attachments_manager_read" on expense_attachments
     get_my_role() = 'responsabile'
     and exists (
       select 1 from expense_reimbursements e
-      join user_community_access cc on cc.collaborator_id = e.collaborator_id
+      join collaborator_communities cc on cc.collaborator_id = e.collaborator_id
+      join user_community_access uca on uca.community_id = cc.community_id
       where e.id = reimbursement_id
-        and can_manage_community(cc.community_id)
+        and uca.user_id = auth.uid()
     )
   );
 
@@ -364,9 +367,10 @@ create policy "exp_history_manager_read" on expense_history
     get_my_role() = 'responsabile'
     and exists (
       select 1 from expense_reimbursements e
-      join user_community_access cc on cc.collaborator_id = e.collaborator_id
+      join collaborator_communities cc on cc.collaborator_id = e.collaborator_id
+      join user_community_access uca on uca.community_id = cc.community_id
       where e.id = reimbursement_id
-        and can_manage_community(cc.community_id)
+        and uca.user_id = auth.uid()
     )
   );
 
