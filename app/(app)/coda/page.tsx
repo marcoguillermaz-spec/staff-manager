@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import CompensationList from '@/components/compensation/CompensationList';
 import ExpenseList from '@/components/expense/ExpenseList';
+import TicketList from '@/components/ticket/TicketList';
 import type { Role } from '@/lib/types';
 
 export default async function CodaPage({
@@ -25,7 +26,9 @@ export default async function CodaPage({
   if (!['amministrazione', 'super_admin'].includes(profile.role)) redirect('/');
 
   const { tab } = await searchParams;
-  const activeTab = tab === 'rimborsi' ? 'rimborsi' : 'compensi';
+  const activeTab = tab === 'rimborsi' ? 'rimborsi' : tab === 'ticket' ? 'ticket' : 'compensi';
+
+  const role = profile.role as Role;
 
   // Fetch data only for the active tab
   const compensations = activeTab === 'compensi'
@@ -46,7 +49,14 @@ export default async function CodaPage({
         .then((r) => r.data ?? [])
     : [];
 
-  const role = profile.role as Role;
+  const tickets = activeTab === 'ticket'
+    ? await supabase
+        .from('tickets')
+        .select('*')
+        .in('stato', ['APERTO', 'IN_LAVORAZIONE'])
+        .order('created_at', { ascending: true })
+        .then((r) => r.data ?? [])
+    : [];
 
   const tabCls = (t: string) =>
     `whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
@@ -65,9 +75,10 @@ export default async function CodaPage({
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto">
         <Link href="?tab=compensi" className={tabCls('compensi')}>Compensi</Link>
         <Link href="?tab=rimborsi" className={tabCls('rimborsi')}>Rimborsi</Link>
+        <Link href="?tab=ticket" className={tabCls('ticket')}>Ticket aperti</Link>
       </div>
 
       {activeTab === 'compensi' && (
@@ -75,6 +86,9 @@ export default async function CodaPage({
       )}
       {activeTab === 'rimborsi' && (
         <ExpenseList expenses={expenses} role={role} />
+      )}
+      {activeTab === 'ticket' && (
+        <TicketList tickets={tickets as Parameters<typeof TicketList>[0]['tickets']} role={role} />
       )}
     </div>
   );

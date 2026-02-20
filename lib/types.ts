@@ -73,6 +73,50 @@ export interface Document {
 export type TicketStatus = 'APERTO' | 'IN_LAVORAZIONE' | 'CHIUSO';
 export type TicketPriority = 'BASSA' | 'NORMALE' | 'ALTA';
 
+export const TICKET_CATEGORIES = [
+  'Compensi e pagamenti',
+  'Rimborsi spese',
+  'Documenti',
+  'Accesso e account',
+  'Problemi tecnici',
+  'Altro',
+] as const;
+
+export type TicketCategory = typeof TICKET_CATEGORIES[number];
+
+export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
+  APERTO:         'Aperto',
+  IN_LAVORAZIONE: 'In lavorazione',
+  CHIUSO:         'Chiuso',
+};
+
+export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
+  BASSA:   'Bassa',
+  NORMALE: 'Normale',
+  ALTA:    'Alta',
+};
+
+export interface Ticket {
+  id: string;
+  creator_user_id: string;
+  community_id: string | null;
+  categoria: TicketCategory;
+  oggetto: string;
+  stato: TicketStatus;
+  priority: TicketPriority;
+  created_at: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticket_id: string;
+  author_user_id: string;
+  message: string;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  created_at: string;
+}
+
 // ── Integration reasons checklist ───────────────────────────
 export const INTEGRATION_REASONS = [
   'Allegato mancante',

@@ -24,7 +24,7 @@
 | Blocco | Stato | Unit test | E2E | Note |
 |---|---|---|---|---|
 | Documenti + CU batch | ✅ | 11 vitest | 10 Playwright | §4.3 req. Bucket privato `documents`, upload via service role, signed URL 1h, CU batch ZIP+CSV |
-| Ticket | 🔲 | — | — | Vedere §4.4 requirements.md |
+| Ticket | ✅ | 6 vitest | 9 Playwright | §4.4 req. Bucket `tickets`, thread messaggi, allegati, notifiche in-app, stati APERTO/IN_LAVORAZIONE/CHIUSO |
 | Notifiche in-app | ✅ | 12 vitest | 9 Playwright | §8 req. Bell + badge + dropdown, mark-read, trigger su compensi/rimborsi/documenti |
 | Contenuti (Bacheca, Agevolazioni, Guide, Eventi) | 🔲 | — | — | Vedere §5 requirements.md |
 
@@ -64,6 +64,14 @@
 ---
 
 ## Log blocchi completati
+
+### Ticket — completato 2026-02-20
+- File: `app/api/tickets/`, `components/ticket/`, `app/(app)/ticket/`
+- Migration: `006_tickets_storage.sql` (bucket privato `tickets`, 10MB)
+- Modificati: `lib/types.ts` (TICKET_CATEGORIES, TicketStatus labels, Ticket/TicketMessage interfaces), `lib/notification-utils.ts` (buildTicketReplyNotification), `lib/nav.ts` (Ticket per collaboratore), `app/(app)/coda/page.tsx` (tab "Ticket aperti")
+- Test: 6 vitest (ticket-notification) + 9 Playwright (S1–S9, tutti verdi)
+- Pattern: `waitForResponse` + `Promise.all` per sincronizzare invio form e verifica DB in Playwright — senza questo la verifica DB corre prima che l'API abbia completato
+- Pattern: `serviceClient` (service role) per tutti gli accessi a `tickets`/`ticket_messages` nelle API route (bypassa RLS, access control esplicito nel codice)
 
 ### Notifiche in-app — completato 2026-02-20
 - File: `lib/notification-utils.ts`, `app/api/notifications/route.ts`, `components/NotificationBell.tsx`

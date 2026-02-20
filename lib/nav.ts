@@ -13,6 +13,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Compensi',    href: '/compensi',    icon: '💶' },
     { label: 'Rimborsi',    href: '/rimborsi',    icon: '🧾' },
     { label: 'Documenti',   href: '/documenti',   icon: '📄' },
+    { label: 'Ticket',      href: '/ticket',      icon: '🎫' },
     { label: 'Contenuti',   href: '/contenuti',   icon: '📋' }, // bacheca + benefit + guide + eventi
   ],
 

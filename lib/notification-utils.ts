@@ -1,7 +1,7 @@
 // Pure utility functions for building notification payloads.
 // Used by API route handlers to insert into the `notifications` table.
 
-export type NotificationEntityType = 'compensation' | 'reimbursement' | 'document';
+export type NotificationEntityType = 'compensation' | 'reimbursement' | 'document' | 'ticket';
 
 export interface NotificationPayload {
   user_id: string;
@@ -106,3 +106,18 @@ export const EXPENSE_NOTIFIED_ACTIONS: ExpenseNotifiableAction[] = [
   'reject',
   'mark_paid',
 ];
+
+export function buildTicketReplyNotification(
+  userId: string,
+  ticketId: string,
+  ticketOggetto: string,
+): NotificationPayload {
+  return {
+    user_id: userId,
+    tipo: 'risposta_ticket',
+    titolo: 'Nuova risposta al tuo ticket',
+    messaggio: `Hai ricevuto una risposta al ticket: ${ticketOggetto}`,
+    entity_type: 'ticket',
+    entity_id: ticketId,
+  };
+}

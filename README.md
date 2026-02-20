@@ -14,7 +14,7 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 
 | Role | Access |
 |------|--------|
-| `collaboratore` | Own profile, compensation requests, reimbursements, documents |
+| `collaboratore` | Own profile, compensation requests, reimbursements, documents, support tickets |
 | `responsabile` | Approve compensations/reimbursements for assigned communities |
 | `amministrazione` | Full approval queue, payments, user management, exports |
 | `super_admin` | Same as amministrazione + settings |
@@ -77,6 +77,9 @@ app/
     export/page.tsx              → Admin: export approved records as CSV/XLSX + bulk mark-paid (?tab=occasionali|piva|rimborsi)
     documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Collaboratore: list only (?tab=)
     documenti/[id]/page.tsx      → Document detail with signed URL + sign flow for collaboratore
+    ticket/page.tsx              → Ticket list (collaboratore: own; admin/responsabile: all + Collaboratore column)
+    ticket/nuova/page.tsx        → Create new ticket form
+    ticket/[id]/page.tsx         → Ticket detail: message thread + reply form + status change buttons
   api/
     profile/route.ts             → PATCH own profile fields
     auth/change-password/        → POST forced password change
@@ -98,6 +101,10 @@ app/
     documents/[id]/sign/route.ts → POST (collaboratore uploads signed PDF, FormData, service-role upload)
     documents/cu-batch/route.ts  → POST (ZIP+CSV batch import, dedup by collaborator+anno, notifications)
     notifications/route.ts       → GET (list + unread count) + PATCH (mark all read)
+    tickets/route.ts             → GET (list, role-filtered + enriched with creator name) + POST (create)
+    tickets/[id]/route.ts        → GET (detail + messages + signed attachment URLs + author role labels)
+    tickets/[id]/messages/route.ts → POST (reply FormData + optional file, service role, notification on reply)
+    tickets/[id]/status/route.ts → PATCH (change status APERTO/IN_LAVORAZIONE/CHIUSO, admin/responsabile)
   auth/callback/route.ts
   login/page.tsx
   change-password/page.tsx
@@ -129,6 +136,12 @@ components/
     DocumentUploadForm.tsx       → Admin upload form (FormData → API, service-role storage)
     DocumentSignFlow.tsx         → Collaboratore: download original + upload signed PDF
     CUBatchUpload.tsx            → Admin: ZIP + CSV + year batch import with success/duplicate/error detail
+  ticket/
+    TicketStatusBadge.tsx        → Pill badge for ticket status (APERTO=green, IN_LAVORAZIONE=yellow, CHIUSO=gray)
+    TicketList.tsx               → Ticket table with status/priority filters + Collaboratore column for admin
+    TicketForm.tsx               → Create form (fixed category dropdown, oggetto, optional initial message)
+    TicketThread.tsx             → Server-side message thread with author labels, closed banner, signed URLs
+    TicketMessageForm.tsx        → Reply form (textarea + file) + status change buttons (admin/responsabile)
 
 lib/
   supabase/client.ts             → Browser Supabase client
@@ -139,7 +152,7 @@ lib/
   expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (6 actions)
   export-utils.ts                → Pure functions: buildCSV, buildXLSXWorkbook, ExportItem type
   documents-storage.ts           → buildStoragePath, getSignedUrl, getDocumentUrls (1h TTL, service role)
-  notification-utils.ts          → buildCompensationNotification, buildExpenseNotification (pure helpers)
+  notification-utils.ts          → buildCompensationNotification, buildExpenseNotification, buildTicketReplyNotification (pure helpers)
 
 supabase/migrations/
   001_schema.sql                 → Full schema (compensations, expense_reimbursements, communities, documents, etc.)
@@ -147,6 +160,7 @@ supabase/migrations/
   003_must_change_password.sql   → must_change_password column
   004_documents_storage.sql      → Private `documents` bucket + storage policies
   005_add_titolo_to_documents.sql → ALTER TABLE documents ADD COLUMN titolo text
+  006_tickets_storage.sql        → Private `tickets` bucket + storage policies (10MB, PDF/image/doc)
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
@@ -154,12 +168,14 @@ __tests__/
   export-utils.test.ts             → Unit tests for CSV/XLSX builders (7 cases)
   cu-batch-parser.test.ts          → Unit tests for CU batch CSV parser + dedup logic (11 cases)
   notification-utils.test.ts       → Unit tests for notification payload builders (12 cases)
+  ticket-notification.test.ts      → Unit tests for buildTicketReplyNotification (6 cases)
 
 e2e/
   rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)
   export.spec.ts                   → Playwright UAT: export page S1–S8 (CSV/XLSX/mark-paid, 8 tests)
   documents.spec.ts                → Playwright UAT: documents + CU batch S1–S10 (upload, sign flow, 10 tests)
   notifications.spec.ts            → Playwright UAT: in-app notifications S1–S9 (bell, badge, mark-read, navigate, 9 tests)
+  ticket.spec.ts                   → Playwright UAT: ticket full flow S1–S9 (create, thread, notify, states, DB, 9 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -172,7 +188,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (75 cases)
+npm test           # Run unit tests (81 cases)
 npm run build      # Production build (TypeScript check included)
 ```
 
@@ -193,6 +209,7 @@ Before using file uploads, run the migrations in `supabase/migrations/` via the 
 - `003_must_change_password.sql` → auth column
 - `004_documents_storage.sql` → creates `documents` private bucket + storage policies
 - `005_add_titolo_to_documents.sql` → adds `titolo` column to documents table
+- `006_tickets_storage.sql` → creates `tickets` private bucket + storage policies
 
 The `compensations` and `expenses` buckets must also be created (private, 10MB limit, PDF/image types).
 
