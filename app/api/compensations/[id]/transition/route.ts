@@ -6,6 +6,8 @@ import { canTransition, applyTransition } from '@/lib/compensation-transitions';
 import type { CompensationAction } from '@/lib/compensation-transitions';
 import { ROLE_LABELS } from '@/lib/types';
 import type { Role, CompensationStatus } from '@/lib/types';
+import { buildCompensationNotification, COMPENSATION_NOTIFIED_ACTIONS } from '@/lib/notification-utils';
+import type { NotificationPayload } from '@/lib/notification-utils';
 
 const transitionSchema = z.object({
   action: z.enum([
@@ -122,6 +124,26 @@ export async function POST(
 
   if (historyError) {
     console.error('History insert failed:', historyError.message);
+  }
+
+  // Insert notification for collaboratore on state-changing actions
+  if ((COMPENSATION_NOTIFIED_ACTIONS as string[]).includes(action)) {
+    const { data: collab } = await serviceClient
+      .from('collaborators')
+      .select('user_id')
+      .eq('id', comp.collaborator_id)
+      .single();
+
+    if (collab?.user_id) {
+      const notif: NotificationPayload = buildCompensationNotification(
+        action as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
+        collab.user_id,
+        id,
+        note,
+      );
+      const { error: notifError } = await serviceClient.from('notifications').insert(notif);
+      if (notifError) console.error('Notification insert failed:', notifError.message);
+    }
   }
 
   return NextResponse.json({ stato: newStato });

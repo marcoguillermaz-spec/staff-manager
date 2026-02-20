@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { NavItem } from '@/lib/nav';
+import NotificationBell from '@/components/NotificationBell';
 
 interface SidebarProps {
   navItems: NavItem[];
@@ -28,7 +29,8 @@ export default function Sidebar({ navItems, userEmail, userName }: SidebarProps)
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 flex-shrink-0">
           <span className="text-sm">👥</span>
         </div>
-        <span className="text-sm font-semibold text-gray-100">Staff Manager</span>
+        <span className="text-sm font-semibold text-gray-100 flex-1">Staff Manager</span>
+        <NotificationBell />
       </div>
 
       {/* Navigation */}

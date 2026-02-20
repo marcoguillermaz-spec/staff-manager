@@ -40,6 +40,35 @@ export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
 export type DocumentType = 'CONTRATTO_OCCASIONALE' | 'RICEVUTA_PAGAMENTO' | 'CU';
 export type DocumentSignStatus = 'DA_FIRMARE' | 'FIRMATO' | 'NON_RICHIESTO';
 
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  CONTRATTO_OCCASIONALE: 'Contratto occasionale',
+  RICEVUTA_PAGAMENTO:    'Ricevuta di pagamento',
+  CU:                    'Certificazione Unica',
+};
+
+export const DOCUMENT_SIGN_STATUS_LABELS: Record<DocumentSignStatus, string> = {
+  DA_FIRMARE:    'Da firmare',
+  FIRMATO:       'Firmato',
+  NON_RICHIESTO: 'Nessuna firma richiesta',
+};
+
+export interface Document {
+  id: string;
+  collaborator_id: string;
+  community_id: string | null;
+  tipo: DocumentType;
+  anno: number | null;
+  titolo: string;
+  file_original_url: string;       // storage path (not full URL)
+  file_original_name: string;
+  stato_firma: DocumentSignStatus;
+  file_firmato_url: string | null; // storage path
+  file_firmato_name: string | null;
+  requested_at: string;
+  signed_at: string | null;
+  created_at: string;
+}
+
 // ── Ticket ──────────────────────────────────────────────────
 export type TicketStatus = 'APERTO' | 'IN_LAVORAZIONE' | 'CHIUSO';
 export type TicketPriority = 'BASSA' | 'NORMALE' | 'ALTA';
@@ -181,6 +210,19 @@ export interface HistoryEvent {
   stato_nuovo: string;
   role_label: string;
   note: string | null;
+  created_at: string;
+}
+
+// ── Notification ─────────────────────────────────────────
+export interface Notification {
+  id: string;
+  user_id: string;
+  tipo: string;
+  titolo: string;
+  messaggio: string | null;
+  entity_type: 'compensation' | 'reimbursement' | 'document' | 'ticket' | null;
+  entity_id: string | null;
+  read: boolean;
   created_at: string;
 }
 

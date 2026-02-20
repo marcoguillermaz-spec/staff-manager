@@ -6,6 +6,8 @@ import { canExpenseTransition, applyExpenseTransition } from '@/lib/expense-tran
 import type { ExpenseAction } from '@/lib/expense-transitions';
 import { ROLE_LABELS } from '@/lib/types';
 import type { Role, ExpenseStatus } from '@/lib/types';
+import { buildExpenseNotification, EXPENSE_NOTIFIED_ACTIONS } from '@/lib/notification-utils';
+import type { NotificationPayload } from '@/lib/notification-utils';
 
 const transitionSchema = z.object({
   action: z.enum([
@@ -112,6 +114,26 @@ export async function POST(
 
   if (historyError) {
     console.error('Expense history insert failed:', historyError.message);
+  }
+
+  // Insert notification for collaboratore on state-changing actions
+  if ((EXPENSE_NOTIFIED_ACTIONS as string[]).includes(action)) {
+    const { data: collab } = await serviceClient
+      .from('collaborators')
+      .select('user_id')
+      .eq('id', expense.collaborator_id)
+      .single();
+
+    if (collab?.user_id) {
+      const notif: NotificationPayload = buildExpenseNotification(
+        action as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
+        collab.user_id,
+        id,
+        note,
+      );
+      const { error: notifError } = await serviceClient.from('notifications').insert(notif);
+      if (notifError) console.error('Notification insert failed:', notifError.message);
+    }
   }
 
   return NextResponse.json({ stato: newStato });

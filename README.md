@@ -74,6 +74,9 @@ app/
     rimborsi/[id]/page.tsx       → Reimbursement detail + timeline + actions
     approvazioni/page.tsx        → Responsabile: pending queue (?tab=compensi|rimborsi)
     coda/page.tsx                → Admin: pre-approved + approved queue (?tab=compensi|rimborsi)
+    export/page.tsx              → Admin: export approved records as CSV/XLSX + bulk mark-paid (?tab=occasionali|piva|rimborsi)
+    documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Collaboratore: list only (?tab=)
+    documenti/[id]/page.tsx      → Document detail with signed URL + sign flow for collaboratore
   api/
     profile/route.ts             → PATCH own profile fields
     auth/change-password/        → POST forced password change
@@ -89,6 +92,12 @@ app/
     expenses/[id]/route.ts       → GET (detail + history + attachments)
     expenses/[id]/transition/route.ts → POST (reimbursement state machine)
     expenses/[id]/attachments/route.ts → POST (register uploaded file)
+    export/mark-paid/route.ts    → POST (bulk mark APPROVATO_ADMIN → PAGATO + history, admin only)
+    documents/route.ts           → GET (list, RLS-filtered) + POST (create, FormData, service-role upload)
+    documents/[id]/route.ts      → GET (detail + signed URL generation)
+    documents/[id]/sign/route.ts → POST (collaboratore uploads signed PDF, FormData, service-role upload)
+    documents/cu-batch/route.ts  → POST (ZIP+CSV batch import, dedup by collaborator+anno, notifications)
+    notifications/route.ts       → GET (list + unread count) + PATCH (mark all read)
   auth/callback/route.ts
   login/page.tsx
   change-password/page.tsx
@@ -97,7 +106,8 @@ app/
   globals.css
 
 components/
-  Sidebar.tsx                    → Role-based navigation sidebar
+  Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
+  NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read on open)
   ProfileForm.tsx                → Profile edit form
   compensation/
     StatusBadge.tsx              → Pill badge for CompensationStatus | ExpenseStatus
@@ -111,6 +121,14 @@ components/
     ExpenseDetail.tsx            → Read-only reimbursement detail card
     ExpenseActionPanel.tsx       → Role-aware action buttons + modals for reimbursements
     ExpenseForm.tsx              → Single-step creation form (categoria, data, importo, descrizione + file upload)
+  export/
+    ExportSection.tsx            → Client: tab bar + action buttons (CSV/XLSX/mark-paid) + modal
+    ExportTable.tsx              → Table with checkboxes, columns vary by tab
+  documents/
+    DocumentList.tsx             → Documents table with stato_firma badge and detail link
+    DocumentUploadForm.tsx       → Admin upload form (FormData → API, service-role storage)
+    DocumentSignFlow.tsx         → Collaboratore: download original + upload signed PDF
+    CUBatchUpload.tsx            → Admin: ZIP + CSV + year batch import with success/duplicate/error detail
 
 lib/
   supabase/client.ts             → Browser Supabase client
@@ -119,15 +137,29 @@ lib/
   nav.ts                         → NAV_BY_ROLE config
   compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (8 actions)
   expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (6 actions)
+  export-utils.ts                → Pure functions: buildCSV, buildXLSXWorkbook, ExportItem type
+  documents-storage.ts           → buildStoragePath, getSignedUrl, getDocumentUrls (1h TTL, service role)
+  notification-utils.ts          → buildCompensationNotification, buildExpenseNotification (pure helpers)
 
 supabase/migrations/
-  001_schema.sql                 → Full schema (compensations, expense_reimbursements, communities, etc.)
+  001_schema.sql                 → Full schema (compensations, expense_reimbursements, communities, documents, etc.)
   002_rls.sql                    → Row Level Security policies
   003_must_change_password.sql   → must_change_password column
+  004_documents_storage.sql      → Private `documents` bucket + storage policies
+  005_add_titolo_to_documents.sql → ALTER TABLE documents ADD COLUMN titolo text
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
   expense-transitions.test.ts      → State machine unit tests for reimbursements (31 cases)
+  export-utils.test.ts             → Unit tests for CSV/XLSX builders (7 cases)
+  cu-batch-parser.test.ts          → Unit tests for CU batch CSV parser + dedup logic (11 cases)
+  notification-utils.test.ts       → Unit tests for notification payload builders (12 cases)
+
+e2e/
+  rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)
+  export.spec.ts                   → Playwright UAT: export page S1–S8 (CSV/XLSX/mark-paid, 8 tests)
+  documents.spec.ts                → Playwright UAT: documents + CU batch S1–S10 (upload, sign flow, 10 tests)
+  notifications.spec.ts            → Playwright UAT: in-app notifications S1–S9 (bell, badge, mark-read, navigate, 9 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -140,7 +172,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (45 cases)
+npm test           # Run unit tests (75 cases)
 npm run build      # Production build (TypeScript check included)
 ```
 
@@ -154,12 +186,15 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 ## Storage Setup (Supabase)
 
-Before using file uploads, create the storage buckets and policies via SQL Editor:
+Before using file uploads, run the migrations in `supabase/migrations/` via the Supabase SQL Editor in order:
 
-- `compensations` bucket — for compensation attachments
-- `expenses` bucket — for reimbursement attachments
+- `001_schema.sql` → full schema
+- `002_rls.sql` → RLS policies
+- `003_must_change_password.sql` → auth column
+- `004_documents_storage.sql` → creates `documents` private bucket + storage policies
+- `005_add_titolo_to_documents.sql` → adds `titolo` column to documents table
 
-See the storage SQL blocks in the implementation plan for exact policy definitions.
+The `compensations` and `expenses` buckets must also be created (private, 10MB limit, PDF/image types).
 
 ## Deploy
 

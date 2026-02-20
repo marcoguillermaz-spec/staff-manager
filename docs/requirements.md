@@ -1,0 +1,226 @@
+# Staff Manager — Specifica di Prodotto
+
+> Documento di riferimento per l'implementazione. Leggere le sezioni pertinenti al blocco in lavorazione prima di iniziare la Fase 2 (Implementazione).
+> Aggiornare questo file se i requisiti cambiano in corso d'opera.
+
+---
+
+## 1. Brief di progetto
+
+**Contesto.** Gestionale amministrativo unico per i collaboratori COMMUNITY (Testbusters e Peer4Med). Dati oggi dispersi, flussi (approvazioni, pagamenti, documenti, ticket) non tracciati in modo chiaro.
+
+**Obiettivo.** Ridurre attrito ed errori: richieste standardizzate, export pagamenti pulito, documenti archiviati e firmati, comunicazioni e risorse in un posto solo.
+
+**Problemi da risolvere:**
+- Collaboratori modificano autonomamente i propri dati senza passare dall'amministrazione
+- Inserimento dichiarazione figli a carico (con soglie età/reddito visibili) e P.IVA (con spiegazione procedura)
+- Uniformare il meccanismo di caricamento file compensi (oggi diverso tra Corsi ed Extra)
+- Collaboratori vedono in front-end quanto liquidato e quanto ancora da ricevere
+- Slot rimborsi integrato (non form Google separato)
+
+**Utenti.** Collaboratori (non tecnici), Responsabili community, Amministrazione (Finance/HR), Super Admin.
+
+**Criteri di accettazione UX:**
+- Collaboratore inserisce un compenso in < 60 secondi (wizard 3 step)
+- Responsabile pre-approva 20 richieste in 5 minuti (azioni inline + filtri)
+- Admin esporta "da pagare" in 2 click e segna pagato singolo o massivo
+
+---
+
+## 2. Ruoli e permessi (RBAC)
+
+| Ruolo | Rappresentante | Accesso |
+|---|---|---|
+| `collaboratore` | Gabriel | Solo propri record e documenti |
+| `responsabile` | Nolli / Giorgia | Community assegnate, pre-approvazione obbligatoria |
+| `amministrazione` | Kri / Claudia | Accesso completo, approvazione finale, pagamenti, export |
+| `super_admin` | Nolli | Come amministrazione + gestione utenti/ruoli/impostazioni |
+
+**Regole chiave:**
+- RLS reale su ogni tabella — nessun accesso a record altrui via URL
+- Collaboratore vede solo i propri record; IBAN e documenti visibili solo a collaboratore proprietario + admin
+- Responsabile vede solo le community assegnate e fa pre-approvazione obbligatoria
+- Timeline stato senza nominativi: mostrare solo "Responsabile" / "Amministrazione"
+- La community è autonoma nel creare/caricare allegati e nel settare i ruoli di ogni persona (non richiedere intervento tecnico per nuovi ruoli)
+
+**Gestione uscenti (member_status):**
+- `uscente_con_compenso` — ha ancora compensi da ricevere; non vede documenti relativi al nuovo anno; accesso limitato ai propri record in corso
+- `uscente_senza_compenso` — nessun compenso pendente; account disabilitato tranne accesso in sola lettura alla pagina documenti storici
+- `attivo` — accesso completo per ruolo
+
+**Nuovi ingressi:** nella realtà avvengono in modo sporadico durante tutto l'anno (non 1-2 volte come previsto teoricamente). La community deve poter gestire in autonomia: registrazione anagrafica, generazione contratto, assegnazione ruolo.
+
+---
+
+## 3. Modello dati
+
+```sql
+Community(id, name)
+UserProfile(id, user_id, role, is_active, member_status, must_change_password, created_at)
+UserCommunityAccess(id, user_id, community_id)   -- per Responsabili/Admin
+Collaborator(id, user_id, nome, cognome, codice_fiscale, partita_iva?, data_nascita?,
+             indirizzo, telefono, email, iban, note, tshirt_size, foto_profilo_url,
+             data_ingresso, ha_figli_a_carico, figli_dettaglio jsonb?, created_at)
+CollaboratorCommunity(id, collaborator_id, community_id)
+
+Compensation(id, collaborator_id, community_id, tipo[OCCASIONALE|PIVA],
+             descrizione, periodo_riferimento, data_competenza,
+             importo_lordo, ritenuta_acconto?, importo_netto?,
+             numero_fattura?, data_fattura?, imponibile?, iva_percentuale?, totale_fattura?,
+             stato, manager_approved_by/at, admin_approved_by/at,
+             integration_note, integration_reasons[],
+             paid_at, paid_by, payment_reference?, note_interne?, created_at)
+CompensationAttachment(id, compensation_id, file_url, file_name, created_at)
+CompensationHistory(id, compensation_id, stato_precedente, stato_nuovo,
+                    changed_by, role_label, note?, created_at)
+
+ExpenseReimbursement(id, collaborator_id, categoria, descrizione, data_spesa, importo,
+                     stato, manager_approved_by/at, admin_approved_by/at,
+                     integration_note, paid_at, paid_by, payment_reference?, created_at)
+ExpenseAttachment(id, reimbursement_id, file_url, file_name, created_at)
+ExpenseHistory(id, reimbursement_id, stato_precedente, stato_nuovo,
+               changed_by, role_label, note?, created_at)
+
+Document(id, collaborator_id, community_id, tipo[CONTRATTO_OCCASIONALE|RICEVUTA_PAGAMENTO|CU],
+         anno?, titolo, file_original_url, stato_firma[DA_FIRMARE|FIRMATO|NON_RICHIESTO],
+         file_firmato_url?, requested_at, signed_at?, note?, created_at)
+
+Ticket(id, creator_user_id, community_id, categoria, oggetto,
+       stato[APERTO|IN_LAVORAZIONE|CHIUSO], priority[BASSA|NORMALE|ALTA], created_at)
+TicketMessage(id, ticket_id, author_user_id, message, attachment_url?, created_at)
+
+Announcement(id, community_id nullable, titolo, contenuto, pinned bool, published_at, created_at)
+Benefit(id, community_id nullable, titolo, descrizione, codice_sconto?, link?,
+        valid_from?, valid_to?, created_at)
+Resource(id, community_id nullable, titolo, descrizione, link?, file_url?, tag?, created_at)
+Event(id, community_id nullable, titolo, descrizione, start_datetime?, end_datetime?,
+      location?, luma_url?, luma_embed_url?, created_at)
+```
+
+---
+
+## 4. Workflow operativi
+
+### 4.1 Compensi
+
+```
+BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
+                ↘ INTEGRAZIONI_RICHIESTE ↗  ↘ RIFIUTATO
+```
+
+| Azione | Da stato | A stato | Ruolo |
+|---|---|---|---|
+| submit | BOZZA | INVIATO | collaboratore |
+| withdraw | INVIATO | BOZZA | collaboratore |
+| resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
+| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
+| request_integration | INVIATO / INTEGRAZIONI_RICHIESTE | INTEGRAZIONI_RICHIESTE | responsabile / amministrazione |
+| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
+| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
+| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
+
+Integrazioni richieste: obbligatorio testo "Cosa manca" (≥ 20 caratteri) + checklist motivi [Allegato mancante, Dati incompleti, Importo non coerente, Periodo non valido, Altro].
+
+### 4.2 Rimborsi
+
+Flusso identico ai compensi, senza stato BOZZA (creati direttamente come INVIATO). Allegati ricevute. Export dedicato "Da pagare".
+
+### 4.3 Documenti
+
+- **Admin** carica PDF (`file_original_url`) e imposta `DA_FIRMARE`
+- **Collaboratore** scarica PDF originale, firma offline, ricarica PDF firmato → stato `FIRMATO` (`signed_at` automatico)
+- **Notifica in-app** ad Admin quando il documento viene firmato
+- **NON_RICHIESTO**: documenti informativi (ricevute di pagamento, CU) che non richiedono firma
+
+**CU batch (Certificazione Unica):**
+- Contabilità invia una cartella ZIP con tutti i PDF + un file CSV con la mappa `nome_pdf → nome_cognome_utente`
+- Il sistema deve permettere upload ZIP + CSV e associare automaticamente ogni PDF al collaboratore corretto (match su `nome_cognome`)
+- Dedup: se un CU per lo stesso collaboratore e anno esiste già, non sovrascrivere (segnalare come duplicato)
+- **Nota operativa:** fare un passaggio con contabilità per allinare il formato esatto del CSV prima dell'implementazione. Il formato attuale del nome file è `nome_cognome` (nome utente gestionale).
+
+**Allegati contratto:**
+- Logica allegati invece di 100 template contratto diversi: l'admin carica il PDF del contratto specifico e lo assegna al collaboratore
+- Filtro risorse per ruolo: ogni documento/risorsa è visibile solo ai ruoli abilitati
+- La community gestisce autonomamente creazione allegati, upload, assegnazione ruoli — senza intervento tecnico
+
+### 4.4 Ticket
+
+Thread messaggi + allegati, stati APERTO / IN_LAVORAZIONE / CHIUSO, notifiche in-app minime.
+
+### 4.5 Export
+
+**Compensi "Da pagare"** (stato = APPROVATO_ADMIN):
+- Occasionali: Nome, Cognome, CF, Community, Periodo, Causale, Data competenza, Lordo, Ritenuta, Netto, IBAN
+- P.IVA: Nome/Cognome, P.IVA, Community, N. fattura, Data fattura, Imponibile, IVA%, Totale, IBAN, Note
+
+**Rimborsi "Da pagare"** (stato = APPROVATO_ADMIN):
+- Nome, Cognome, CF, Community, Categoria, Data spesa, Importo, IBAN, Note
+
+---
+
+## 5. Pagine e navigazione
+
+### Collaboratore (max 6 voci)
+| Voce | Contenuto |
+|---|---|
+| Dashboard | 3 card (Compensi, Rimborsi, Documenti da firmare) + azioni rapide + "Cosa mi manca" |
+| Profilo | Dati anagrafici modificabili, IBAN, figli a carico |
+| Compensi | Lista proprie richieste + wizard creazione |
+| Rimborsi | Lista proprie richieste + form creazione |
+| Documenti | Documenti da firmare + storico |
+| Contenuti | Bacheca + Agevolazioni + Guide/Materiali + Eventi |
+
+### Responsabile (max 7 voci)
+Approvazioni (tab Compensi/Rimborsi), Collaboratori (community assegnate), Ticket, Contenuti.
+
+### Amministrazione / Super Admin (max 7 voci)
+Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collaboratori, Export, Documenti, Ticket, Contenuti, Impostazioni (solo super_admin).
+
+---
+
+## 6. Requisiti UX (vincolanti)
+
+- **Anonimato**: collaboratore non vede nome/email di chi approva. Timeline mostra solo "Responsabile" / "Amministrazione"
+- **Integrazioni**: testo ≥ 20 caratteri + checklist motivi obbligatoria. Il collaboratore vede banner + elenco puntato + bottone unico "Carica integrazione"
+- **Pagamenti**: admin può "Segna pagato" singolo (da dettaglio) e massivo (multi-selezione). `paid_at` automatico. `payment_reference` opzionale ma consigliato
+- **Filtro default**: "Solo cose che richiedono la mia azione" attivo di default per Responsabile e Admin
+- **Wizard**: max 3 step per creare richieste (Dati → Allegati → Riepilogo e invio)
+- **Timeline**: sempre visibile nel dettaglio richiesta
+
+---
+
+## 7. Sicurezza
+
+- RLS su tutte le tabelle
+- IBAN e documenti: accesso solo ad admin e collaboratore proprietario
+- Storage privato Supabase (signed URL, nessun bucket pubblico)
+- Log: chi approva, quando, chi marca pagato
+
+---
+
+## 8. Notifiche (in-app, minimo)
+
+- Integrazioni richieste (cambio stato)
+- Documento da firmare assegnato
+- Documento firmato ricevuto (notifica ad admin)
+- Risposta ticket
+- Cambio stato generico richiesta
+
+---
+
+## 9. Fuori perimetro attuale (note per futuro)
+
+**Definizione corso unificata (idea mai implementata):**
+- Staff: definizione corso → chi ha fatto il corso → pagamenti
+- Simu: definizione corso → gestione aule → notifiche a studenti e docenti
+- Oggi i pagamenti Simu sono relativi a una definizione corso separata
+- Non implementare in Phase 1-2; valutare in Phase 3+
+
+---
+
+## 10. Note operative
+
+- **Lingua UI**: italiano. Codice/commit: inglese.
+- **Storage**: bucket privati Supabase con signed URL. Mai link pubblici per documenti.
+- **CU batch**: allineare con contabilità il formato CSV prima di implementare il batch import.
+- **Nuovi ingressi**: flusso di onboarding deve essere completabile in autonomia dall'admin senza intervento tecnico (registrazione anagrafica + generazione contratto + assegnazione ruolo).

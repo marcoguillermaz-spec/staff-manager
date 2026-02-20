@@ -200,9 +200,9 @@ test.describe.serial('Rimborsi UAT', () => {
     await page.click('button:has-text("Pre-approva")');
     await page.waitForSelector('span.text-indigo-300', { timeout: 15_000 });
 
-    expense = await dbFirst<{ stato: string }>(
+    expense = await dbFirst<{ stato: string; manager_approved_at: string }>(
       'expense_reimbursements',
-      `select=stato&id=eq.${rejectExpenseId}`,
+      `select=stato,manager_approved_at&id=eq.${rejectExpenseId}`,
     );
     expect(expense!.stato).toBe('PRE_APPROVATO_RESP');
     console.log(`  ✅ S6b — reject expense: PRE_APPROVATO_RESP`);
@@ -238,7 +238,7 @@ test.describe.serial('Rimborsi UAT', () => {
     // Wait for badge to change to green (APPROVATO_ADMIN) — indigo badge disappears
     await page.waitForSelector('span.text-green-300', { timeout: 15_000 });
 
-    let expense = await dbFirst<{ stato: string; admin_approved_at: string }>(
+    let expense = await dbFirst<{ stato: string; admin_approved_at: string; paid_at?: string | null; payment_reference?: string | null }>(
       'expense_reimbursements',
       `select=stato,admin_approved_at&id=eq.${mainExpenseId}`,
     );
@@ -253,7 +253,7 @@ test.describe.serial('Rimborsi UAT', () => {
     // Wait for badge to change to emerald (PAGATO)
     await page.waitForSelector('span.text-emerald-300', { timeout: 15_000 });
 
-    expense = await dbFirst<{ stato: string; paid_at: string; payment_reference: string }>(
+    expense = await dbFirst<{ stato: string; admin_approved_at: string; paid_at?: string | null; payment_reference?: string | null }>(
       'expense_reimbursements',
       `select=stato,paid_at,payment_reference&id=eq.${mainExpenseId}`,
     );
