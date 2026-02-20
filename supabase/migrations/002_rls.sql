@@ -151,13 +151,13 @@ create policy "collaborators_admin_write" on collaborators
 -- ============================================================
 -- Uses security definer get_my_collaborator_id() to avoid infinite recursion:
 -- collaborators policy → collaborator_communities policy → collaborators (loop)
-create policy "collab_communities_own_read" on collaborator_communities
+create policy "user_community_access_own_read" on collaborator_communities
   for select using (collaborator_id = get_my_collaborator_id());
 
-create policy "collab_communities_admin_all" on collaborator_communities
+create policy "user_community_access_admin_all" on collaborator_communities
   for all using (get_my_role() in ('amministrazione','super_admin'));
 
-create policy "collab_communities_responsabile_read" on collaborator_communities
+create policy "user_community_access_responsabile_read" on collaborator_communities
   for select using (
     get_my_role() = 'responsabile'
     and exists (
@@ -286,12 +286,12 @@ create policy "expenses_own_update_inviato" on expense_reimbursements
   );
 
 -- community_id is nullable on expense_reimbursements (expenses are not community-scoped),
--- so we check via collab_communities whether the collaborator belongs to a managed community.
+-- so we check via user_community_access whether the collaborator belongs to a managed community.
 create policy "expenses_responsabile_read" on expense_reimbursements
   for select using (
     get_my_role() = 'responsabile'
     and exists (
-      select 1 from collab_communities cc
+      select 1 from user_community_access cc
       where cc.collaborator_id = expense_reimbursements.collaborator_id
         and can_manage_community(cc.community_id)
     )
@@ -301,7 +301,7 @@ create policy "expenses_responsabile_update" on expense_reimbursements
   for update using (
     get_my_role() = 'responsabile'
     and exists (
-      select 1 from collab_communities cc
+      select 1 from user_community_access cc
       where cc.collaborator_id = expense_reimbursements.collaborator_id
         and can_manage_community(cc.community_id)
     )
@@ -338,7 +338,7 @@ create policy "exp_attachments_manager_read" on expense_attachments
     get_my_role() = 'responsabile'
     and exists (
       select 1 from expense_reimbursements e
-      join collab_communities cc on cc.collaborator_id = e.collaborator_id
+      join user_community_access cc on cc.collaborator_id = e.collaborator_id
       where e.id = reimbursement_id
         and can_manage_community(cc.community_id)
     )
@@ -364,7 +364,7 @@ create policy "exp_history_manager_read" on expense_history
     get_my_role() = 'responsabile'
     and exists (
       select 1 from expense_reimbursements e
-      join collab_communities cc on cc.collaborator_id = e.collaborator_id
+      join user_community_access cc on cc.collaborator_id = e.collaborator_id
       where e.id = reimbursement_id
         and can_manage_community(cc.community_id)
     )
