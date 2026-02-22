@@ -19,7 +19,7 @@
 
 ---
 
-## Phase 2 — In corso
+## Phase 2 — ✅ COMPLETATA
 
 | Blocco | Stato | Unit test | E2E | Note |
 |---|---|---|---|---|
@@ -30,14 +30,14 @@
 
 ---
 
-## Phase 3 — Pianificata
+## Phase 3 — In corso
 
-| Blocco | Stato | Note |
-|---|---|---|
-| Template contratti | 🔲 | Allegati per ruolo, autonomia community |
-| Onboarding automatizzato | 🔲 | Nuovi ingressi sporadici, flusso autonomo |
-| Impostazioni avanzate | 🔲 | Gestione ruoli, community, configurazioni |
-| Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | Vedere §9 requirements.md — valutare in futuro |
+| Blocco | Stato | Unit test | E2E | Note |
+|---|---|---|---|---|
+| Impostazioni avanzate | ✅ | — | 11 Playwright | Gestione community (is_active), member_status collaboratori, assegnazione responsabile→community. Migration 007. |
+| Template contratti | 🔲 | | | Allegati per ruolo, autonomia community |
+| Onboarding automatizzato | 🔲 | | | Nuovi ingressi sporadici, flusso autonomo |
+| Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
 

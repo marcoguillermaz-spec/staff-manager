@@ -65,7 +65,7 @@ app/
     page.tsx                     → Dashboard (placeholder)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
     profilo/page.tsx             → Profile editor
-    impostazioni/page.tsx        → User management (admin only)
+    impostazioni/page.tsx        → Settings: 3-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status)
     compensi/page.tsx            → Collaboratore: list own compensations
     compensi/nuova/page.tsx      → Compensation creation wizard (3 steps)
     compensi/[id]/page.tsx       → Compensation detail + timeline + actions
@@ -86,7 +86,10 @@ app/
     auth/change-password/        → POST forced password change
     auth/clear-force-change/     → POST clear must_change_password flag
     admin/create-user/           → POST invite new user
-    admin/communities/           → GET list communities
+    admin/communities/           → GET list communities (?all=1 returns inactive too) + POST create
+    admin/communities/[id]/      → PATCH rename + toggle is_active
+    admin/responsabili/[userId]/communities/ → PUT replace community assignments for a responsabile
+    admin/members/[id]/status/   → PATCH update member_status for a collaboratore
     compensations/route.ts       → GET (list, role-filtered) + POST (create)
     compensations/[id]/route.ts  → GET (detail + history + attachments)
     compensations/[id]/transition/route.ts → POST (state machine transition)
@@ -122,6 +125,10 @@ app/
   globals.css
 
 components/
+  impostazioni/
+    CreateUserForm.tsx            → Create user form (email + role + optional communities for responsabile)
+    CommunityManager.tsx          → Community CRUD (create/rename/toggle active) + responsabile→community assignment
+    MemberStatusManager.tsx       → Collaborator list with member_status dropdown (immediate update)
   Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
   NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read on open)
   ProfileForm.tsx                → Profile edit form
@@ -175,6 +182,7 @@ supabase/migrations/
   004_documents_storage.sql      → Private `documents` bucket + storage policies
   005_add_titolo_to_documents.sql → ALTER TABLE documents ADD COLUMN titolo text
   006_tickets_storage.sql        → Private `tickets` bucket + storage policies (10MB, PDF/image/doc)
+  007_communities_settings.sql   → ADD COLUMN communities.is_active boolean DEFAULT true + admin write policy
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
@@ -191,13 +199,7 @@ e2e/
   notifications.spec.ts            → Playwright UAT: in-app notifications S1–S9 (bell, badge, mark-read, 9 tests)
   ticket.spec.ts                   → Playwright UAT: ticket full flow S1–S9 (create, thread, notify, states, 9 tests)
   contenuti.spec.ts                → Playwright UAT: content hub S1–S12 (tabs, CRUD, iframe embed, RBAC, 12 tests)
-
-e2e/
-  rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)
-  export.spec.ts                   → Playwright UAT: export page S1–S8 (CSV/XLSX/mark-paid, 8 tests)
-  documents.spec.ts                → Playwright UAT: documents + CU batch S1–S10 (upload, sign flow, 10 tests)
-  notifications.spec.ts            → Playwright UAT: in-app notifications S1–S9 (bell, badge, mark-read, navigate, 9 tests)
-  ticket.spec.ts                   → Playwright UAT: ticket full flow S1–S9 (create, thread, notify, states, DB, 9 tests)
+  impostazioni.spec.ts             → Playwright UAT: settings S1–S11 (community CRUD, member_status, responsabile assignment, 11 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -210,7 +212,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (59 tests across 6 spec files)
+npm test           # Run unit tests (81 cases) + Playwright e2e (70 tests across 7 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
@@ -232,6 +234,7 @@ Before using file uploads, run the migrations in `supabase/migrations/` via the 
 - `004_documents_storage.sql` → creates `documents` private bucket + storage policies
 - `005_add_titolo_to_documents.sql` → adds `titolo` column to documents table
 - `006_tickets_storage.sql` → creates `tickets` private bucket + storage policies
+- `007_communities_settings.sql` → adds `is_active` column to communities + admin write policy
 
 The `compensations` and `expenses` buckets must also be created (private, 10MB limit, PDF/image types).
 

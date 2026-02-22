@@ -83,22 +83,31 @@ export default async function ImpostazioniPage({
     : [];
 
   const members = activeTab === 'collaboratori'
-    ? await serviceClient
-        .from('collaborators')
-        .select('id, user_id, nome, cognome, user_profiles!inner(member_status, is_active)')
-        .order('cognome', { ascending: true })
-        .order('nome', { ascending: true })
-        .then((r) => (r.data ?? []).map((c) => {
-          const up = Array.isArray(c.user_profiles) ? c.user_profiles[0] : c.user_profiles;
+    ? await (async () => {
+        const { data: collabs } = await serviceClient
+          .from('collaborators')
+          .select('id, user_id, nome, cognome')
+          .order('cognome', { ascending: true })
+          .order('nome', { ascending: true });
+        if (!collabs || collabs.length === 0) return [];
+        const userIds = collabs.map((c) => c.user_id);
+        const { data: profiles } = await serviceClient
+          .from('user_profiles')
+          .select('user_id, member_status, is_active')
+          .in('user_id', userIds);
+        const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p]));
+        return collabs.map((c) => {
+          const p = profileMap[c.user_id];
           return {
             id: c.id,
             user_id: c.user_id,
             nome: c.nome,
             cognome: c.cognome,
-            member_status: (up?.member_status ?? 'attivo') as 'attivo' | 'uscente_con_compenso' | 'uscente_senza_compenso',
-            is_active: up?.is_active ?? true,
+            member_status: (p?.member_status ?? 'attivo') as 'attivo' | 'uscente_con_compenso' | 'uscente_senza_compenso',
+            is_active: p?.is_active ?? true,
           };
-        }))
+        });
+      })()
     : [];
 
   const tabCls = (t: Tab) =>
