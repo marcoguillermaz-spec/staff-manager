@@ -37,7 +37,7 @@
 | Impostazioni avanzate | ✅ | — | 11 Playwright | Gestione community (is_active), member_status collaboratori, assegnazione responsabile→community. Migration 007. |
 | Template contratti | ⏸ | | | In attesa di template reale: senza esempio non si possono definire variabili/modello dati. Riprendere quando disponibile. |
 | Onboarding automatizzato | ⏸ | | | Dipende da Template contratti (generazione contratto al momento della creazione utente). Blocco secondario sospeso. |
-| Dashboard collaboratore | 🔲 | | | §11 req. 3 card (compensi/rimborsi/documenti) + azioni rapide + "Cosa mi manca" + ultimi aggiornamenti. Placeholder attuale: "In costruzione". |
+| Dashboard collaboratore | ✅ | — | 10 Playwright | §11 req. 3 card riepilogative, azioni rapide, "Cosa mi manca", feed 10 item (history+tickets+annunci). Fix: RLS senza user_id su compensations/expenses. |
 | Profilo collaboratore esteso | ✅ | — | 11 Playwright | §12 req. Avatar upload (bucket `avatars`), ha_figli_a_carico (semantica: il collaboratore è fiscalmente a carico), P.IVA + guide da resources, data_ingresso admin-managed, PaymentOverview in /compensi. Migration 008. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
@@ -67,6 +67,14 @@
 ---
 
 ## Log blocchi completati
+
+### Dashboard collaboratore — completato 2026-02-23
+- File: `app/(app)/page.tsx` (riscritta da placeholder), `e2e/dashboard.spec.ts`
+- Nessuna migration necessaria — dati già esistenti
+- Test: — unit + 10 Playwright (S1–S10, tutti verdi)
+- Fix critico: `compensations` e `expense_reimbursements` usano `collaborator_id` (non `user_id`) — RLS filtra tramite join `collaborator_id → collaborators.user_id = auth.uid()`. Non aggiungere `.eq('user_id', ...)` su queste tabelle.
+- Pattern Playwright: con `{ page }` fixture in `test.describe.serial`, ogni test ha un browser context SEPARATO — chiamare `login()` esplicitamente all'inizio di ogni test, non solo del primo.
+- Feed: service role client inline per `ticket_messages` (stesso pattern API routes)
 
 ### Profilo collaboratore esteso — completato 2026-02-23
 - File: `app/api/profile/avatar/route.ts`, `app/api/admin/members/[id]/data-ingresso/route.ts`, `components/ProfileForm.tsx`, `components/Sidebar.tsx`, `components/compensation/PaymentOverview.tsx`, `e2e/profilo.spec.ts`

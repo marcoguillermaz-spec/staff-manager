@@ -62,7 +62,7 @@ INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 ```
 app/
   (app)/
-    page.tsx                     → Dashboard (placeholder)
+    page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
     profilo/page.tsx             → Profile editor (avatar, fiscal data, editable IBAN/phone/address/tshirt)
     impostazioni/page.tsx        → Settings: 3-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status)
@@ -206,6 +206,7 @@ e2e/
   contenuti.spec.ts                → Playwright UAT: content hub S1–S12 (tabs, CRUD, iframe embed, RBAC, 12 tests)
   impostazioni.spec.ts             → Playwright UAT: settings S1–S11 (community CRUD, member_status, responsabile assignment, 11 tests)
   profilo.spec.ts                  → Playwright UAT: extended profile S1–S11 (avatar, fiscal data, payment overview, 11 tests)
+  dashboard.spec.ts                → Playwright UAT: collaboratore dashboard S1–S10 (cards, quick actions, feed, 10 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -218,7 +219,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (81 tests across 8 spec files)
+npm test           # Run unit tests (81 cases) + Playwright e2e (91 tests across 9 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
