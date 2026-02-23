@@ -35,8 +35,7 @@
 | Blocco | Stato | Unit test | E2E | Note |
 |---|---|---|---|---|
 | Impostazioni avanzate | ✅ | — | 11 Playwright | Gestione community (is_active), member_status collaboratori, assegnazione responsabile→community. Migration 007. |
-| Template contratti | ⏸ | | | In attesa di template reale: senza esempio non si possono definire variabili/modello dati. Riprendere quando disponibile. |
-| Onboarding automatizzato | ⏸ | | | Dipende da Template contratti (generazione contratto al momento della creazione utente). Blocco secondario sospeso. |
+| Template contratti + Onboarding automatizzato | ✅ | — | 10 Playwright | Migration 009. Tabella `contract_templates`, bucket `contracts`, docxtemplater. Tab "Contratti" in Impostazioni. CreateUserForm espanso con anagrafica + contratto. ProfileForm: tutti i campi editabili (tranne email/data_ingresso). |
 | Dashboard collaboratore | ✅ | — | 10 Playwright | §11 req. 3 card riepilogative, azioni rapide, "Cosa mi manca", feed 10 item (history+tickets+annunci). Fix: RLS senza user_id su compensations/expenses. |
 | Profilo collaboratore esteso | ✅ | — | 11 Playwright | §12 req. Avatar upload (bucket `avatars`), ha_figli_a_carico (semantica: il collaboratore è fiscalmente a carico), P.IVA + guide da resources, data_ingresso admin-managed, PaymentOverview in /compensi. Migration 008. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
@@ -67,6 +66,16 @@
 ---
 
 ## Log blocchi completati
+
+### Template contratti + Onboarding automatizzato — completato 2026-02-23
+- File: `supabase/migrations/009_contract_templates.sql`, `app/api/admin/contract-templates/route.ts`, `components/impostazioni/ContractTemplateManager.tsx`, `e2e/contratti.spec.ts`
+- Modificati: `app/api/admin/create-user/route.ts` (anagrafica + collaborators insert + docxtemplater generation), `components/impostazioni/CreateUserForm.tsx` (full anagrafica + contract section), `app/api/profile/route.ts` (expanded fields), `components/ProfileForm.tsx` (all fields editable), `app/(app)/profilo/page.tsx`, `app/(app)/impostazioni/page.tsx` (tab Contratti), `lib/types.ts`
+- Migration: `009_contract_templates.sql` — luogo_nascita/comune su collaborators, nuovi tipi CONTRATTO_COCOCO/PIVA, tabella contract_templates, bucket contracts
+- Packages: docxtemplater 3.68.2 + pizzip 3.2.0
+- Test: — unit + 10 Playwright (S1–S10, tutti verdi)
+- Pattern: docxtemplater richiede `nullGetter: () => ''` per variabili non valorizzate — altrimenti genera eccezione. Generazione in create-user è best-effort: se il template è assente o la generazione fallisce, l'utente viene creato ugualmente.
+- Onboarding: create-user API ora crea il record `collaborators` quando role=collaboratore (era un gap storico). I dati anagrafici per la generazione contratto vengono raccolti dall'admin al momento dell'invito.
+- Placeholder syntax: `{variabile}` (singola graffa, docxtemplater default)
 
 ### Dashboard collaboratore — completato 2026-02-23
 - File: `app/(app)/page.tsx` (riscritta da placeholder), `e2e/dashboard.spec.ts`

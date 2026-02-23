@@ -65,7 +65,7 @@ app/
     page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
     profilo/page.tsx             → Profile editor (avatar, fiscal data, editable IBAN/phone/address/tshirt)
-    impostazioni/page.tsx        → Settings: 3-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status)
+    impostazioni/page.tsx        → Settings: 4-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload)
     compensi/page.tsx            → Collaboratore: list own compensations
     compensi/nuova/page.tsx      → Compensation creation wizard (3 steps)
     compensi/[id]/page.tsx       → Compensation detail + timeline + actions
@@ -82,16 +82,17 @@ app/
     ticket/[id]/page.tsx         → Ticket detail: message thread + reply form + status change buttons
     contenuti/page.tsx           → Content hub: 4 URL-based tabs (bacheca/agevolazioni/guide/eventi), per-tab fetch
   api/
-    profile/route.ts             → PATCH own profile fields (telefono, indirizzo, IBAN, tshirt, partita_iva, ha_figli_a_carico)
+    profile/route.ts             → PATCH own profile fields (nome, cognome, codice_fiscale, data_nascita, luogo_nascita, comune, telefono, indirizzo, IBAN, tshirt, partita_iva, ha_figli_a_carico)
     profile/avatar/route.ts      → POST upload profile photo → avatars bucket
     auth/change-password/        → POST forced password change
     auth/clear-force-change/     → POST clear must_change_password flag
-    admin/create-user/           → POST invite new user
+    admin/create-user/           → POST invite new user + create collaborators record + generate contract (best-effort)
     admin/communities/           → GET list communities (?all=1 returns inactive too) + POST create
     admin/communities/[id]/      → PATCH rename + toggle is_active
     admin/responsabili/[userId]/communities/ → PUT replace community assignments for a responsabile
     admin/members/[id]/status/   → PATCH update member_status for a collaboratore
     admin/members/[id]/data-ingresso/ → PATCH update data_ingresso (admin only)
+    admin/contract-templates/    → GET list templates + POST upload/replace .docx per type (OCCASIONALE/COCOCO/PIVA)
     compensations/route.ts       → GET (list, role-filtered) + POST (create)
     compensations/[id]/route.ts  → GET (detail + history + attachments)
     compensations/[id]/transition/route.ts → POST (state machine transition)
@@ -128,9 +129,10 @@ app/
 
 components/
   impostazioni/
-    CreateUserForm.tsx            → Create user form (email + role + optional communities for responsabile)
+    CreateUserForm.tsx            → Create user form (email + role + anagrafica + optional contract generation for collaboratore)
     CommunityManager.tsx          → Community CRUD (create/rename/toggle active) + responsabile→community assignment
     MemberStatusManager.tsx       → Collaborator list with member_status dropdown + data_ingresso inline edit
+    ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference
   Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
   NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read on open)
   ProfileForm.tsx                → Profile edit form (avatar, fiscal data, guide collassabili)
@@ -188,6 +190,7 @@ supabase/migrations/
   006_tickets_storage.sql        → Private `tickets` bucket + storage policies (10MB, PDF/image/doc)
   007_communities_settings.sql   → ADD COLUMN communities.is_active boolean DEFAULT true + admin write policy
   008_avatars_bucket.sql         → Public `avatars` bucket + storage policies (2MB, jpg/png/webp)
+  009_contract_templates.sql     → luogo_nascita/comune on collaborators, CONTRATTO_COCOCO/PIVA doc types, contract_templates table, contracts bucket
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
@@ -207,6 +210,7 @@ e2e/
   impostazioni.spec.ts             → Playwright UAT: settings S1–S11 (community CRUD, member_status, responsabile assignment, 11 tests)
   profilo.spec.ts                  → Playwright UAT: extended profile S1–S11 (avatar, fiscal data, payment overview, 11 tests)
   dashboard.spec.ts                → Playwright UAT: collaboratore dashboard S1–S10 (cards, quick actions, feed, 10 tests)
+  contratti.spec.ts                → Playwright UAT: contract templates + onboarding S1–S10 (upload, generate, profile editing, 10 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -219,7 +223,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (91 tests across 9 spec files)
+npm test           # Run unit tests (81 cases) + Playwright e2e (101 tests across 10 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
