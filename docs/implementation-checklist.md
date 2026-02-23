@@ -39,6 +39,7 @@
 | Dashboard collaboratore | ✅ | — | 10 Playwright | §11 req. 3 card riepilogative, azioni rapide, "Cosa mi manca", feed 10 item (history+tickets+annunci). Fix: RLS senza user_id su compensations/expenses. |
 | Profilo collaboratore esteso | ✅ | — | 11 Playwright | §12 req. Avatar upload (bucket `avatars`), ha_figli_a_carico (semantica: il collaboratore è fiscalmente a carico), P.IVA + guide da resources, data_ingresso admin-managed, PaymentOverview in /compensi. Migration 008. |
 | Onboarding flow | ✅ | — | 10 Playwright | Migration 010. Wizard 2-step post-primo-login: dati anagrafici (tutti obbligatori) + genera contratto. tipo_contratto obbligatorio nell'invite admin. Proxy redirect a /onboarding se onboarding_completed=false. collaborators per entrambi i ruoli. |
+| Campi CoCoCo + estensione profilo (province, civico) | ✅ | — | 10 Playwright | Migration 011. 3 nuovi campi su collaborators (provincia_nascita, provincia_residenza, civico_residenza). UI split: città/provincia nascita, comune/provincia residenza, via/civico. dual-name vars COCOCO in onboarding/complete. ContractTemplateManager: 13 segnaposto CoCoCo. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -51,7 +52,7 @@
 |---|---|---|---|
 | 1 | Documenti + CU batch | **Anno CU nel batch**: confermato — admin specifica l'anno manualmente. Allineare con contabilità a primo utilizzo reale. | ✅ chiuso |
 | 2 | Documenti + CU batch | **Formato CSV CU batch**: assunzione `nome_file,nome,cognome`. Allineare con contabilità a primo utilizzo reale. | ⏳ da verificare |
-| 3 | Template contratti | **Template reale**: blocco sospeso finché non disponibile un template di esempio. Sblocca anche Onboarding automatizzato. | ⏸ in attesa |
+| 3 | Template contratti | **Template reale**: `Contratto_Cococo_Testbusters.docx` caricato in storage. Onboarding COCOCO end-to-end verificato con test e2e S7. | ✅ chiuso |
 
 ---
 
@@ -75,6 +76,14 @@
 - Test: — unit + 10 Playwright (S1–S10, tutti verdi)
 - Pattern: wizard 2-step: step 1 = dati anagrafici (tutti required), step 2 = genera contratto via docxtemplater → onboarding_completed=true. Il download è step intermedio; l'utente clicca "Ho scaricato" per accedere alla dashboard.
 - Flow test e2e con browser.newPage() in beforeAll per condividere il contesto browser tra S2–S7 (sessione persistente durante il flusso).
+
+### Campi CoCoCo + estensione profilo — completato 2026-02-23
+- File: `supabase/migrations/011_contract_fields.sql`, `e2e/contratti.spec.ts`, `e2e/profilo.spec.ts`, `components/impostazioni/ContractTemplateManager.tsx`
+- Modificati: `lib/types.ts` (3 campi), `app/api/profile/route.ts` (SELF_EDIT_FIELDS), `app/api/onboarding/complete/route.ts` (schema + vars dual-name), `components/onboarding/OnboardingWizard.tsx`, `components/ProfileForm.tsx`, `components/impostazioni/CreateUserForm.tsx`, `app/api/admin/create-user/route.ts`, `app/onboarding/page.tsx`, `app/(app)/profilo/page.tsx`
+- Migration: `011_contract_fields.sql` — ADD COLUMN provincia_nascita, provincia_residenza, civico_residenza su collaborators
+- Test: 0 unit + 10 Playwright (S1–S10 contratti, tutti verdi); 11 Playwright (profilo, tutti verdi)
+- Pattern: vars dict dual-name — stessa chiave per campo OCCASIONALE e corrispondente campo COCOCO nello stesso dict. docxtemplater usa `nullGetter: () => ''` → variabili non presenti nel template vengono ignorate silenziosamente.
+- Onboarding e2e S7: creazione test user via service role direttamente (bypass UI) + `must_change_password=false` + `onboarding_completed=false` → login → proxy redirect a /onboarding → wizard → CONTRATTO_COCOCO DA_FIRMARE.
 
 ### Template contratti + Onboarding automatizzato — completato 2026-02-23
 - File: `supabase/migrations/009_contract_templates.sql`, `app/api/admin/contract-templates/route.ts`, `components/impostazioni/ContractTemplateManager.tsx`, `e2e/contratti.spec.ts`

@@ -82,7 +82,7 @@ app/
     ticket/[id]/page.tsx         → Ticket detail: message thread + reply form + status change buttons
     contenuti/page.tsx           → Content hub: 4 URL-based tabs (bacheca/agevolazioni/guide/eventi), per-tab fetch
   api/
-    profile/route.ts             → PATCH own profile fields (nome, cognome, codice_fiscale, data_nascita, luogo_nascita, comune, telefono, indirizzo, IBAN, tshirt, partita_iva, ha_figli_a_carico)
+    profile/route.ts             → PATCH own profile fields (nome, cognome, codice_fiscale, data_nascita, luogo_nascita, provincia_nascita, comune, provincia_residenza, telefono, indirizzo, civico_residenza, IBAN, tshirt, partita_iva, ha_figli_a_carico)
     profile/avatar/route.ts      → POST upload profile photo → avatars bucket
     auth/change-password/        → POST forced password change
     auth/clear-force-change/     → POST clear must_change_password flag
@@ -136,7 +136,7 @@ components/
     CreateUserForm.tsx            → Create user form (email + role + tipo_contratto required; anagrafica optional pre-fill)
     CommunityManager.tsx          → Community CRUD (create/rename/toggle active) + responsabile→community assignment
     MemberStatusManager.tsx       → Collaborator list with member_status dropdown + data_ingresso inline edit
-    ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference
+    ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference (including 13 CoCoCo-specific vars)
   Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
   NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read on open)
   ProfileForm.tsx                → Profile edit form (avatar, fiscal data, guide collassabili)
@@ -196,6 +196,7 @@ supabase/migrations/
   008_avatars_bucket.sql         → Public `avatars` bucket + storage policies (2MB, jpg/png/webp)
   009_contract_templates.sql     → luogo_nascita/comune on collaborators, CONTRATTO_COCOCO/PIVA doc types, contract_templates table, contracts bucket
   010_onboarding.sql             → onboarding_completed on user_profiles, tipo_contratto on collaborators, nome/cognome nullable
+  011_contract_fields.sql        → ADD COLUMN provincia_nascita, provincia_residenza, civico_residenza on collaborators
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
@@ -215,7 +216,7 @@ e2e/
   impostazioni.spec.ts             → Playwright UAT: settings S1–S11 (community CRUD, member_status, responsabile assignment, 11 tests)
   profilo.spec.ts                  → Playwright UAT: extended profile S1–S11 (avatar, fiscal data, payment overview, 11 tests)
   dashboard.spec.ts                → Playwright UAT: collaboratore dashboard S1–S10 (cards, quick actions, feed, 10 tests)
-  contratti.spec.ts                → Playwright UAT: contract templates + onboarding S1–S10 (upload, generate, profile editing, 10 tests)
+  contratti.spec.ts                → Playwright UAT: contract templates + onboarding + CoCoCo fields S1–S10 (upload, new province/civico DB fields, full COCOCO onboarding wizard, 10 tests)
   onboarding.spec.ts               → Playwright UAT: onboarding flow S1–S10 (wizard, anagrafica, contract download, proxy redirect, 10 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
