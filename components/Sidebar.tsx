@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { NavItem } from '@/lib/nav';
@@ -16,6 +17,7 @@ interface SidebarProps {
 export default function Sidebar({ navItems, userEmail, userName, avatarUrl }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -74,13 +76,38 @@ export default function Sidebar({ navItems, userEmail, userName, avatarUrl }: Si
           </div>
         </div>
         <button
-          onClick={handleSignOut}
+          onClick={() => setShowLogoutConfirm(true)}
           className="w-full text-left px-2 py-1.5 rounded-md text-xs text-gray-500
                      hover:text-gray-300 hover:bg-gray-800 transition"
         >
           Esci
         </button>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-5 w-72">
+            <p className="text-sm font-semibold text-gray-100 mb-1">Esci dall&apos;account?</p>
+            <p className="text-xs text-gray-400 mb-5">Verrai reindirizzato alla pagina di login.</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-3 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-200
+                           hover:bg-gray-800 transition"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-600
+                           hover:bg-red-500 text-white transition"
+              >
+                Esci
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
