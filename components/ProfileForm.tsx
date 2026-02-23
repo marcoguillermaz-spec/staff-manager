@@ -309,7 +309,7 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className={labelCls}>Telefono</label>
+            <label className={labelCls}>Telefono di contatto</label>
             <input
               type="tel"
               placeholder="+39 333 0000000"
@@ -321,7 +321,7 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
-              <label className={labelCls}>Via/Piazza</label>
+              <label className={labelCls}>Via/Piazza di residenza</label>
               <input
                 type="text"
                 placeholder="Via Roma"
