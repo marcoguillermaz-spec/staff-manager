@@ -10,9 +10,10 @@ interface SidebarProps {
   navItems: NavItem[];
   userEmail: string;
   userName: string;
+  avatarUrl?: string | null;
 }
 
-export default function Sidebar({ navItems, userEmail, userName }: SidebarProps) {
+export default function Sidebar({ navItems, userEmail, userName, avatarUrl }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -58,10 +59,14 @@ export default function Sidebar({ navItems, userEmail, userName }: SidebarProps)
       {/* User footer */}
       <div className="px-3 py-4 border-t border-gray-800">
         <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs text-gray-300 font-medium">
-              {userName.charAt(0).toUpperCase()}
-            </span>
+          <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs text-gray-300 font-medium">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-gray-200 truncate">{userName}</p>

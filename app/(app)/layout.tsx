@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: collaborator } = await supabase
     .from('collaborators')
-    .select('nome, cognome')
+    .select('nome, cognome, foto_profilo_url')
     .eq('user_id', user.id)
     .single();
 
@@ -36,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         navItems={navItems}
         userEmail={user.email ?? ''}
         userName={userName}
+        avatarUrl={collaborator?.foto_profilo_url ?? null}
       />
       <main className="flex-1 overflow-y-auto">
         {children}

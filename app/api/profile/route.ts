@@ -4,13 +4,19 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 // Fields a collaborator can update on their own record
-const SELF_EDIT_FIELDS = ['telefono', 'indirizzo', 'iban', 'tshirt_size'] as const;
+const SELF_EDIT_FIELDS = [
+  'telefono', 'indirizzo', 'iban', 'tshirt_size',
+  'partita_iva', 'ha_figli_a_carico',
+] as const;
 
 const patchSchema = z.object({
-  telefono:    z.string().max(20).optional(),
-  indirizzo:   z.string().max(200).optional(),
-  iban:        z.string().max(34).regex(/^[A-Z]{2}\d{2}[A-Z0-9]+$/, 'IBAN non valido').or(z.literal('')).optional(),
-  tshirt_size: z.enum(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']).nullable().optional(),
+  telefono:          z.string().max(20).optional(),
+  indirizzo:         z.string().max(200).optional(),
+  iban:              z.string().max(34).regex(/^[A-Z]{2}\d{2}[A-Z0-9]+$/, 'IBAN non valido').or(z.literal('')).optional(),
+  tshirt_size:       z.enum(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']).nullable().optional(),
+  partita_iva:       z.string().max(16).nullable().optional(),
+  // ha_figli_a_carico: il collaboratore dichiara se È fiscalmente a carico di un familiare
+  ha_figli_a_carico: z.boolean().optional(),
 });
 
 export async function PATCH(request: Request) {

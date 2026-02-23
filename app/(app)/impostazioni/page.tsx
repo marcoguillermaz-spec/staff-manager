@@ -86,7 +86,7 @@ export default async function ImpostazioniPage({
     ? await (async () => {
         const { data: collabs } = await serviceClient
           .from('collaborators')
-          .select('id, user_id, nome, cognome')
+          .select('id, user_id, nome, cognome, data_ingresso')
           .order('cognome', { ascending: true })
           .order('nome', { ascending: true });
         if (!collabs || collabs.length === 0) return [];
@@ -105,6 +105,7 @@ export default async function ImpostazioniPage({
             cognome: c.cognome,
             member_status: (p?.member_status ?? 'attivo') as 'attivo' | 'uscente_con_compenso' | 'uscente_senza_compenso',
             is_active: p?.is_active ?? true,
+            data_ingresso: c.data_ingresso ?? null,
           };
         });
       })()

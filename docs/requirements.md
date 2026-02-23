@@ -224,3 +224,72 @@ Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collabor
 - **Storage**: bucket privati Supabase con signed URL. Mai link pubblici per documenti.
 - **CU batch**: allineare con contabilità il formato CSV prima di implementare il batch import.
 - **Nuovi ingressi**: flusso di onboarding deve essere completabile in autonomia dall'admin senza intervento tecnico (registrazione anagrafica + generazione contratto + assegnazione ruolo).
+
+---
+
+## 11. Dashboard collaboratore (Phase 3)
+
+Pagina principale del collaboratore. Attualmente placeholder "In costruzione".
+
+### Card di riepilogo (3 card grandi)
+Ogni card mostra: conteggio richieste attive + importo totale in euro + conteggio richieste in attesa di pagamento (APPROVATO_ADMIN) + relativo importo.
+
+- **Compensi**: richieste attive (stato ≠ PAGATO, ≠ RIFIUTATO) + di cui in attesa pagamento
+- **Rimborsi**: stessa logica compensi, conteggi e importi separati
+- **Documenti da firmare**: solo conteggio documenti in stato DA_FIRMARE
+
+### Azioni rapide
+- Nuovo compenso → `/compensi/nuova`
+- Nuovo rimborso → `/rimborsi/nuova`
+- Apri ticket → `/ticket/nuova`
+
+### "Cosa mi manca"
+Sezione che segnala azioni richieste al collaboratore. Trigger:
+- Richieste in stato INTEGRAZIONI_RICHIESTE → "Hai X richiesta/e che richiedono integrazione"
+- Documenti in stato DA_FIRMARE → "Hai X documento/i da firmare"
+- Ticket aperti senza risposta del collaboratore (ultimo messaggio non è dell'utente corrente)
+- Profilo incompleto: campi obbligatori mancanti (IBAN, codice fiscale) → "Completa il tuo profilo"
+  - Nota: una volta implementato l'onboarding, il profilo sarà sempre completo all'attivazione. Il check rimane come fallback.
+
+### Ultimi aggiornamenti (feed)
+Mostrare le ultime 10 voci aggregate da:
+- Cambi stato su compensi e rimborsi propri (da `compensation_history` / `expense_history`)
+- Risposte ai propri ticket (nuovi `ticket_messages` da altri utenti)
+- Nuovi annunci in bacheca (`announcements`, max 3, pinned first)
+
+---
+
+## 12. Profilo collaboratore esteso (Phase 3)
+
+Estensione del profilo attuale (IBAN, tel, indirizzo, tshirt_size).
+
+### Schema DB — note
+Tutti i campi (`ha_figli_a_carico`, `figli_dettaglio`, `data_ingresso`, `foto_profilo_url`, `partita_iva`) erano già presenti in `001_schema.sql` e nel DB live. Solo il bucket `avatars` è stato aggiunto con migration `008`.
+
+### Dati fiscali — Sono fiscalmente a carico
+- Semantica: il collaboratore dichiara se È fiscalmente a carico di un familiare (es. genitore). Non se "ha figli a carico".
+- Campo DB: `ha_figli_a_carico` boolean (nome storico mantenuto per compatibilità)
+- Checkbox "Sono fiscalmente a carico" + testo esplicativo
+- Se true: mostrare collassabile una guida con soglie reddito/età — contenuto gestito dall'admin tramite Contenuti > Guide (tag: `detrazioni-figli`)
+
+### Info P.IVA
+- Campo `partita_iva` (testo, opzionale) già nel modello: editabile dal collaboratore
+- Se `partita_iva` valorizzato: mostrare banner "Sei registrato come P.IVA" + contenuto di una guida gestita dall'admin (tag: `procedura-piva`). Stesso meccanismo del punto precedente.
+
+### Data ingresso
+- Campo `data_ingresso` (date): impostato dall'admin nel form di creazione utente
+- Modificabile dall'admin o responsabile nella pagina Impostazioni > Collaboratori (MemberStatusManager o sezione dedicata)
+- Read-only per il collaboratore nel proprio profilo
+
+### Foto profilo
+- Campo `foto_profilo_url` nel record collaboratore
+- Upload da parte del collaboratore nel proprio profilo (Supabase Storage, bucket `avatars` pubblico o signed URL)
+- Non obbligatoria; mostrata in Sidebar se presente, altrimenti iniziali
+
+### Panoramica pagamenti — pagina Compensi
+Sezione "I miei pagamenti" posizionata in testa alla pagina `/compensi`, con due card:
+- **Compensi ricevuti**: breakdown per anno — totale PAGATO per anno corrente e anni precedenti
+- **Rimborsi ricevuti**: stesso breakdown per anno
+
+Importi "in attesa" (INVIATO + INTEGRAZIONI_RICHIESTE + PRE_APPROVATO_RESP + APPROVATO_ADMIN) mostrati separatamente sotto le card come riga riepilogativa.
+Calcolato dinamicamente — nessun campo persisted.

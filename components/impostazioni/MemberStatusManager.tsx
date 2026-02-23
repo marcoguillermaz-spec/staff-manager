@@ -12,6 +12,7 @@ type Member = {
   cognome: string;
   member_status: MemberStatus;
   is_active: boolean;
+  data_ingresso: string | null;
 };
 
 const STATUS_LABELS: Record<MemberStatus, string> = {
@@ -28,18 +29,37 @@ const STATUS_COLORS: Record<MemberStatus, string> = {
 
 export default function MemberStatusManager({ members }: { members: Member[] }) {
   const router = useRouter();
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
+  const [loadingDateId, setLoadingDateId] = useState<string | null>(null);
+  const [dateValues, setDateValues] = useState<Record<string, string>>(
+    Object.fromEntries(members.map((m) => [m.id, m.data_ingresso ?? ''])),
+  );
   const [error, setError] = useState<string | null>(null);
 
-  async function handleChange(id: string, newStatus: MemberStatus) {
-    setLoadingId(id);
+  async function handleStatusChange(id: string, newStatus: MemberStatus) {
+    setLoadingStatusId(id);
     setError(null);
     const res = await fetch(`/api/admin/members/${id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ member_status: newStatus }),
     });
-    setLoadingId(null);
+    setLoadingStatusId(null);
+    if (!res.ok) { const j = await res.json(); setError(j.error ?? 'Errore.'); return; }
+    router.refresh();
+  }
+
+  async function handleDateSave(id: string, originalDate: string | null) {
+    const value = dateValues[id] || null;
+    if (value === (originalDate ?? '')) return; // no change
+    setLoadingDateId(id);
+    setError(null);
+    const res = await fetch(`/api/admin/members/${id}/data-ingresso`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data_ingresso: value }),
+    });
+    setLoadingDateId(null);
     if (!res.ok) { const j = await res.json(); setError(j.error ?? 'Errore.'); return; }
     router.refresh();
   }
@@ -49,7 +69,7 @@ export default function MemberStatusManager({ members }: { members: Member[] }) 
       <div className="px-5 py-4 border-b border-gray-800">
         <h2 className="text-sm font-medium text-gray-200">Stato collaboratori</h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Gestisci lo stato di uscita dei collaboratori. Lo stato influisce sulla visibilità di documenti e richieste.
+          Gestisci lo stato di uscita e la data di ingresso dei collaboratori.
         </p>
       </div>
 
@@ -62,24 +82,38 @@ export default function MemberStatusManager({ members }: { members: Member[] }) 
           <p className="px-5 py-4 text-sm text-gray-500">Nessun collaboratore trovato.</p>
         )}
         {members.map((m) => (
-          <div key={m.id} className="px-5 py-3 flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-200 truncate">{m.cognome} {m.nome}</p>
-              <p className={`text-xs ${STATUS_COLORS[m.member_status]}`}>
-                {STATUS_LABELS[m.member_status]}
-              </p>
+          <div key={m.id} className="px-5 py-3 space-y-2">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-200 truncate">{m.cognome} {m.nome}</p>
+                <p className={`text-xs ${STATUS_COLORS[m.member_status]}`}>
+                  {STATUS_LABELS[m.member_status]}
+                </p>
+              </div>
+              <select
+                value={m.member_status}
+                disabled={loadingStatusId === m.id}
+                onChange={(e) => handleStatusChange(m.id, e.target.value as MemberStatus)}
+                className="rounded-lg bg-gray-800 border border-gray-700 px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
+              >
+                {(Object.entries(STATUS_LABELS) as [MemberStatus, string][]).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+              {loadingStatusId === m.id && <span className="text-xs text-gray-500">…</span>}
             </div>
-            <select
-              value={m.member_status}
-              disabled={loadingId === m.id}
-              onChange={(e) => handleChange(m.id, e.target.value as MemberStatus)}
-              className="rounded-lg bg-gray-800 border border-gray-700 px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
-            >
-              {(Object.entries(STATUS_LABELS) as [MemberStatus, string][]).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
-            {loadingId === m.id && <span className="text-xs text-gray-500">…</span>}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 whitespace-nowrap">Data ingresso:</span>
+              <input
+                type="date"
+                value={dateValues[m.id] ?? ''}
+                onChange={(e) => setDateValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                onBlur={() => handleDateSave(m.id, m.data_ingresso)}
+                disabled={loadingDateId === m.id}
+                className="rounded-lg bg-gray-800 border border-gray-700 px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
+              />
+              {loadingDateId === m.id && <span className="text-xs text-gray-500">…</span>}
+            </div>
           </div>
         ))}
       </div>

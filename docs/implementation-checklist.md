@@ -35,8 +35,10 @@
 | Blocco | Stato | Unit test | E2E | Note |
 |---|---|---|---|---|
 | Impostazioni avanzate | ✅ | — | 11 Playwright | Gestione community (is_active), member_status collaboratori, assegnazione responsabile→community. Migration 007. |
-| Template contratti | 🔲 | | | Allegati per ruolo, autonomia community |
-| Onboarding automatizzato | 🔲 | | | Nuovi ingressi sporadici, flusso autonomo |
+| Template contratti | ⏸ | | | In attesa di template reale: senza esempio non si possono definire variabili/modello dati. Riprendere quando disponibile. |
+| Onboarding automatizzato | ⏸ | | | Dipende da Template contratti (generazione contratto al momento della creazione utente). Blocco secondario sospeso. |
+| Dashboard collaboratore | 🔲 | | | §11 req. 3 card (compensi/rimborsi/documenti) + azioni rapide + "Cosa mi manca" + ultimi aggiornamenti. Placeholder attuale: "In costruzione". |
+| Profilo collaboratore esteso | 🔲 | | | §12 req. Figli a carico (ha_figli_a_carico + figli_dettaglio), P.IVA info, data_ingresso, panoramica pagamenti "Quanto mi spetta". Migration richiesta. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -49,6 +51,7 @@
 |---|---|---|---|
 | 1 | Documenti + CU batch | **Anno CU nel batch**: confermato — admin specifica l'anno manualmente. Allineare con contabilità a primo utilizzo reale. | ✅ chiuso |
 | 2 | Documenti + CU batch | **Formato CSV CU batch**: assunzione `nome_file,nome,cognome`. Allineare con contabilità a primo utilizzo reale. | ⏳ da verificare |
+| 3 | Template contratti | **Template reale**: blocco sospeso finché non disponibile un template di esempio. Sblocca anche Onboarding automatizzato. | ⏸ in attesa |
 
 ---
 
