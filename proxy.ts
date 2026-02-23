@@ -56,7 +56,7 @@ export async function proxy(request: NextRequest) {
   // User is authenticated — check they have an active UserProfile (invite-only gate)
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('is_active, role, member_status, must_change_password')
+    .select('is_active, role, member_status, must_change_password, onboarding_completed')
     .eq('user_id', user.id)
     .single();
 
@@ -88,6 +88,20 @@ export async function proxy(request: NextRequest) {
 
   // Password already changed — redirect away from change-password page
   if (isChangePasswordPage) {
+    return createRedirect(new URL('/', origin), supabaseResponse);
+  }
+
+  // Onboarding not yet completed
+  const isOnboardingPage = path === '/onboarding';
+  if (!profile.onboarding_completed) {
+    if (!isOnboardingPage && !path.startsWith('/api/')) {
+      return createRedirect(new URL('/onboarding', origin), supabaseResponse);
+    }
+    return supabaseResponse;
+  }
+
+  // Onboarding completed — redirect away from onboarding page
+  if (isOnboardingPage) {
     return createRedirect(new URL('/', origin), supabaseResponse);
   }
 

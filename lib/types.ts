@@ -241,6 +241,7 @@ export interface UserProfile {
   role: Role;
   is_active: boolean;
   member_status: MemberStatus;
+  onboarding_completed: boolean;
   created_at: string;
 }
 
@@ -253,8 +254,9 @@ export interface Community {
 export interface Collaborator {
   id: string;
   user_id: string;
-  nome: string;
-  cognome: string;
+  nome: string | null;
+  cognome: string | null;
+  tipo_contratto: ContractTemplateType | null;
   codice_fiscale: string | null;
   partita_iva: string | null;
   data_nascita: string | null;

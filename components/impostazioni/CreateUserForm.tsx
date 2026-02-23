@@ -17,6 +17,9 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
 
 const CONTRACT_TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];
 
+// Roles that require tipo_contratto and have anagrafica pre-fill
+const ROLES_WITH_CONTRACT: Role[] = ['collaboratore', 'responsabile'];
+
 const inputCls =
   'w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm text-gray-100 ' +
   'placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50';
@@ -38,7 +41,7 @@ export default function CreateUserForm() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
 
-  // Anagrafica (collaboratore only)
+  // Anagrafica (optional pre-fill for collaboratore and responsabile)
   const [nome, setNome]               = useState('');
   const [cognome, setCognome]         = useState('');
   const [codiceFiscale, setCodiceFiscale] = useState('');
@@ -48,14 +51,8 @@ export default function CreateUserForm() {
   const [indirizzo, setIndirizzo]     = useState('');
   const [telefono, setTelefono]       = useState('');
 
-  // Contract (collaboratore only, optional)
-  const [contractTipo, setContractTipo]       = useState<ContractTemplateType | ''>('');
-  const [contractCommunityId, setContractCommunityId] = useState('');
-  const [compensoLordo, setCompensoLordo]     = useState('');
-  const [dataInizio, setDataInizio]           = useState('');
-  const [dataFine, setDataFine]               = useState('');
-  const [numeroRate, setNumeroRate]           = useState('');
-  const [importoRata, setImportoRata]         = useState('');
+  // Tipo rapporto (required for collaboratore and responsabile)
+  const [tipoContratto, setTipoContratto] = useState<ContractTemplateType | ''>('');
 
   // Template status (which tipos have templates uploaded)
   const [templateStatus, setTemplateStatus]   = useState<TemplateStatus[]>([]);
@@ -91,9 +88,7 @@ export default function CreateUserForm() {
   const hasTemplate = (tipo: ContractTemplateType) =>
     templateStatus.some((t) => t?.tipo === tipo);
 
-  const isCollaboratore = role === 'collaboratore';
-  const showRateFields = contractTipo === 'COCOCO' || contractTipo === 'PIVA';
-  const showInizioField = contractTipo === 'OCCASIONALE' || contractTipo === 'COCOCO';
+  const needsContract = ROLES_WITH_CONTRACT.includes(role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,8 +102,9 @@ export default function CreateUserForm() {
       community_ids: role === 'responsabile' ? selectedCommunities : [],
     };
 
-    if (isCollaboratore) {
+    if (needsContract) {
       Object.assign(body, {
+        tipo_contratto: tipoContratto || undefined,
         nome:           nome.trim() || undefined,
         cognome:        cognome.trim() || undefined,
         codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
@@ -118,18 +114,6 @@ export default function CreateUserForm() {
         indirizzo:      indirizzo.trim() || null,
         telefono:       telefono.trim() || null,
       });
-
-      if (contractTipo) {
-        Object.assign(body, {
-          contract_tipo:           contractTipo,
-          contract_community_id:   contractCommunityId || null,
-          contract_compenso_lordo: compensoLordo ? parseFloat(compensoLordo.replace(',', '.')) : undefined,
-          contract_data_inizio:    dataInizio || null,
-          contract_data_fine:      dataFine || null,
-          contract_numero_rate:    numeroRate ? parseInt(numeroRate) : null,
-          contract_importo_rata:   importoRata ? parseFloat(importoRata.replace(',', '.')) : null,
-        });
-      }
     }
 
     const res = await fetch('/api/admin/create-user', {
@@ -149,8 +133,7 @@ export default function CreateUserForm() {
     setSelectedCommunities([]);
     setNome(''); setCognome(''); setCodiceFiscale(''); setDataNascita('');
     setLuogoNascita(''); setComuneRes(''); setIndirizzo(''); setTelefono('');
-    setContractTipo(''); setContractCommunityId(''); setCompensoLordo('');
-    setDataInizio(''); setDataFine(''); setNumeroRate(''); setImportoRata('');
+    setTipoContratto('');
   };
 
   if (credentials) {
@@ -210,7 +193,7 @@ export default function CreateUserForm() {
           <div>
             <label className={labelCls}>Ruolo</label>
             <select value={role}
-              onChange={(e) => { setRole(e.target.value as Role); setSelectedCommunities([]); setContractTipo(''); }}
+              onChange={(e) => { setRole(e.target.value as Role); setSelectedCommunities([]); setTipoContratto(''); }}
               disabled={loading} className={selectCls}>
               {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -236,148 +219,92 @@ export default function CreateUserForm() {
         </div>
       )}
 
-      {/* Anagrafica collaboratore */}
-      {isCollaboratore && (
-        <>
+      {/* Tipo rapporto (required for collaboratore and responsabile) */}
+      {needsContract && (
+        <div>
+          <p className={sectionTitle}>Tipo rapporto</p>
           <div>
-            <p className={sectionTitle}>Dati personali</p>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Nome <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="Mario" value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    required disabled={loading} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Cognome <span className="text-red-500">*</span></label>
-                  <input type="text" placeholder="Rossi" value={cognome}
-                    onChange={(e) => setCognome(e.target.value)}
-                    required disabled={loading} className={inputCls} />
-                </div>
+            <label className={labelCls}>Tipologia contratto <span className="text-red-500">*</span></label>
+            <select value={tipoContratto}
+              onChange={(e) => setTipoContratto(e.target.value as ContractTemplateType | '')}
+              required disabled={loading} className={selectCls}>
+              <option value="">— Seleziona tipologia —</option>
+              {CONTRACT_TIPOS.map((t) => (
+                <option key={t} value={t}>
+                  {CONTRACT_TEMPLATE_LABELS[t]}{!hasTemplate(t) ? ' (template mancante)' : ''}
+                </option>
+              ))}
+            </select>
+            {tipoContratto && !hasTemplate(tipoContratto) && (
+              <p className="text-xs text-yellow-600 mt-1.5">
+                Nessun template caricato per questa tipologia. L&apos;utente potrà comunque completare l&apos;onboarding, ma il contratto non verrà generato automaticamente.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Anagrafica opzionale (pre-fill per l'onboarding) */}
+      {needsContract && (
+        <div>
+          <p className={sectionTitle}>Dati personali <span className="font-normal text-gray-600 normal-case">(opzionale — pre-compilazione onboarding)</span></p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Nome</label>
+                <input type="text" placeholder="Mario" value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  disabled={loading} className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Codice fiscale</label>
-                <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
-                  onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                  disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Data di nascita</label>
-                  <input type="date" value={dataNascita}
-                    onChange={(e) => setDataNascita(e.target.value)}
-                    disabled={loading} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Luogo di nascita</label>
-                  <input type="text" placeholder="Roma (RM)" value={luogoNascita}
-                    onChange={(e) => setLuogoNascita(e.target.value)}
-                    disabled={loading} className={inputCls} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Comune di residenza</label>
-                  <input type="text" placeholder="Milano" value={comuneRes}
-                    onChange={(e) => setComuneRes(e.target.value)}
-                    disabled={loading} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Telefono</label>
-                  <input type="tel" placeholder="+39 333 0000000" value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    disabled={loading} className={inputCls} />
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>Indirizzo (via e numero civico)</label>
-                <input type="text" placeholder="Via Roma 1" value={indirizzo}
-                  onChange={(e) => setIndirizzo(e.target.value)}
+                <label className={labelCls}>Cognome</label>
+                <input type="text" placeholder="Rossi" value={cognome}
+                  onChange={(e) => setCognome(e.target.value)}
                   disabled={loading} className={inputCls} />
               </div>
             </div>
-          </div>
-
-          {/* Contract generation */}
-          <div>
-            <p className={sectionTitle}>Contratto</p>
-            <div className="space-y-3">
+            <div>
+              <label className={labelCls}>Codice fiscale</label>
+              <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
+                onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Tipologia contratto</label>
-                <select value={contractTipo}
-                  onChange={(e) => setContractTipo(e.target.value as ContractTemplateType | '')}
-                  disabled={loading} className={selectCls}>
-                  <option value="">— Nessun contratto —</option>
-                  {CONTRACT_TIPOS.map((t) => (
-                    <option key={t} value={t}>
-                      {CONTRACT_TEMPLATE_LABELS[t]}{!hasTemplate(t) ? ' (template mancante)' : ''}
-                    </option>
-                  ))}
-                </select>
-                {contractTipo && !hasTemplate(contractTipo) && (
-                  <p className="text-xs text-yellow-600 mt-1.5">
-                    Nessun template caricato per questa tipologia. Caricane uno nel tab «Contratti».
-                  </p>
-                )}
+                <label className={labelCls}>Data di nascita</label>
+                <input type="date" value={dataNascita}
+                  onChange={(e) => setDataNascita(e.target.value)}
+                  disabled={loading} className={inputCls} />
               </div>
-
-              {contractTipo && (
-                <>
-                  <div>
-                    <label className={labelCls}>Community di riferimento</label>
-                    <select value={contractCommunityId}
-                      onChange={(e) => setContractCommunityId(e.target.value)}
-                      disabled={loading} className={selectCls}>
-                      <option value="">— Nessuna —</option>
-                      {communities.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={showInizioField ? 'grid grid-cols-2 gap-3' : ''}>
-                    {showInizioField && (
-                      <div>
-                        <label className={labelCls}>Data inizio</label>
-                        <input type="date" value={dataInizio}
-                          onChange={(e) => setDataInizio(e.target.value)}
-                          disabled={loading} className={inputCls} />
-                      </div>
-                    )}
-                    <div>
-                      <label className={labelCls}>Data fine</label>
-                      <input type="date" value={dataFine}
-                        onChange={(e) => setDataFine(e.target.value)}
-                        disabled={loading} className={inputCls} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Compenso lordo (€) <span className="text-red-500">*</span></label>
-                    <input type="number" placeholder="9800" value={compensoLordo}
-                      onChange={(e) => setCompensoLordo(e.target.value)}
-                      disabled={loading} min="0" step="0.01" className={inputCls} />
-                  </div>
-                  {showRateFields && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelCls}>N° rate</label>
-                        <input type="number" placeholder="14" value={numeroRate}
-                          onChange={(e) => setNumeroRate(e.target.value)}
-                          disabled={loading} min="1" step="1" className={inputCls} />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Importo rata (€)</label>
-                        <input type="number" placeholder="700" value={importoRata}
-                          onChange={(e) => setImportoRata(e.target.value)}
-                          disabled={loading} min="0" step="0.01" className={inputCls} />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+              <div>
+                <label className={labelCls}>Luogo di nascita</label>
+                <input type="text" placeholder="Roma (RM)" value={luogoNascita}
+                  onChange={(e) => setLuogoNascita(e.target.value)}
+                  disabled={loading} className={inputCls} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Comune di residenza</label>
+                <input type="text" placeholder="Milano" value={comuneRes}
+                  onChange={(e) => setComuneRes(e.target.value)}
+                  disabled={loading} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Telefono</label>
+                <input type="tel" placeholder="+39 333 0000000" value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  disabled={loading} className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Indirizzo (via e numero civico)</label>
+              <input type="text" placeholder="Via Roma 1" value={indirizzo}
+                onChange={(e) => setIndirizzo(e.target.value)}
+                disabled={loading} className={inputCls} />
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {error && (
@@ -385,7 +312,7 @@ export default function CreateUserForm() {
       )}
 
       <button type="submit"
-        disabled={loading || !email || (isCollaboratore && (!nome || !cognome)) || (!!contractTipo && !compensoLordo)}
+        disabled={loading || !email || (needsContract && !tipoContratto)}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-medium text-white transition disabled:opacity-50 flex items-center justify-center gap-2">
         {loading ? (
           <>

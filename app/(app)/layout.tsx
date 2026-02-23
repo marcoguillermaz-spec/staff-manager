@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const role = profile.role as Role;
   const navItems = NAV_BY_ROLE[role];
-  const userName = collaborator
+  const userName = (collaborator?.nome && collaborator?.cognome)
     ? `${collaborator.nome} ${collaborator.cognome}`
     : user.email ?? 'Utente';
 
