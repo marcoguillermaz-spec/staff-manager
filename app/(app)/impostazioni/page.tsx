@@ -5,8 +5,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import CreateUserForm from '@/components/impostazioni/CreateUserForm';
 import CommunityManager from '@/components/impostazioni/CommunityManager';
 import MemberStatusManager from '@/components/impostazioni/MemberStatusManager';
+import ContractTemplateManager from '@/components/impostazioni/ContractTemplateManager';
 
-type Tab = 'utenti' | 'community' | 'collaboratori';
+type Tab = 'utenti' | 'community' | 'collaboratori' | 'contratti';
 
 export default async function ImpostazioniPage({
   searchParams,
@@ -30,12 +31,22 @@ export default async function ImpostazioniPage({
   const { tab } = await searchParams;
   const activeTab: Tab = tab === 'community' ? 'community'
     : tab === 'collaboratori' ? 'collaboratori'
+    : tab === 'contratti' ? 'contratti'
     : 'utenti';
 
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
+
+  // Fetch contract templates for the contratti tab
+  const contractTemplates = activeTab === 'contratti'
+    ? await serviceClient
+        .from('contract_templates')
+        .select('id, tipo, file_name, uploaded_at')
+        .order('tipo')
+        .then((r) => r.data ?? [])
+    : [];
 
   // Fetch data for active tab
   const communities = activeTab === 'community' || activeTab === 'utenti'
@@ -127,9 +138,10 @@ export default async function ImpostazioniPage({
 
       {/* Tab bar */}
       <div className="flex gap-2 mb-6 overflow-x-auto">
-        <Link href="?tab=utenti" className={tabCls('utenti')}>👤 Utenti</Link>
-        <Link href="?tab=community" className={tabCls('community')}>🏘 Community</Link>
-        <Link href="?tab=collaboratori" className={tabCls('collaboratori')}>👥 Collaboratori</Link>
+        <Link href="?tab=utenti" className={tabCls('utenti')}>Utenti</Link>
+        <Link href="?tab=community" className={tabCls('community')}>Community</Link>
+        <Link href="?tab=collaboratori" className={tabCls('collaboratori')}>Collaboratori</Link>
+        <Link href="?tab=contratti" className={tabCls('contratti')}>Contratti</Link>
       </div>
 
       {activeTab === 'utenti' && (
@@ -155,6 +167,12 @@ export default async function ImpostazioniPage({
 
       {activeTab === 'collaboratori' && (
         <MemberStatusManager members={members} />
+      )}
+
+      {activeTab === 'contratti' && (
+        <ContractTemplateManager
+          templates={contractTemplates as { id: string; tipo: 'OCCASIONALE' | 'COCOCO' | 'PIVA'; file_name: string; uploaded_at: string }[]}
+        />
       )}
     </div>
   );

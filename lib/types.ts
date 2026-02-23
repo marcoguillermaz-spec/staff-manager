@@ -37,14 +37,45 @@ export const EXPENSE_CATEGORIES = [
 export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
 
 // ── Document ─────────────────────────────────────────────────
-export type DocumentType = 'CONTRATTO_OCCASIONALE' | 'RICEVUTA_PAGAMENTO' | 'CU';
+export type DocumentType =
+  | 'CONTRATTO_OCCASIONALE'
+  | 'CONTRATTO_COCOCO'
+  | 'CONTRATTO_PIVA'
+  | 'RICEVUTA_PAGAMENTO'
+  | 'CU';
 export type DocumentSignStatus = 'DA_FIRMARE' | 'FIRMATO' | 'NON_RICHIESTO';
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  CONTRATTO_OCCASIONALE: 'Contratto occasionale',
+  CONTRATTO_OCCASIONALE: 'Contratto prestazione occasionale',
+  CONTRATTO_COCOCO:      'Contratto collaborazione coordinata',
+  CONTRATTO_PIVA:        'Contratto prestazione P.IVA',
   RICEVUTA_PAGAMENTO:    'Ricevuta di pagamento',
   CU:                    'Certificazione Unica',
 };
+
+// ── Contract template ─────────────────────────────────────────
+export type ContractTemplateType = 'OCCASIONALE' | 'COCOCO' | 'PIVA';
+
+export const CONTRACT_TEMPLATE_LABELS: Record<ContractTemplateType, string> = {
+  OCCASIONALE: 'Prestazione occasionale',
+  COCOCO:      'Collaborazione coordinata (CoCoCo)',
+  PIVA:        'Prestazione P.IVA',
+};
+
+export const CONTRACT_TEMPLATE_DOCUMENT_TYPE: Record<ContractTemplateType, DocumentType> = {
+  OCCASIONALE: 'CONTRATTO_OCCASIONALE',
+  COCOCO:      'CONTRATTO_COCOCO',
+  PIVA:        'CONTRATTO_PIVA',
+};
+
+export interface ContractTemplate {
+  id: string;
+  tipo: ContractTemplateType;
+  file_url: string;
+  file_name: string;
+  uploaded_by: string | null;
+  uploaded_at: string;
+}
 
 export const DOCUMENT_SIGN_STATUS_LABELS: Record<DocumentSignStatus, string> = {
   DA_FIRMARE:    'Da firmare',
@@ -227,6 +258,8 @@ export interface Collaborator {
   codice_fiscale: string | null;
   partita_iva: string | null;
   data_nascita: string | null;
+  luogo_nascita: string | null;
+  comune: string | null;
   indirizzo: string | null;
   telefono: string | null;
   email: string;

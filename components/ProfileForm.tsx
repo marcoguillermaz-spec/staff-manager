@@ -9,6 +9,8 @@ type Collaborator = {
   codice_fiscale: string | null;
   partita_iva: string | null;
   data_nascita: string | null;
+  luogo_nascita: string | null;
+  comune: string | null;
   data_ingresso: string | null;
   telefono: string | null;
   indirizzo: string | null;
@@ -75,18 +77,31 @@ function GuideBox({ guide }: { guide: GuideContent }) {
 }
 
 export default function ProfileForm({ collaborator, role, email, communities, guidaFigli, guidaPiva }: Props) {
-  const [telefono, setTelefono] = useState(collaborator?.telefono ?? '');
+  // Editable personal data
+  const [nome, setNome]               = useState(collaborator?.nome ?? '');
+  const [cognome, setCognome]         = useState(collaborator?.cognome ?? '');
+  const [codiceFiscale, setCodiceFiscale] = useState(collaborator?.codice_fiscale ?? '');
+  const [dataNascita, setDataNascita] = useState(collaborator?.data_nascita ?? '');
+  const [luogoNascita, setLuogoNascita] = useState(collaborator?.luogo_nascita ?? '');
+  const [comuneRes, setComuneRes]     = useState(collaborator?.comune ?? '');
+  // Contacts
+  const [telefono, setTelefono]   = useState(collaborator?.telefono ?? '');
   const [indirizzo, setIndirizzo] = useState(collaborator?.indirizzo ?? '');
+  // Payment
   const [iban, setIban] = useState(collaborator?.iban ?? '');
-  const [tshirt, setTshirt] = useState(collaborator?.tshirt_size ?? '');
-  const [partitaIva, setPartitaIva] = useState(collaborator?.partita_iva ?? '');
+  // Fiscal
+  const [partitaIva, setPartitaIva]         = useState(collaborator?.partita_iva ?? '');
   const [haFigliACarico, setHaFigliACarico] = useState(collaborator?.ha_figli_a_carico ?? false);
+  // Preferences
+  const [tshirt, setTshirt]     = useState(collaborator?.tshirt_size ?? '');
+  // Avatar
   const [avatarUrl, setAvatarUrl] = useState(collaborator?.foto_profilo_url ?? '');
-  const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading]           = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [saved, setSaved]               = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+  const [avatarError, setAvatarError]   = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -99,11 +114,17 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        telefono: telefono || null,
-        indirizzo: indirizzo || null,
-        iban: iban.toUpperCase().replace(/\s/g, '') || null,
-        tshirt_size: tshirt || null,
-        partita_iva: partitaIva.trim() || null,
+        nome:           nome.trim() || undefined,
+        cognome:        cognome.trim() || undefined,
+        codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
+        data_nascita:   dataNascita || null,
+        luogo_nascita:  luogoNascita.trim() || null,
+        comune:         comuneRes.trim() || null,
+        telefono:       telefono || null,
+        indirizzo:      indirizzo || null,
+        iban:           iban.toUpperCase().replace(/\s/g, '') || null,
+        tshirt_size:    tshirt || null,
+        partita_iva:    partitaIva.trim() || null,
         ha_figli_a_carico: haFigliACarico,
       }),
     });
@@ -129,7 +150,6 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
     setAvatarLoading(false);
     if (!res.ok) { setAvatarError(data.error ?? 'Errore caricamento foto'); return; }
     setAvatarUrl(data.url);
-    // Reset input so same file can be re-uploaded if needed
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -186,31 +206,66 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
               {avatarLoading ? 'Caricamento…' : avatarUrl ? 'Cambia foto' : 'Carica foto'}
             </button>
             <p className="text-xs text-gray-600 mt-1.5">JPG, PNG o WebP · max 2 MB</p>
-            {avatarError && (
-              <p className="text-xs text-red-400 mt-1">{avatarError}</p>
-            )}
+            {avatarError && <p className="text-xs text-red-400 mt-1">{avatarError}</p>}
           </div>
         </div>
       </div>
 
-      {/* Personal info — read-only */}
+      {/* Informazioni personali — editable */}
       <div className={sectionCls}>
         <div className={sectionHeader}>
           <h2 className="text-sm font-medium text-gray-200">Informazioni personali</h2>
         </div>
-        <div className="p-5 grid grid-cols-2 gap-4">
-          <Field label="Nome" value={collaborator.nome} />
-          <Field label="Cognome" value={collaborator.cognome} />
-          <Field label="Email" value={email} />
-          <Field label="Codice fiscale" value={collaborator.codice_fiscale} />
-          {collaborator.data_nascita && (
-            <Field label="Data di nascita" value={new Date(collaborator.data_nascita).toLocaleDateString('it-IT')} />
-          )}
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Nome</label>
+              <input type="text" placeholder="Mario" value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                disabled={loading} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Cognome</label>
+              <input type="text" placeholder="Rossi" value={cognome}
+                onChange={(e) => setCognome(e.target.value)}
+                disabled={loading} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Email</label>
+            <div className={readonlyCls}>{email}</div>
+          </div>
+          <div>
+            <label className={labelCls}>Codice fiscale</label>
+            <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
+              onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+              disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Data di nascita</label>
+              <input type="date" value={dataNascita}
+                onChange={(e) => setDataNascita(e.target.value)}
+                disabled={loading} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Luogo di nascita</label>
+              <input type="text" placeholder="Roma (RM)" value={luogoNascita}
+                onChange={(e) => setLuogoNascita(e.target.value)}
+                disabled={loading} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Comune di residenza</label>
+            <input type="text" placeholder="Milano" value={comuneRes}
+              onChange={(e) => setComuneRes(e.target.value)}
+              disabled={loading} className={inputCls} />
+          </div>
           {collaborator.data_ingresso && (
             <Field label="Data ingresso" value={new Date(collaborator.data_ingresso).toLocaleDateString('it-IT')} />
           )}
           {communities.length > 0 && (
-            <div className="col-span-2">
+            <div>
               <p className={labelCls}>Community</p>
               <div className="flex gap-2 flex-wrap">
                 {communities.map((c) => (
@@ -242,14 +297,14 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
             />
           </div>
           <div>
-            <label className={labelCls}>Indirizzo</label>
-            <textarea
-              placeholder="Via Roma 1, 00100 Roma (RM)"
+            <label className={labelCls}>Indirizzo (via e numero civico)</label>
+            <input
+              type="text"
+              placeholder="Via Roma 1"
               value={indirizzo}
               onChange={(e) => setIndirizzo(e.target.value)}
               disabled={loading}
-              rows={2}
-              className={inputCls + ' resize-none'}
+              className={inputCls}
             />
           </div>
         </div>
@@ -282,7 +337,6 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
           <h2 className="text-sm font-medium text-gray-200">Dati fiscali</h2>
         </div>
         <div className="p-5 space-y-5">
-          {/* Partita IVA */}
           <div>
             <label className={labelCls}>Partita IVA <span className="text-gray-600">(se applicabile)</span></label>
             <input
@@ -297,7 +351,6 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
             {partitaIva.trim() && <GuideBox guide={guidaPiva} />}
           </div>
 
-          {/* Sono fiscalmente a carico */}
           <div>
             <label className="flex items-start gap-3 cursor-pointer">
               <input

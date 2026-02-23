@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CONTRACT_TEMPLATE_LABELS, type ContractTemplateType } from '@/lib/types';
 
 type Role = 'collaboratore' | 'responsabile' | 'amministrazione' | 'super_admin';
 type Community = { id: string; name: string; is_active: boolean };
 type Credentials = { email: string; password: string };
+type TemplateStatus = { tipo: ContractTemplateType; file_name: string } | null;
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'collaboratore',   label: 'Collaboratore' },
@@ -12,6 +14,8 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'amministrazione', label: 'Amministrazione' },
   { value: 'super_admin',     label: 'Super Admin' },
 ];
+
+const CONTRACT_TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];
 
 const inputCls =
   'w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm text-gray-100 ' +
@@ -21,20 +25,55 @@ const selectCls =
   'w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm text-gray-100 ' +
   'focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50';
 
+const labelCls = 'block text-xs text-gray-500 mb-1.5';
+
+const sectionTitle = 'text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 mt-1';
+
 export default function CreateUserForm() {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<Role>('collaboratore');
+  // Auth fields
+  const [email, setEmail]     = useState('');
+  const [role, setRole]       = useState<Role>('collaboratore');
+
+  // Communities (responsabile assignment + contract community)
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Anagrafica (collaboratore only)
+  const [nome, setNome]               = useState('');
+  const [cognome, setCognome]         = useState('');
+  const [codiceFiscale, setCodiceFiscale] = useState('');
+  const [dataNascita, setDataNascita] = useState('');
+  const [luogoNascita, setLuogoNascita] = useState('');
+  const [comuneRes, setComuneRes]     = useState('');
+  const [indirizzo, setIndirizzo]     = useState('');
+  const [telefono, setTelefono]       = useState('');
+
+  // Contract (collaboratore only, optional)
+  const [contractTipo, setContractTipo]       = useState<ContractTemplateType | ''>('');
+  const [contractCommunityId, setContractCommunityId] = useState('');
+  const [compensoLordo, setCompensoLordo]     = useState('');
+  const [dataInizio, setDataInizio]           = useState('');
+  const [dataFine, setDataFine]               = useState('');
+  const [numeroRate, setNumeroRate]           = useState('');
+  const [importoRata, setImportoRata]         = useState('');
+
+  // Template status (which tipos have templates uploaded)
+  const [templateStatus, setTemplateStatus]   = useState<TemplateStatus[]>([]);
+
+  // UI state
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
-  const [copied, setCopied] = useState<'email' | 'password' | null>(null);
+  const [copied, setCopied]           = useState<'email' | 'password' | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/communities') // active only (default)
+    fetch('/api/admin/communities')
       .then((r) => r.json())
       .then((data) => setCommunities(data.communities ?? []))
+      .catch(() => {});
+    fetch('/api/admin/contract-templates')
+      .then((r) => r.json())
+      .then((data) => setTemplateStatus(data.templates ?? []))
       .catch(() => {});
   }, []);
 
@@ -49,29 +88,69 @@ export default function CreateUserForm() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const hasTemplate = (tipo: ContractTemplateType) =>
+    templateStatus.some((t) => t?.tipo === tipo);
+
+  const isCollaboratore = role === 'collaboratore';
+  const showRateFields = contractTipo === 'COCOCO' || contractTipo === 'PIVA';
+  const showInizioField = contractTipo === 'OCCASIONALE' || contractTipo === 'COCOCO';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setCredentials(null);
 
+    const body: Record<string, unknown> = {
+      email,
+      role,
+      community_ids: role === 'responsabile' ? selectedCommunities : [],
+    };
+
+    if (isCollaboratore) {
+      Object.assign(body, {
+        nome:           nome.trim() || undefined,
+        cognome:        cognome.trim() || undefined,
+        codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
+        data_nascita:   dataNascita || null,
+        luogo_nascita:  luogoNascita.trim() || null,
+        comune:         comuneRes.trim() || null,
+        indirizzo:      indirizzo.trim() || null,
+        telefono:       telefono.trim() || null,
+      });
+
+      if (contractTipo) {
+        Object.assign(body, {
+          contract_tipo:           contractTipo,
+          contract_community_id:   contractCommunityId || null,
+          contract_compenso_lordo: compensoLordo ? parseFloat(compensoLordo.replace(',', '.')) : undefined,
+          contract_data_inizio:    dataInizio || null,
+          contract_data_fine:      dataFine || null,
+          contract_numero_rate:    numeroRate ? parseInt(numeroRate) : null,
+          contract_importo_rata:   importoRata ? parseFloat(importoRata.replace(',', '.')) : null,
+        });
+      }
+    }
+
     const res = await fetch('/api/admin/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        role,
-        community_ids: role === 'responsabile' ? selectedCommunities : [],
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await res.json();
     setLoading(false);
     if (!res.ok) { setError(data.error ?? 'Errore durante la creazione'); return; }
     setCredentials({ email: data.email, password: data.password });
+
+    // Reset
     setEmail('');
     setRole('collaboratore');
     setSelectedCommunities([]);
+    setNome(''); setCognome(''); setCodiceFiscale(''); setDataNascita('');
+    setLuogoNascita(''); setComuneRes(''); setIndirizzo(''); setTelefono('');
+    setContractTipo(''); setContractCommunityId(''); setCompensoLordo('');
+    setDataInizio(''); setDataFine(''); setNumeroRate(''); setImportoRata('');
   };
 
   if (credentials) {
@@ -117,25 +196,32 @@ export default function CreateUserForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Auth */}
       <div>
-        <label className="block text-xs text-gray-400 mb-1.5">Email</label>
-        <input type="email" placeholder="nome@email.com" value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required disabled={loading} autoComplete="off" className={inputCls} />
+        <p className={sectionTitle}>Accesso</p>
+        <div className="space-y-3">
+          <div>
+            <label className={labelCls}>Email</label>
+            <input type="email" placeholder="nome@email.com" value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required disabled={loading} autoComplete="off" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Ruolo</label>
+            <select value={role}
+              onChange={(e) => { setRole(e.target.value as Role); setSelectedCommunities([]); setContractTipo(''); }}
+              disabled={loading} className={selectCls}>
+              {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
       </div>
-      <div>
-        <label className="block text-xs text-gray-400 mb-1.5">Ruolo</label>
-        <select value={role} onChange={(e) => { setRole(e.target.value as Role); setSelectedCommunities([]); }}
-          disabled={loading} className={selectCls}>
-          {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
+
+      {/* Responsabile → community assignment */}
       {role === 'responsabile' && communities.length > 0 && (
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">
-            Comunità gestite <span className="text-gray-600 ml-1">(opzionale)</span>
-          </label>
+          <p className={sectionTitle}>Comunità gestite</p>
           <div className="space-y-2">
             {communities.map((c) => (
               <label key={c.id}
@@ -149,10 +235,157 @@ export default function CreateUserForm() {
           </div>
         </div>
       )}
+
+      {/* Anagrafica collaboratore */}
+      {isCollaboratore && (
+        <>
+          <div>
+            <p className={sectionTitle}>Dati personali</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Nome <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="Mario" value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    required disabled={loading} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Cognome <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="Rossi" value={cognome}
+                    onChange={(e) => setCognome(e.target.value)}
+                    required disabled={loading} className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Codice fiscale</label>
+                <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
+                  onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                  disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Data di nascita</label>
+                  <input type="date" value={dataNascita}
+                    onChange={(e) => setDataNascita(e.target.value)}
+                    disabled={loading} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Luogo di nascita</label>
+                  <input type="text" placeholder="Roma (RM)" value={luogoNascita}
+                    onChange={(e) => setLuogoNascita(e.target.value)}
+                    disabled={loading} className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Comune di residenza</label>
+                  <input type="text" placeholder="Milano" value={comuneRes}
+                    onChange={(e) => setComuneRes(e.target.value)}
+                    disabled={loading} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Telefono</label>
+                  <input type="tel" placeholder="+39 333 0000000" value={telefono}
+                    onChange={(e) => setTelefono(e.target.value)}
+                    disabled={loading} className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Indirizzo (via e numero civico)</label>
+                <input type="text" placeholder="Via Roma 1" value={indirizzo}
+                  onChange={(e) => setIndirizzo(e.target.value)}
+                  disabled={loading} className={inputCls} />
+              </div>
+            </div>
+          </div>
+
+          {/* Contract generation */}
+          <div>
+            <p className={sectionTitle}>Contratto</p>
+            <div className="space-y-3">
+              <div>
+                <label className={labelCls}>Tipologia contratto</label>
+                <select value={contractTipo}
+                  onChange={(e) => setContractTipo(e.target.value as ContractTemplateType | '')}
+                  disabled={loading} className={selectCls}>
+                  <option value="">— Nessun contratto —</option>
+                  {CONTRACT_TIPOS.map((t) => (
+                    <option key={t} value={t}>
+                      {CONTRACT_TEMPLATE_LABELS[t]}{!hasTemplate(t) ? ' (template mancante)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {contractTipo && !hasTemplate(contractTipo) && (
+                  <p className="text-xs text-yellow-600 mt-1.5">
+                    Nessun template caricato per questa tipologia. Caricane uno nel tab «Contratti».
+                  </p>
+                )}
+              </div>
+
+              {contractTipo && (
+                <>
+                  <div>
+                    <label className={labelCls}>Community di riferimento</label>
+                    <select value={contractCommunityId}
+                      onChange={(e) => setContractCommunityId(e.target.value)}
+                      disabled={loading} className={selectCls}>
+                      <option value="">— Nessuna —</option>
+                      {communities.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={showInizioField ? 'grid grid-cols-2 gap-3' : ''}>
+                    {showInizioField && (
+                      <div>
+                        <label className={labelCls}>Data inizio</label>
+                        <input type="date" value={dataInizio}
+                          onChange={(e) => setDataInizio(e.target.value)}
+                          disabled={loading} className={inputCls} />
+                      </div>
+                    )}
+                    <div>
+                      <label className={labelCls}>Data fine</label>
+                      <input type="date" value={dataFine}
+                        onChange={(e) => setDataFine(e.target.value)}
+                        disabled={loading} className={inputCls} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Compenso lordo (€) <span className="text-red-500">*</span></label>
+                    <input type="number" placeholder="9800" value={compensoLordo}
+                      onChange={(e) => setCompensoLordo(e.target.value)}
+                      disabled={loading} min="0" step="0.01" className={inputCls} />
+                  </div>
+                  {showRateFields && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelCls}>N° rate</label>
+                        <input type="number" placeholder="14" value={numeroRate}
+                          onChange={(e) => setNumeroRate(e.target.value)}
+                          disabled={loading} min="1" step="1" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Importo rata (€)</label>
+                        <input type="number" placeholder="700" value={importoRata}
+                          onChange={(e) => setImportoRata(e.target.value)}
+                          disabled={loading} min="0" step="0.01" className={inputCls} />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {error && (
         <div className="rounded-lg bg-red-900/30 border border-red-800/40 px-3 py-2.5 text-xs text-red-400">{error}</div>
       )}
-      <button type="submit" disabled={loading || !email}
+
+      <button type="submit"
+        disabled={loading || !email || (isCollaboratore && (!nome || !cognome)) || (!!contractTipo && !compensoLordo)}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-medium text-white transition disabled:opacity-50 flex items-center justify-center gap-2">
         {loading ? (
           <>

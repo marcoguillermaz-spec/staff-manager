@@ -3,18 +3,26 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
-// Fields a collaborator can update on their own record
+// All fields a collaborator can update on their own record
+// data_ingresso is admin-only; email never changes via this route
 const SELF_EDIT_FIELDS = [
+  'nome', 'cognome', 'codice_fiscale', 'data_nascita', 'luogo_nascita', 'comune',
   'telefono', 'indirizzo', 'iban', 'tshirt_size',
   'partita_iva', 'ha_figli_a_carico',
 ] as const;
 
 const patchSchema = z.object({
-  telefono:          z.string().max(20).optional(),
-  indirizzo:         z.string().max(200).optional(),
-  iban:              z.string().max(34).regex(/^[A-Z]{2}\d{2}[A-Z0-9]+$/, 'IBAN non valido').or(z.literal('')).optional(),
-  tshirt_size:       z.enum(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']).nullable().optional(),
-  partita_iva:       z.string().max(16).nullable().optional(),
+  nome:           z.string().min(1).max(100).optional(),
+  cognome:        z.string().min(1).max(100).optional(),
+  codice_fiscale: z.string().max(16).nullable().optional(),
+  data_nascita:   z.string().nullable().optional(),
+  luogo_nascita:  z.string().max(100).nullable().optional(),
+  comune:         z.string().max(100).nullable().optional(),
+  telefono:       z.string().max(20).nullable().optional(),
+  indirizzo:      z.string().max(200).nullable().optional(),
+  iban:           z.string().max(34).regex(/^[A-Z]{2}\d{2}[A-Z0-9]+$/, 'IBAN non valido').or(z.literal('')).optional(),
+  tshirt_size:    z.enum(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']).nullable().optional(),
+  partita_iva:    z.string().max(16).nullable().optional(),
   // ha_figli_a_carico: il collaboratore dichiara se È fiscalmente a carico di un familiare
   ha_figli_a_carico: z.boolean().optional(),
 });
