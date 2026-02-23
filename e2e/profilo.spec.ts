@@ -72,10 +72,19 @@ async function login(page: Page, role: keyof typeof CREDS) {
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
-let originalAvatarUrl: string | null    = null;
-let originalPartitaIva: string | null   = null;
-let originalHaFigli: boolean            = false;
-let originalDataIngresso: string | null = null;
+let originalAvatarUrl: string | null     = null;
+let originalPartitaIva: string | null    = null;
+let originalHaFigli: boolean             = false;
+let originalDataIngresso: string | null  = null;
+// Personal info fields modified by S8 (restored in afterAll)
+let originalNome: string                 = '';
+let originalCognome: string             = '';
+let originalLuogoNascita: string | null = null;
+let originalProvinciaNascita: string | null = null;
+let originalComune: string | null       = null;
+let originalProvinciaRes: string | null = null;
+let originalIndirizzo: string | null    = null;
+let originalCivico: string | null       = null;
 let testCompensationId: string | null   = null;
 let originalCompensationStato: string   = 'BOZZA';
 
@@ -88,13 +97,29 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
       partita_iva: string | null;
       ha_figli_a_carico: boolean;
       data_ingresso: string | null;
-    }>('collaborators', `id=eq.${COLLAB_ID}&select=foto_profilo_url,partita_iva,ha_figli_a_carico,data_ingresso`);
+      nome: string;
+      cognome: string;
+      luogo_nascita: string | null;
+      provincia_nascita: string | null;
+      comune: string | null;
+      provincia_residenza: string | null;
+      indirizzo: string | null;
+      civico_residenza: string | null;
+    }>('collaborators', `id=eq.${COLLAB_ID}&select=foto_profilo_url,partita_iva,ha_figli_a_carico,data_ingresso,nome,cognome,luogo_nascita,provincia_nascita,comune,provincia_residenza,indirizzo,civico_residenza`);
 
     if (collab) {
-      originalAvatarUrl    = collab.foto_profilo_url;
-      originalPartitaIva   = collab.partita_iva;
-      originalHaFigli      = collab.ha_figli_a_carico;
-      originalDataIngresso = collab.data_ingresso;
+      originalAvatarUrl       = collab.foto_profilo_url;
+      originalPartitaIva      = collab.partita_iva;
+      originalHaFigli         = collab.ha_figli_a_carico;
+      originalDataIngresso    = collab.data_ingresso;
+      originalNome            = collab.nome;
+      originalCognome         = collab.cognome;
+      originalLuogoNascita    = collab.luogo_nascita;
+      originalProvinciaNascita = collab.provincia_nascita;
+      originalComune          = collab.comune;
+      originalProvinciaRes    = collab.provincia_residenza;
+      originalIndirizzo       = collab.indirizzo;
+      originalCivico          = collab.civico_residenza;
     }
 
     // Find a compensation for collaboratore@test.com to use in S8 (panoramica pagamenti)
@@ -114,10 +139,18 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
   test.afterAll(async () => {
     // Restore collaborator fields
     await dbPatch('collaborators', `id=eq.${COLLAB_ID}`, {
-      foto_profilo_url:   originalAvatarUrl,
-      partita_iva:        originalPartitaIva,
-      ha_figli_a_carico:  originalHaFigli,
-      data_ingresso:      originalDataIngresso,
+      foto_profilo_url:    originalAvatarUrl,
+      partita_iva:         originalPartitaIva,
+      ha_figli_a_carico:   originalHaFigli,
+      data_ingresso:       originalDataIngresso,
+      nome:                originalNome,
+      cognome:             originalCognome,
+      luogo_nascita:       originalLuogoNascita,
+      provincia_nascita:   originalProvinciaNascita,
+      comune:              originalComune,
+      provincia_residenza: originalProvinciaRes,
+      indirizzo:           originalIndirizzo,
+      civico_residenza:    originalCivico,
     });
 
     // Restore compensation stato

@@ -15,6 +15,7 @@ type Props = { templates: Template[] };
 const TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];
 
 const PLACEHOLDERS = [
+  // ── Occasionale / P.IVA ──────────────────────────────────────────────────
   { key: '{nome}',           desc: 'Nome collaboratore' },
   { key: '{cognome}',        desc: 'Cognome collaboratore' },
   { key: '{codice_fiscale}', desc: 'Codice fiscale' },
@@ -28,6 +29,20 @@ const PLACEHOLDERS = [
   { key: '{data_fine}',      desc: 'Data fine contratto' },
   { key: '{numero_rate}',    desc: 'Numero di rate (CoCoCo/P.IVA)' },
   { key: '{importo_rata}',   desc: 'Importo rata (€, CoCoCo/P.IVA)' },
+  // ── CoCoCo ───────────────────────────────────────────────────────────────
+  { key: '{citta_nascita}',                desc: 'Città di nascita (CoCoCo)' },
+  { key: '{provincia_nascita}',            desc: 'Provincia di nascita — sigla (CoCoCo)' },
+  { key: '{data_di_nascita}',              desc: 'Data di nascita formattata (CoCoCo)' },
+  { key: '{citta_residenza}',              desc: 'Comune di residenza (CoCoCo)' },
+  { key: '{provincia_residenza}',          desc: 'Provincia di residenza — sigla (CoCoCo)' },
+  { key: '{indirizzo_residenza}',          desc: 'Via/Piazza di residenza (CoCoCo)' },
+  { key: '{civico_residenza}',             desc: 'Numero civico (CoCoCo)' },
+  { key: '{importo_euro}',                 desc: 'Compenso totale in €  (CoCoCo)' },
+  { key: '{importo_in_lettere}',           desc: 'Compenso in lettere (CoCoCo)' },
+  { key: '{numero_soluzioni}',             desc: 'Numero rate (CoCoCo)' },
+  { key: '{importo_singole_soluzioni}',    desc: 'Importo singola rata (CoCoCo)' },
+  { key: '{data_inizio_collaborazione}',   desc: 'Data inizio collaborazione (CoCoCo)' },
+  { key: '{data_fine_collaborazione}',     desc: 'Data fine collaborazione (CoCoCo)' },
 ];
 
 const sectionCls = 'rounded-2xl bg-gray-900 border border-gray-800';
