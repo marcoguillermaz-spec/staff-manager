@@ -15,7 +15,7 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 | Role | Access |
 |------|--------|
 | `collaboratore` | Own profile, compensation requests, reimbursements, documents, support tickets |
-| `responsabile` | Approve compensations/reimbursements for assigned communities |
+| `responsabile` | Approve compensations/reimbursements for assigned communities; own profile, documents, and support tickets |
 | `amministrazione` | Full approval queue, payments, user management, exports |
 | `super_admin` | Same as amministrazione + settings |
 
@@ -218,6 +218,7 @@ e2e/
   dashboard.spec.ts                → Playwright UAT: collaboratore dashboard S1–S10 (cards, quick actions, feed, 10 tests)
   contratti.spec.ts                → Playwright UAT: contract templates + onboarding + CoCoCo fields S1–S10 (upload, new province/civico DB fields, full COCOCO onboarding wizard, 10 tests)
   onboarding.spec.ts               → Playwright UAT: onboarding flow S1–S10 (wizard, anagrafica, contract download, proxy redirect, 10 tests)
+  fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration

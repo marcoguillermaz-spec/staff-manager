@@ -40,6 +40,7 @@
 | Profilo collaboratore esteso | ✅ | — | 11 Playwright | §12 req. Avatar upload (bucket `avatars`), ha_figli_a_carico (semantica: il collaboratore è fiscalmente a carico), P.IVA + guide da resources, data_ingresso admin-managed, PaymentOverview in /compensi. Migration 008. |
 | Onboarding flow | ✅ | — | 10 Playwright | Migration 010. Wizard 2-step post-primo-login: dati anagrafici (tutti obbligatori) + genera contratto. tipo_contratto obbligatorio nell'invite admin. Proxy redirect a /onboarding se onboarding_completed=false. collaborators per entrambi i ruoli. |
 | Campi CoCoCo + estensione profilo (province, civico) | ✅ | — | 10 Playwright | Migration 011. 3 nuovi campi su collaborators (provincia_nascita, provincia_residenza, civico_residenza). UI split: città/provincia nascita, comune/provincia residenza, via/civico. dual-name vars COCOCO in onboarding/complete. ContractTemplateManager: 13 segnaposto CoCoCo. |
+| Responsabile — completamento nav + fixture e2e | ✅ | — | 10 Playwright | Profilo + Documenti nav per responsabile. Sign API: responsabile può caricare firmato. e2e/fixtures/ con 3 template reali Testbusters. beforeAll cleanup-first pattern. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -76,6 +77,12 @@
 - Test: — unit + 10 Playwright (S1–S10, tutti verdi)
 - Pattern: wizard 2-step: step 1 = dati anagrafici (tutti required), step 2 = genera contratto via docxtemplater → onboarding_completed=true. Il download è step intermedio; l'utente clicca "Ho scaricato" per accedere alla dashboard.
 - Flow test e2e con browser.newPage() in beforeAll per condividere il contesto browser tra S2–S7 (sessione persistente durante il flusso).
+
+### Responsabile — completamento nav + fixture e2e — completato 2026-02-23
+- File: `e2e/fixtures/` (3 template reali: Cococo, Occasionale, PIVA)
+- Modificati: `lib/nav.ts` (Profilo + Documenti per responsabile), `app/api/documents/[id]/sign/route.ts` (role check esteso a responsabile), `e2e/contratti.spec.ts` (fixture reali, cleanup-first beforeAll, afterAll senza delete fixture)
+- Test: 10 Playwright (S1–S10, tutti verdi)
+- Pattern: `beforeAll` — il cleanup utenti deve essere la PRIMA operazione, prima di qualsiasi `fs.readFileSync`, per evitare che un'eccezione lasci utenti orfani. `afterAll` — non fare `fs.unlinkSync` su fixture path (usare `os.tmpdir()` per discriminare file temporanei). `deleteAuthUser` — cancellare i documenti FK-linkati prima di eliminare l'utente auth.
 
 ### Campi CoCoCo + estensione profilo — completato 2026-02-23
 - File: `supabase/migrations/011_contract_fields.sql`, `e2e/contratti.spec.ts`, `e2e/profilo.spec.ts`, `components/impostazioni/ContractTemplateManager.tsx`
