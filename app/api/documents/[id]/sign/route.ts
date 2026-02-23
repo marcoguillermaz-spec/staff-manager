@@ -18,8 +18,8 @@ export async function POST(
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  if (profile.role !== 'collaboratore') {
-    return NextResponse.json({ error: 'Solo il collaboratore può caricare il documento firmato' }, { status: 403 });
+  if (!['collaboratore', 'responsabile'].includes(profile.role)) {
+    return NextResponse.json({ error: 'Non autorizzato a caricare il documento firmato' }, { status: 403 });
   }
 
   const { id } = await params;
