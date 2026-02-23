@@ -86,7 +86,7 @@ app/
     profile/avatar/route.ts      → POST upload profile photo → avatars bucket
     auth/change-password/        → POST forced password change
     auth/clear-force-change/     → POST clear must_change_password flag
-    admin/create-user/           → POST invite new user + create collaborators record + generate contract (best-effort)
+    admin/create-user/           → POST invite new user (email + role + tipo_contratto required) + create collaborators record, onboarding_completed=false
     admin/communities/           → GET list communities (?all=1 returns inactive too) + POST create
     admin/communities/[id]/      → PATCH rename + toggle is_active
     admin/responsabili/[userId]/communities/ → PUT replace community assignments for a responsabile
@@ -120,16 +120,20 @@ app/
     resources/[id]/route.ts      → PATCH + DELETE
     events/route.ts              → GET (ordered by start_datetime asc) + POST (admin/super_admin)
     events/[id]/route.ts         → PATCH + DELETE
+    onboarding/complete/route.ts → POST save anagrafica + generate contract (docxtemplater) + onboarding_completed=true
   auth/callback/route.ts
   login/page.tsx
   change-password/page.tsx
+  onboarding/page.tsx          → Standalone onboarding wizard (proxy redirects here when onboarding_completed=false)
   pending/page.tsx
   layout.tsx
   globals.css
 
 components/
+  onboarding/
+    OnboardingWizard.tsx         → 2-step client wizard: anagrafica (all fields required) + contract generation + download
   impostazioni/
-    CreateUserForm.tsx            → Create user form (email + role + anagrafica + optional contract generation for collaboratore)
+    CreateUserForm.tsx            → Create user form (email + role + tipo_contratto required; anagrafica optional pre-fill)
     CommunityManager.tsx          → Community CRUD (create/rename/toggle active) + responsabile→community assignment
     MemberStatusManager.tsx       → Collaborator list with member_status dropdown + data_ingresso inline edit
     ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference
@@ -191,6 +195,7 @@ supabase/migrations/
   007_communities_settings.sql   → ADD COLUMN communities.is_active boolean DEFAULT true + admin write policy
   008_avatars_bucket.sql         → Public `avatars` bucket + storage policies (2MB, jpg/png/webp)
   009_contract_templates.sql     → luogo_nascita/comune on collaborators, CONTRATTO_COCOCO/PIVA doc types, contract_templates table, contracts bucket
+  010_onboarding.sql             → onboarding_completed on user_profiles, tipo_contratto on collaborators, nome/cognome nullable
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
@@ -211,6 +216,7 @@ e2e/
   profilo.spec.ts                  → Playwright UAT: extended profile S1–S11 (avatar, fiscal data, payment overview, 11 tests)
   dashboard.spec.ts                → Playwright UAT: collaboratore dashboard S1–S10 (cards, quick actions, feed, 10 tests)
   contratti.spec.ts                → Playwright UAT: contract templates + onboarding S1–S10 (upload, generate, profile editing, 10 tests)
+  onboarding.spec.ts               → Playwright UAT: onboarding flow S1–S10 (wizard, anagrafica, contract download, proxy redirect, 10 tests)
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -223,7 +229,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (101 tests across 10 spec files)
+npm test           # Run unit tests (81 cases) + Playwright e2e (111 tests across 11 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
@@ -247,6 +253,8 @@ Before using file uploads, run the migrations in `supabase/migrations/` via the 
 - `006_tickets_storage.sql` → creates `tickets` private bucket + storage policies
 - `007_communities_settings.sql` → adds `is_active` column to communities + admin write policy
 - `008_avatars_bucket.sql` → creates public `avatars` bucket + storage policies
+- `009_contract_templates.sql` → creates `contracts` bucket + contract_templates table
+- `010_onboarding.sql` → onboarding_completed flag + tipo_contratto on collaborators
 
 The `compensations` and `expenses` buckets must also be created (private, 10MB limit, PDF/image types).
 

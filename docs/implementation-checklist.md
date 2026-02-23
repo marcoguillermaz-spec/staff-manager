@@ -38,6 +38,7 @@
 | Template contratti + Onboarding automatizzato | ✅ | — | 10 Playwright | Migration 009. Tabella `contract_templates`, bucket `contracts`, docxtemplater. Tab "Contratti" in Impostazioni. CreateUserForm espanso con anagrafica + contratto. ProfileForm: tutti i campi editabili (tranne email/data_ingresso). |
 | Dashboard collaboratore | ✅ | — | 10 Playwright | §11 req. 3 card riepilogative, azioni rapide, "Cosa mi manca", feed 10 item (history+tickets+annunci). Fix: RLS senza user_id su compensations/expenses. |
 | Profilo collaboratore esteso | ✅ | — | 11 Playwright | §12 req. Avatar upload (bucket `avatars`), ha_figli_a_carico (semantica: il collaboratore è fiscalmente a carico), P.IVA + guide da resources, data_ingresso admin-managed, PaymentOverview in /compensi. Migration 008. |
+| Onboarding flow | ✅ | — | 10 Playwright | Migration 010. Wizard 2-step post-primo-login: dati anagrafici (tutti obbligatori) + genera contratto. tipo_contratto obbligatorio nell'invite admin. Proxy redirect a /onboarding se onboarding_completed=false. collaborators per entrambi i ruoli. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -66,6 +67,14 @@
 ---
 
 ## Log blocchi completati
+
+### Onboarding flow — completato 2026-02-23
+- File: `app/onboarding/page.tsx`, `components/onboarding/OnboardingWizard.tsx`, `app/api/onboarding/complete/route.ts`, `e2e/onboarding.spec.ts`
+- Migration: `010_onboarding.sql` — onboarding_completed su user_profiles, tipo_contratto su collaborators, nome/cognome nullable
+- Modificati: `proxy.ts` (check onboarding_completed), `app/api/admin/create-user/route.ts` (tipo_contratto obbligatorio, onboarding_completed=false, collaborators per entrambi i ruoli, rimossa generazione contratto al momento dell'invito), `components/impostazioni/CreateUserForm.tsx` (tipo rapporto required per entrambi i ruoli), `lib/types.ts` (UserProfile + Collaborator aggiornati), `app/(app)/layout.tsx` (nome/cognome nullable)
+- Test: — unit + 10 Playwright (S1–S10, tutti verdi)
+- Pattern: wizard 2-step: step 1 = dati anagrafici (tutti required), step 2 = genera contratto via docxtemplater → onboarding_completed=true. Il download è step intermedio; l'utente clicca "Ho scaricato" per accedere alla dashboard.
+- Flow test e2e con browser.newPage() in beforeAll per condividere il contesto browser tra S2–S7 (sessione persistente durante il flusso).
 
 ### Template contratti + Onboarding automatizzato — completato 2026-02-23
 - File: `supabase/migrations/009_contract_templates.sql`, `app/api/admin/contract-templates/route.ts`, `components/impostazioni/ContractTemplateManager.tsx`, `e2e/contratti.spec.ts`
