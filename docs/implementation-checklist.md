@@ -38,7 +38,7 @@
 | Template contratti | ⏸ | | | In attesa di template reale: senza esempio non si possono definire variabili/modello dati. Riprendere quando disponibile. |
 | Onboarding automatizzato | ⏸ | | | Dipende da Template contratti (generazione contratto al momento della creazione utente). Blocco secondario sospeso. |
 | Dashboard collaboratore | 🔲 | | | §11 req. 3 card (compensi/rimborsi/documenti) + azioni rapide + "Cosa mi manca" + ultimi aggiornamenti. Placeholder attuale: "In costruzione". |
-| Profilo collaboratore esteso | 🔲 | | | §12 req. Figli a carico (ha_figli_a_carico + figli_dettaglio), P.IVA info, data_ingresso, panoramica pagamenti "Quanto mi spetta". Migration richiesta. |
+| Profilo collaboratore esteso | ✅ | — | 11 Playwright | §12 req. Avatar upload (bucket `avatars`), ha_figli_a_carico (semantica: il collaboratore è fiscalmente a carico), P.IVA + guide da resources, data_ingresso admin-managed, PaymentOverview in /compensi. Migration 008. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -67,6 +67,15 @@
 ---
 
 ## Log blocchi completati
+
+### Profilo collaboratore esteso — completato 2026-02-23
+- File: `app/api/profile/avatar/route.ts`, `app/api/admin/members/[id]/data-ingresso/route.ts`, `components/ProfileForm.tsx`, `components/Sidebar.tsx`, `components/compensation/PaymentOverview.tsx`, `e2e/profilo.spec.ts`
+- Migration: `008_avatars_bucket.sql` (bucket pubblico `avatars`, 2MB, jpg/png/webp)
+- Modificati: `app/api/profile/route.ts` (aggiunti partita_iva, ha_figli_a_carico), `app/(app)/profilo/page.tsx`, `app/(app)/compensi/page.tsx`, `app/(app)/layout.tsx`, `app/(app)/impostazioni/page.tsx`, `components/impostazioni/MemberStatusManager.tsx`
+- Test: — unit + 11 Playwright (S1–S11, tutti verdi)
+- Semantica: `ha_figli_a_carico` = il collaboratore STESSO è fiscalmente a carico di un familiare (non "ha dipendenti a carico")
+- Guide fiscali: riutilizzano tabella `resources` con tag `detrazioni-figli` e `procedura-piva` — nessuna tabella nuova
+- Pattern: bucket `avatars` pubblico → URL pubblico diretto (no signed URL); upload centralizzato in API route con service role
 
 ### Contenuti — completato 2026-02-20
 - File: `app/(app)/contenuti/page.tsx`, `components/contenuti/` (4 componenti), `app/api/announcements/`, `app/api/benefits/`, `app/api/resources/`, `app/api/events/`
