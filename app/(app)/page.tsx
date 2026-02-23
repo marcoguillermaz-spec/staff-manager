@@ -180,8 +180,8 @@ export default async function DashboardPage() {
     { data: allTickets },
     { data: announcements },
   ] = await Promise.all([
-    supabase.from('compensations').select('id, tipo, stato, importo_netto, totale_fattura').eq('user_id', user.id),
-    supabase.from('expense_reimbursements').select('id, stato, importo').eq('user_id', user.id),
+    supabase.from('compensations').select('id, tipo, stato, importo_netto, totale_fattura'),
+    supabase.from('expense_reimbursements').select('id, stato, importo'),
     docsQuery,
     supabase.from('tickets').select('id, oggetto, stato').eq('creator_user_id', user.id),
     supabase
