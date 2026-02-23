@@ -261,8 +261,11 @@ export interface Collaborator {
   partita_iva: string | null;
   data_nascita: string | null;
   luogo_nascita: string | null;
+  provincia_nascita: string | null;
   comune: string | null;
+  provincia_residenza: string | null;
   indirizzo: string | null;
+  civico_residenza: string | null;
   telefono: string | null;
   email: string;
   iban: string | null;

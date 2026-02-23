@@ -6,18 +6,21 @@ import { z } from 'zod';
 import { CONTRACT_TEMPLATE_DOCUMENT_TYPE, type ContractTemplateType } from '@/lib/types';
 
 const schema = z.object({
-  nome:              z.string().min(1).max(100),
-  cognome:           z.string().min(1).max(100),
-  codice_fiscale:    z.string().min(1).max(16),
-  data_nascita:      z.string().min(1),          // ISO date
-  luogo_nascita:     z.string().min(1).max(100),
-  comune:            z.string().min(1).max(100),
-  indirizzo:         z.string().min(1).max(200),
-  telefono:          z.string().min(1).max(20),
-  iban:              z.string().min(1).max(34),
-  tshirt_size:       z.string().min(1),
-  partita_iva:       z.string().nullable().optional(), // required only for PIVA
-  ha_figli_a_carico: z.boolean(),
+  nome:                z.string().min(1).max(100),
+  cognome:             z.string().min(1).max(100),
+  codice_fiscale:      z.string().min(1).max(16),
+  data_nascita:        z.string().min(1),          // ISO date
+  luogo_nascita:       z.string().min(1).max(100),
+  provincia_nascita:   z.string().min(1).max(10),
+  comune:              z.string().min(1).max(100),
+  provincia_residenza: z.string().min(1).max(10),
+  indirizzo:           z.string().min(1).max(200),
+  civico_residenza:    z.string().min(1).max(20),
+  telefono:            z.string().min(1).max(20),
+  iban:                z.string().min(1).max(34),
+  tshirt_size:         z.string().min(1),
+  partita_iva:         z.string().nullable().optional(), // required only for PIVA
+  ha_figli_a_carico:   z.boolean(),
 });
 
 function formatDate(isoDate: string | null | undefined): string {
@@ -93,19 +96,22 @@ export async function POST(request: Request) {
   let tipoContratto: string | null;
 
   const anagraficaFields = {
-    nome:              d.nome,
-    cognome:           d.cognome,
-    email:             user.email ?? '',
-    codice_fiscale:    d.codice_fiscale.toUpperCase(),
-    data_nascita:      d.data_nascita,
-    luogo_nascita:     d.luogo_nascita,
-    comune:            d.comune,
-    indirizzo:         d.indirizzo,
-    telefono:          d.telefono,
-    iban:              d.iban,
-    tshirt_size:       d.tshirt_size,
-    partita_iva:       d.partita_iva ?? null,
-    ha_figli_a_carico: d.ha_figli_a_carico,
+    nome:                d.nome,
+    cognome:             d.cognome,
+    email:               user.email ?? '',
+    codice_fiscale:      d.codice_fiscale.toUpperCase(),
+    data_nascita:        d.data_nascita,
+    luogo_nascita:       d.luogo_nascita,
+    provincia_nascita:   d.provincia_nascita,
+    comune:              d.comune,
+    provincia_residenza: d.provincia_residenza,
+    indirizzo:           d.indirizzo,
+    civico_residenza:    d.civico_residenza,
+    telefono:            d.telefono,
+    iban:                d.iban,
+    tshirt_size:         d.tshirt_size,
+    partita_iva:         d.partita_iva ?? null,
+    ha_figli_a_carico:   d.ha_figli_a_carico,
   };
 
   if (existingCollab) {
@@ -153,7 +159,9 @@ export async function POST(request: Request) {
         : null;
 
       if (templateBuffer) {
+        const BLANK = '_______________';
         const vars: Record<string, string> = {
+          // Field names used by OCCASIONALE template
           nome:            d.nome,
           cognome:         d.cognome,
           codice_fiscale:  d.codice_fiscale.toUpperCase(),
@@ -165,11 +173,26 @@ export async function POST(request: Request) {
           email:           user.email ?? '',
           telefono:        d.telefono,
           iban:            d.iban,
-          compenso_lordo:  '',
-          data_inizio:     '',
-          data_fine:       '',
-          numero_rate:     '',
-          importo_rata:    '',
+          compenso_lordo:  BLANK,
+          data_inizio:     BLANK,
+          data_fine:       BLANK,
+          numero_rate:     BLANK,
+          importo_rata:    BLANK,
+          // Field names used by COCOCO template
+          citta_nascita:                d.luogo_nascita,
+          provincia_nascita:            d.provincia_nascita,
+          data_di_nascita:              formatDate(d.data_nascita),
+          citta_residenza:              d.comune,
+          provincia_residenza:          d.provincia_residenza,
+          indirizzo_residenza:          d.indirizzo,
+          civico_residenza:             d.civico_residenza,
+          importo_euro:                 BLANK,
+          importo_in_lettere:           BLANK,
+          numero_soluzioni:             BLANK,
+          importo_singole_soluzioni:    BLANK,
+          importo_in_lettere_soluzione: BLANK,
+          data_inizio_collaborazione:   BLANK,
+          data_fine_collaborazione:     BLANK,
         };
 
         const generated = await generateContract(templateBuffer, vars);

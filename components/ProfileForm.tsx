@@ -10,10 +10,13 @@ type Collaborator = {
   partita_iva: string | null;
   data_nascita: string | null;
   luogo_nascita: string | null;
+  provincia_nascita: string | null;
   comune: string | null;
+  provincia_residenza: string | null;
   data_ingresso: string | null;
   telefono: string | null;
   indirizzo: string | null;
+  civico_residenza: string | null;
   iban: string | null;
   tshirt_size: string | null;
   foto_profilo_url: string | null;
@@ -83,10 +86,13 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
   const [codiceFiscale, setCodiceFiscale] = useState(collaborator?.codice_fiscale ?? '');
   const [dataNascita, setDataNascita] = useState(collaborator?.data_nascita ?? '');
   const [luogoNascita, setLuogoNascita] = useState(collaborator?.luogo_nascita ?? '');
+  const [provinciaNascita, setProvinciaNascita] = useState(collaborator?.provincia_nascita ?? '');
   const [comuneRes, setComuneRes]     = useState(collaborator?.comune ?? '');
+  const [provinciaRes, setPrvinciaRes] = useState(collaborator?.provincia_residenza ?? '');
   // Contacts
   const [telefono, setTelefono]   = useState(collaborator?.telefono ?? '');
   const [indirizzo, setIndirizzo] = useState(collaborator?.indirizzo ?? '');
+  const [civico, setCivico]       = useState(collaborator?.civico_residenza ?? '');
   // Payment
   const [iban, setIban] = useState(collaborator?.iban ?? '');
   // Fiscal
@@ -114,18 +120,21 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nome:           nome.trim() || undefined,
-        cognome:        cognome.trim() || undefined,
-        codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
-        data_nascita:   dataNascita || null,
-        luogo_nascita:  luogoNascita.trim() || null,
-        comune:         comuneRes.trim() || null,
-        telefono:       telefono || null,
-        indirizzo:      indirizzo || null,
-        iban:           iban.toUpperCase().replace(/\s/g, '') || null,
-        tshirt_size:    tshirt || null,
-        partita_iva:    partitaIva.trim() || null,
-        ha_figli_a_carico: haFigliACarico,
+        nome:                nome.trim() || undefined,
+        cognome:             cognome.trim() || undefined,
+        codice_fiscale:      codiceFiscale.trim().toUpperCase() || null,
+        data_nascita:        dataNascita || null,
+        luogo_nascita:       luogoNascita.trim() || null,
+        provincia_nascita:   provinciaNascita.trim().toUpperCase() || null,
+        comune:              comuneRes.trim() || null,
+        provincia_residenza: provinciaRes.trim().toUpperCase() || null,
+        telefono:            telefono || null,
+        indirizzo:           indirizzo || null,
+        civico_residenza:    civico.trim() || null,
+        iban:                iban.toUpperCase().replace(/\s/g, '') || null,
+        tshirt_size:         tshirt || null,
+        partita_iva:         partitaIva.trim() || null,
+        ha_figli_a_carico:   haFigliACarico,
       }),
     });
 
@@ -249,17 +258,31 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
                 disabled={loading} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Luogo di nascita</label>
-              <input type="text" placeholder="Roma (RM)" value={luogoNascita}
+              <label className={labelCls}>Città di nascita</label>
+              <input type="text" placeholder="Roma" value={luogoNascita}
                 onChange={(e) => setLuogoNascita(e.target.value)}
                 disabled={loading} className={inputCls} />
             </div>
           </div>
           <div>
-            <label className={labelCls}>Comune di residenza</label>
-            <input type="text" placeholder="Milano" value={comuneRes}
-              onChange={(e) => setComuneRes(e.target.value)}
-              disabled={loading} className={inputCls} />
+            <label className={labelCls}>Provincia di nascita (sigla)</label>
+            <input type="text" placeholder="RM" value={provinciaNascita}
+              onChange={(e) => setProvinciaNascita(e.target.value.toUpperCase())}
+              disabled={loading} maxLength={2} className={inputCls + ' font-mono uppercase'} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Comune di residenza</label>
+              <input type="text" placeholder="Milano" value={comuneRes}
+                onChange={(e) => setComuneRes(e.target.value)}
+                disabled={loading} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Provincia di residenza (sigla)</label>
+              <input type="text" placeholder="MI" value={provinciaRes}
+                onChange={(e) => setPrvinciaRes(e.target.value.toUpperCase())}
+                disabled={loading} maxLength={2} className={inputCls + ' font-mono uppercase'} />
+            </div>
           </div>
           {collaborator.data_ingresso && (
             <Field label="Data ingresso" value={new Date(collaborator.data_ingresso).toLocaleDateString('it-IT')} />
@@ -296,16 +319,30 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
               className={inputCls}
             />
           </div>
-          <div>
-            <label className={labelCls}>Indirizzo (via e numero civico)</label>
-            <input
-              type="text"
-              placeholder="Via Roma 1"
-              value={indirizzo}
-              onChange={(e) => setIndirizzo(e.target.value)}
-              disabled={loading}
-              className={inputCls}
-            />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <label className={labelCls}>Via/Piazza</label>
+              <input
+                type="text"
+                placeholder="Via Roma"
+                value={indirizzo}
+                onChange={(e) => setIndirizzo(e.target.value)}
+                disabled={loading}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Civico</label>
+              <input
+                type="text"
+                placeholder="1"
+                value={civico}
+                onChange={(e) => setCivico(e.target.value)}
+                disabled={loading}
+                maxLength={10}
+                className={inputCls}
+              />
+            </div>
           </div>
         </div>
       </div>

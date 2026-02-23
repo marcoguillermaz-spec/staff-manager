@@ -10,8 +10,11 @@ type PrefillData = {
   codice_fiscale: string | null;
   data_nascita: string | null;
   luogo_nascita: string | null;
+  provincia_nascita: string | null;
   comune: string | null;
+  provincia_residenza: string | null;
   indirizzo: string | null;
+  civico_residenza: string | null;
   telefono: string | null;
   iban: string | null;
   tshirt_size: string | null;
@@ -43,18 +46,21 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
   const router = useRouter();
 
   // Step 1 — dati anagrafici
-  const [nome, setNome]               = useState(prefill?.nome ?? '');
-  const [cognome, setCognome]         = useState(prefill?.cognome ?? '');
-  const [codiceFiscale, setCF]        = useState(prefill?.codice_fiscale ?? '');
-  const [dataNascita, setDataNascita] = useState(prefill?.data_nascita ?? '');
-  const [luogoNascita, setLuogo]      = useState(prefill?.luogo_nascita ?? '');
-  const [comune, setComune]           = useState(prefill?.comune ?? '');
-  const [indirizzo, setIndirizzo]     = useState(prefill?.indirizzo ?? '');
-  const [telefono, setTelefono]       = useState(prefill?.telefono ?? '');
-  const [iban, setIban]               = useState(prefill?.iban ?? '');
-  const [tshirt, setTshirt]           = useState(prefill?.tshirt_size ?? '');
-  const [partitaIva, setPartitaIva]   = useState(prefill?.partita_iva ?? '');
-  const [haFigli, setHaFigli]         = useState(prefill?.ha_figli_a_carico ?? false);
+  const [nome, setNome]                       = useState(prefill?.nome ?? '');
+  const [cognome, setCognome]                 = useState(prefill?.cognome ?? '');
+  const [codiceFiscale, setCF]                = useState(prefill?.codice_fiscale ?? '');
+  const [dataNascita, setDataNascita]         = useState(prefill?.data_nascita ?? '');
+  const [luogoNascita, setLuogo]              = useState(prefill?.luogo_nascita ?? '');
+  const [provinciaNascita, setProvinciaNascita] = useState(prefill?.provincia_nascita ?? '');
+  const [comune, setComune]                   = useState(prefill?.comune ?? '');
+  const [provinciaRes, setPrvinciaRes]        = useState(prefill?.provincia_residenza ?? '');
+  const [indirizzo, setIndirizzo]             = useState(prefill?.indirizzo ?? '');
+  const [civico, setCivico]                   = useState(prefill?.civico_residenza ?? '');
+  const [telefono, setTelefono]               = useState(prefill?.telefono ?? '');
+  const [iban, setIban]                       = useState(prefill?.iban ?? '');
+  const [tshirt, setTshirt]                   = useState(prefill?.tshirt_size ?? '');
+  const [partitaIva, setPartitaIva]           = useState(prefill?.partita_iva ?? '');
+  const [haFigli, setHaFigli]                 = useState(prefill?.ha_figli_a_carico ?? false);
 
   // Step tracking
   const [step, setStep]           = useState<1 | 2>(1);
@@ -68,8 +74,9 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
   // Validate step 1
   const step1Valid =
     nome.trim() && cognome.trim() && codiceFiscale.trim() &&
-    dataNascita && luogoNascita.trim() && comune.trim() &&
-    indirizzo.trim() && telefono.trim() && iban.trim() && tshirt &&
+    dataNascita && luogoNascita.trim() && provinciaNascita.trim() &&
+    comune.trim() && provinciaRes.trim() && indirizzo.trim() && civico.trim() &&
+    telefono.trim() && iban.trim() && tshirt &&
     (!isPiva || partitaIva.trim());
 
   const handleCompleteOnboarding = async () => {
@@ -80,18 +87,21 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nome:              nome.trim(),
-        cognome:           cognome.trim(),
-        codice_fiscale:    codiceFiscale.trim().toUpperCase(),
-        data_nascita:      dataNascita,
-        luogo_nascita:     luogoNascita.trim(),
-        comune:            comune.trim(),
-        indirizzo:         indirizzo.trim(),
-        telefono:          telefono.trim(),
-        iban:              iban.trim(),
-        tshirt_size:       tshirt,
-        partita_iva:       isPiva ? partitaIva.trim() || null : null,
-        ha_figli_a_carico: haFigli,
+        nome:                nome.trim(),
+        cognome:             cognome.trim(),
+        codice_fiscale:      codiceFiscale.trim().toUpperCase(),
+        data_nascita:        dataNascita,
+        luogo_nascita:       luogoNascita.trim(),
+        provincia_nascita:   provinciaNascita.trim().toUpperCase(),
+        comune:              comune.trim(),
+        provincia_residenza: provinciaRes.trim().toUpperCase(),
+        indirizzo:           indirizzo.trim(),
+        civico_residenza:    civico.trim(),
+        telefono:            telefono.trim(),
+        iban:                iban.trim(),
+        tshirt_size:         tshirt,
+        partita_iva:         isPiva ? partitaIva.trim() || null : null,
+        ha_figli_a_carico:   haFigli,
       }),
     });
 
@@ -288,11 +298,17 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
                   required className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Luogo di nascita <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Roma (RM)" value={luogoNascita}
+                <label className={labelCls}>Città di nascita <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Roma" value={luogoNascita}
                   onChange={(e) => setLuogo(e.target.value)}
                   required className={inputCls} />
               </div>
+            </div>
+            <div>
+              <label className={labelCls}>Provincia di nascita (sigla) <span className="text-red-500">*</span></label>
+              <input type="text" placeholder="RM" value={provinciaNascita}
+                onChange={(e) => setProvinciaNascita(e.target.value.toUpperCase())}
+                required maxLength={2} className={inputCls + ' font-mono uppercase'} />
             </div>
             {isPiva && (
               <div>
@@ -317,16 +333,30 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
                   required className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Telefono <span className="text-red-500">*</span></label>
-                <input type="tel" placeholder="+39 333 0000000" value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                <label className={labelCls}>Provincia (sigla) <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="MI" value={provinciaRes}
+                  onChange={(e) => setPrvinciaRes(e.target.value.toUpperCase())}
+                  required maxLength={2} className={inputCls + ' font-mono uppercase'} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className={labelCls}>Via/Piazza <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Via Roma" value={indirizzo}
+                  onChange={(e) => setIndirizzo(e.target.value)}
                   required className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Civico <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="1" value={civico}
+                  onChange={(e) => setCivico(e.target.value)}
+                  required maxLength={10} className={inputCls} />
               </div>
             </div>
             <div>
-              <label className={labelCls}>Indirizzo (via e numero civico) <span className="text-red-500">*</span></label>
-              <input type="text" placeholder="Via Roma 1, Milano" value={indirizzo}
-                onChange={(e) => setIndirizzo(e.target.value)}
+              <label className={labelCls}>Telefono <span className="text-red-500">*</span></label>
+              <input type="tel" placeholder="+39 333 0000000" value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
                 required className={inputCls} />
             </div>
           </div>

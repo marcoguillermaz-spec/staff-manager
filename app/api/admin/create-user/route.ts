@@ -11,14 +11,17 @@ const schema = z.object({
   // Tipo rapporto (obbligatorio per collaboratore e responsabile)
   tipo_contratto: z.enum(['OCCASIONALE', 'COCOCO', 'PIVA']).optional(),
   // Anagrafica (opzionale — pre-fill per l'onboarding)
-  nome:           z.string().min(1).max(100).optional(),
-  cognome:        z.string().min(1).max(100).optional(),
-  codice_fiscale: z.string().max(16).nullable().optional(),
-  data_nascita:   z.string().nullable().optional(),
-  luogo_nascita:  z.string().max(100).nullable().optional(),
-  comune:         z.string().max(100).nullable().optional(),
-  indirizzo:      z.string().max(200).nullable().optional(),
-  telefono:       z.string().max(20).nullable().optional(),
+  nome:                z.string().min(1).max(100).optional(),
+  cognome:             z.string().min(1).max(100).optional(),
+  codice_fiscale:      z.string().max(16).nullable().optional(),
+  data_nascita:        z.string().nullable().optional(),
+  luogo_nascita:       z.string().max(100).nullable().optional(),
+  provincia_nascita:   z.string().max(10).nullable().optional(),
+  comune:              z.string().max(100).nullable().optional(),
+  provincia_residenza: z.string().max(10).nullable().optional(),
+  indirizzo:           z.string().max(200).nullable().optional(),
+  civico_residenza:    z.string().max(20).nullable().optional(),
+  telefono:            z.string().max(20).nullable().optional(),
 });
 
 function generatePassword(): string {
@@ -72,7 +75,10 @@ export async function POST(request: Request) {
 
   const {
     email, role, community_ids, tipo_contratto,
-    nome, cognome, codice_fiscale, data_nascita, luogo_nascita, comune, indirizzo, telefono,
+    nome, cognome, codice_fiscale, data_nascita,
+    luogo_nascita, provincia_nascita,
+    comune, provincia_residenza,
+    indirizzo, civico_residenza, telefono,
   } = parsed.data;
 
   // tipo_contratto is required for collaboratore and responsabile
@@ -130,17 +136,20 @@ export async function POST(request: Request) {
   //    (tipo_contratto is stored here; anagrafica fields are pre-fill — completed during onboarding)
   if (['collaboratore', 'responsabile'].includes(role) && tipo_contratto) {
     await admin.from('collaborators').insert({
-      user_id:        userId,
+      user_id:             userId,
       email,
       tipo_contratto,
-      nome:           nome?.trim() || null,
-      cognome:        cognome?.trim() || null,
-      codice_fiscale: codice_fiscale ?? null,
-      data_nascita:   data_nascita ?? null,
-      luogo_nascita:  luogo_nascita ?? null,
-      comune:         comune ?? null,
-      indirizzo:      indirizzo ?? null,
-      telefono:       telefono ?? null,
+      nome:                nome?.trim() || null,
+      cognome:             cognome?.trim() || null,
+      codice_fiscale:      codice_fiscale ?? null,
+      data_nascita:        data_nascita ?? null,
+      luogo_nascita:       luogo_nascita ?? null,
+      provincia_nascita:   provincia_nascita ?? null,
+      comune:              comune ?? null,
+      provincia_residenza: provincia_residenza ?? null,
+      indirizzo:           indirizzo ?? null,
+      civico_residenza:    civico_residenza ?? null,
+      telefono:            telefono ?? null,
     });
   }
 

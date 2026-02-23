@@ -23,8 +23,9 @@ export default async function ProfiloPage() {
       .from('collaborators')
       .select(`
         nome, cognome, email, codice_fiscale, partita_iva,
-        data_nascita, luogo_nascita, comune, data_ingresso,
-        telefono, indirizzo, iban, tshirt_size,
+        data_nascita, luogo_nascita, provincia_nascita,
+        comune, provincia_residenza, data_ingresso,
+        telefono, indirizzo, civico_residenza, iban, tshirt_size,
         foto_profilo_url, ha_figli_a_carico,
         collaborator_communities ( communities ( name ) )
       `)
