@@ -5,7 +5,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utenti test: mario.rossi@test.com (collaboratore), admin-test@example.com (amministrazione)
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com (amministrazione)
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -64,8 +64,8 @@ async function uploadToStorage(bucket: string, storagePath: string, buffer: Buff
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  mario: { email: 'mario.rossi@test.com',    password: 'Testbusters123' },
-  admin: { email: 'admin-test@example.com',  password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com',   password: 'Testbusters123' },
+  admin:         { email: 'admin-test@example.com',   password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {
@@ -127,7 +127,7 @@ function createMinimalDocx(tipo = 'occasionale'): Buffer {
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
-const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi
+const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 const TEST_EMAILS = {
   s5: 'uat-contratti-s5@test.local',
@@ -139,7 +139,7 @@ let tmpDocxPath    = '';
 let tmpPdfPath     = '';
 let createdUserIds: string[] = [];
 
-let marioOriginalProfile: { nome: string; cognome: string; luogo_nascita: string | null; comune: string | null } | null = null;
+let collabOriginalProfile: { nome: string; cognome: string; luogo_nascita: string | null; comune: string | null } | null = null;
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 test.describe.serial('Template contratti + Onboarding UAT', () => {
@@ -178,8 +178,8 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
       if (row?.user_id) await deleteAuthUser(row.user_id);
     }
 
-    // Record mario.rossi's original profile for afterAll restoration
-    marioOriginalProfile = await dbFirst<{ nome: string; cognome: string; luogo_nascita: string | null; comune: string | null }>(
+    // Record collaboratore's original profile for afterAll restoration
+    collabOriginalProfile = await dbFirst<{ nome: string; cognome: string; luogo_nascita: string | null; comune: string | null }>(
       'collaborators',
       `id=eq.${COLLAB_ID}&select=nome,cognome,luogo_nascita,comune`,
     );
@@ -191,13 +191,13 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
       await deleteAuthUser(userId);
     }
 
-    // Restore mario.rossi's profile
-    if (marioOriginalProfile) {
+    // Restore collaboratore's profile
+    if (collabOriginalProfile) {
       await dbPatch('collaborators', `id=eq.${COLLAB_ID}`, {
-        nome:          marioOriginalProfile.nome,
-        cognome:       marioOriginalProfile.cognome,
-        luogo_nascita: marioOriginalProfile.luogo_nascita,
-        comune:        marioOriginalProfile.comune,
+        nome:          collabOriginalProfile.nome,
+        cognome:       collabOriginalProfile.cognome,
+        luogo_nascita: collabOriginalProfile.luogo_nascita,
+        comune:        collabOriginalProfile.comune,
       });
     }
 
@@ -440,7 +440,7 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
 
   // S8 — Profilo: campi nuovi editabili
   test('S8 — collaboratore modifica nome, cognome, luogo_nascita, comune', async ({ page }) => {
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/profilo');
     await page.waitForLoadState('networkidle');
 
@@ -479,7 +479,7 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
 
   // S9 — Profilo: data_ingresso è read-only (no input)
   test('S9 — data_ingresso non è un campo editabile nel profilo', async ({ page }) => {
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/profilo');
     await page.waitForLoadState('networkidle');
 
@@ -494,7 +494,7 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
 
   // S10 — Profilo: luogo_nascita e comune mostrano valori salvati (da S8)
   test('S10 — profilo mostra luogo_nascita e comune aggiornati', async ({ page }) => {
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/profilo');
     await page.waitForLoadState('networkidle');
 

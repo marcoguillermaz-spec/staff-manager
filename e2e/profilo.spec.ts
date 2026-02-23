@@ -5,7 +5,7 @@
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
  *   - Migration 008_avatars_bucket.sql applicata
- *   - Utenti test: mario.rossi@test.com (collaboratore), admin-test@example.com
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com
  *   - Collaboratore ID noto: 3a55c2da-4906-42d7-81e1-c7c7b399ab4b
  */
 
@@ -51,7 +51,7 @@ const JPEG_1PX = Buffer.from(
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  collaboratore: { email: 'mario.rossi@test.com',  password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com',  password: 'Testbusters123' },
   admin:         { email: 'admin-test@example.com', password: 'Testbusters123' },
 };
 
@@ -70,7 +70,7 @@ async function login(page: Page, role: keyof typeof CREDS) {
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
-const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi
+const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 let originalAvatarUrl: string | null    = null;
 let originalPartitaIva: string | null   = null;
@@ -97,7 +97,7 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
       originalDataIngresso = collab.data_ingresso;
     }
 
-    // Find a compensation for mario.rossi to use in S8 (panoramica pagamenti)
+    // Find a compensation for collaboratore@test.com to use in S8 (panoramica pagamenti)
     const comp = await dbFirst<{ id: string; stato: string }>(
       'compensations',
       `collaborator_id=eq.${COLLAB_ID}&select=id,stato`,
@@ -299,7 +299,7 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
 
     await expect(page.locator('h2:has-text("Stato collaboratori")')).toBeVisible();
 
-    const memberRow = page.locator('div.px-5.py-3.space-y-2').filter({ hasText: 'Rossi' });
+    const memberRow = page.locator('div.px-5.py-3.space-y-2').filter({ hasText: 'Collaboratore' });
     await expect(memberRow).toBeVisible({ timeout: 10_000 });
 
     const dateInput = memberRow.locator('input[type="date"]');
@@ -327,7 +327,7 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
   // ── S8: Panoramica pagamenti — dati presenti ──────────────────────────────
   test('S8 — Panoramica pagamenti visibile quando esiste almeno 1 compenso PAGATO', async ({ page }) => {
     if (!testCompensationId) {
-      console.log('  ⚠️  S8 skipped: nessun compenso per mario.rossi');
+      console.log('  ⚠️  S8 skipped: nessun compenso per collaboratore@test.com');
       return;
     }
 
@@ -349,7 +349,7 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
   // ── S9: Panoramica pagamenti — nessun dato ────────────────────────────────
   test('S9 — Panoramica pagamenti assente quando nessun compenso/rimborso PAGATO', async ({ page }) => {
     if (!testCompensationId) {
-      console.log('  ⚠️  S9 skipped: nessun compenso per mario.rossi');
+      console.log('  ⚠️  S9 skipped: nessun compenso per collaboratore@test.com');
       return;
     }
 
@@ -359,10 +359,10 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
       paid_at: null,
     });
 
-    // Check there are no PAGATO compensations for mario.rossi
+    // Check there are no PAGATO compensations for collaboratore@test.com
     const pagati = await dbGet('compensations', `collaborator_id=eq.${COLLAB_ID}&stato=eq.PAGATO&select=id`);
     if (pagati.length > 0) {
-      console.log('  ⚠️  S9 skipped: mario.rossi ha già compensi PAGATO da test precedenti');
+      console.log('  ⚠️  S9 skipped: collaboratore@test.com ha già compensi PAGATO da test precedenti');
       return;
     }
 

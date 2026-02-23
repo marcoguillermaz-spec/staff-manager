@@ -5,7 +5,7 @@
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
  *   - Migration 007_communities_settings.sql applicata (ALTER TABLE communities ADD COLUMN is_active)
- *   - Utenti test: admin-test@example.com, mario.rossi@test.com, responsabile@test.com
+ *   - Utenti test: admin-test@example.com, collaboratore@test.com, responsabile@test.com
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -64,12 +64,12 @@ async function login(page: Page, role: keyof typeof CREDS) {
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
-const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi
+const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 let createdCommunityId = '';
 let respUserId         = '';
 let respOriginalCommIds: string[] = [];
-let marioOriginalStatus = 'attivo';
+let collabOriginalStatus = 'attivo';
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 test.describe.serial('Impostazioni avanzate UAT', () => {
@@ -79,8 +79,8 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
     const old = await dbGet<{ id: string }>('communities', 'name=like.%5BUAT%5D%25&select=id');
     for (const c of old) await dbDelete('communities', `id=eq.${c.id}`);
 
-    // Save mario.rossi's current member_status for afterAll restore
-    const mario = await dbFirst<{ member_status: string }>(
+    // Save collaboratore's current member_status for afterAll restore
+    const collabStatus = await dbFirst<{ member_status: string }>(
       'user_profiles',
       `user_id=in.(select user_id from collaborators where id='${COLLAB_ID}')&select=member_status`,
     );
@@ -90,7 +90,7 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
       const upRow = await dbFirst<{ member_status: string; user_id: string }>(
         'user_profiles', `user_id=eq.${collabRow.user_id}&select=member_status`,
       );
-      marioOriginalStatus = upRow?.member_status ?? 'attivo';
+      collabOriginalStatus = upRow?.member_status ?? 'attivo';
     }
 
     // Resolve first active responsabile user_id + save their community assignments
@@ -107,7 +107,7 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
       respOriginalCommIds = assignments.map((a) => a.community_id);
     }
 
-    console.log(`  ℹ️  mario original status: ${marioOriginalStatus}`);
+    console.log(`  ℹ️  collaboratore original status: ${collabOriginalStatus}`);
     console.log(`  ℹ️  responsabile user_id: ${respUserId}`);
     console.log(`  ℹ️  resp original communities: [${respOriginalCommIds.join(', ')}]`);
   });
@@ -116,9 +116,9 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
     // Delete UAT community
     if (createdCommunityId) await dbDelete('communities', `id=eq.${createdCommunityId}`);
 
-    // Restore mario.rossi member_status
+    // Restore collaboratore member_status
     const collabRow = await dbFirst<{ user_id: string }>('collaborators', `id=eq.${COLLAB_ID}&select=user_id`);
-    if (collabRow) await dbPatch('user_profiles', `user_id=eq.${collabRow.user_id}`, { member_status: marioOriginalStatus });
+    if (collabRow) await dbPatch('user_profiles', `user_id=eq.${collabRow.user_id}`, { member_status: collabOriginalStatus });
 
     // Restore responsabile community assignments
     if (respUserId) {
@@ -277,12 +277,12 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
   });
 
   // ── S8: Cambia member_status → uscente_con_compenso ──────────────────────
-  test('S8 — Admin cambia status di mario.rossi → uscente_con_compenso, DB aggiornato', async ({ page }) => {
+  test('S8 — Admin cambia status di collaboratore → uscente_con_compenso, DB aggiornato', async ({ page }) => {
     await login(page, 'admin');
     await page.goto('/impostazioni?tab=collaboratori');
 
-    // Find the row for mario.rossi (cognome=Rossi nome=Mario)
-    const memberRow = page.locator('div.px-5.py-3').filter({ hasText: 'Rossi' });
+    // Find the row for collaboratore@test.com (cognome=Test nome=Collaboratore)
+    const memberRow = page.locator('div.px-5.py-3').filter({ hasText: 'Collaboratore' });
     await expect(memberRow).toBeVisible({ timeout: 10_000 });
 
     const select = memberRow.locator('select');
@@ -305,11 +305,11 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
   });
 
   // ── S9: Ripristina member_status → attivo ─────────────────────────────────
-  test('S9 — Admin ripristina status mario.rossi → attivo, DB aggiornato', async ({ page }) => {
+  test('S9 — Admin ripristina status collaboratore → attivo, DB aggiornato', async ({ page }) => {
     await login(page, 'admin');
     await page.goto('/impostazioni?tab=collaboratori');
 
-    const memberRow = page.locator('div.px-5.py-3').filter({ hasText: 'Rossi' });
+    const memberRow = page.locator('div.px-5.py-3').filter({ hasText: 'Collaboratore' });
     await expect(memberRow).toBeVisible({ timeout: 10_000 });
 
     const select = memberRow.locator('select');
@@ -386,7 +386,7 @@ test.describe.serial('Impostazioni avanzate UAT', () => {
     expect(comm!.name).toBe('[UAT] TestComm MODIFICATA');
     expect(comm!.is_active).toBe(true);
 
-    // mario.rossi member_status is attivo (restored in S9)
+    // collaboratore member_status is attivo (restored in S9)
     const collabRow = await dbFirst<{ user_id: string }>('collaborators', `id=eq.${COLLAB_ID}&select=user_id`);
     const up = await dbFirst<{ member_status: string }>('user_profiles', `user_id=eq.${collabRow!.user_id}&select=member_status`);
     expect(up!.member_status).toBe('attivo');

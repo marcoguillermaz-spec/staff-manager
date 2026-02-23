@@ -4,7 +4,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utenti test: mario.rossi@test.com (collaboratore), responsabile@test.com, admin-test@example.com
+ *   - Utenti test: collaboratore@test.com (collaboratore), responsabile@test.com, admin-test@example.com
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -49,7 +49,7 @@ async function dbDelete(table: string, params: string) {
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  collaboratore: { email: 'mario.rossi@test.com',  password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com',  password: 'Testbusters123' },
   responsabile:  { email: 'responsabile@test.com',  password: 'Testbusters123' },
   admin:         { email: 'admin-test@example.com', password: 'Testbusters123' },
 };
@@ -72,7 +72,7 @@ async function login(page: Page, role: keyof typeof CREDS) {
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
-const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi
+const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 let collaboratorUserId: string;
 let communityId: string;
@@ -92,7 +92,7 @@ test.describe.serial('Notifiche in-app UAT', () => {
     collaboratorUserId = collab.user_id;
     console.log(`  ℹ️  collaboratorUserId: ${collaboratorUserId}`);
 
-    // Resolve community_id for mario.rossi
+    // Resolve community_id for collaboratore
     const cc = await dbFirst<{ community_id: string }>('collaborator_communities',
       `collaborator_id=eq.${COLLABORATOR_ID}&select=community_id`);
     if (!cc) throw new Error('No community found for collaboratore');

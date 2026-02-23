@@ -4,7 +4,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utenti test: mario.rossi@test.com (collaboratore), admin-test@example.com (amministrazione)
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com (amministrazione)
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -49,8 +49,8 @@ async function dbDelete(table: string, params: string) {
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  mario: { email: 'mario.rossi@test.com',     password: 'Testbusters123' },
-  admin: { email: 'admin-test@example.com',   password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com', password: 'Testbusters123' },
+  admin:         { email: 'admin-test@example.com', password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {
@@ -68,38 +68,38 @@ async function login(page: Page, role: keyof typeof CREDS) {
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
-const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi collaborator.id
+const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com collaborator.id
 
-let marioUserId = '';
-let marioCommunityId = '';
+let collabUserId = '';
+let collabCommunityId = '';
 let createdCompId = '';   // UAT compensation in INTEGRAZIONI_RICHIESTE
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 test.describe.serial('Dashboard collaboratore UAT', () => {
 
   test.beforeAll(async () => {
-    // Resolve mario.rossi's user_id (for reference only)
+    // Resolve collaboratore's user_id (for reference only)
     const collabRow = await dbFirst<{ user_id: string }>('collaborators', `id=eq.${COLLAB_ID}&select=user_id`);
-    marioUserId = collabRow?.user_id ?? '';
+    collabUserId = collabRow?.user_id ?? '';
 
-    // Resolve a community for mario.rossi (fallback: any active community)
+    // Resolve a community for collaboratore (fallback: any active community)
     const ccRow = await dbFirst<{ community_id: string }>(
       'collaborator_communities',
       `collaborator_id=eq.${COLLAB_ID}&select=community_id`,
     );
     if (ccRow?.community_id) {
-      marioCommunityId = ccRow.community_id;
+      collabCommunityId = ccRow.community_id;
     } else {
       const anyComm = await dbFirst<{ id: string }>('communities', 'is_active=eq.true&select=id');
-      marioCommunityId = anyComm?.id ?? '';
+      collabCommunityId = anyComm?.id ?? '';
     }
 
     // Create a UAT compensation in INTEGRAZIONI_RICHIESTE for S6/S9
     // Note: compensations uses collaborator_id (not user_id) — user_id set by DB trigger
-    if (marioCommunityId) {
+    if (collabCommunityId) {
       const comp = await dbPost<{ id: string }>('compensations', {
         collaborator_id: COLLAB_ID,
-        community_id:    marioCommunityId,
+        community_id:    collabCommunityId,
         tipo:            'OCCASIONALE',
         stato:           'INTEGRAZIONI_RICHIESTE',
         descrizione:     '[UAT Dashboard] Compenso di test',
@@ -121,7 +121,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
 
   // S1 — Struttura dashboard base
   test('S1 — dashboard visibile con tutte le sezioni', async ({ page }) => {
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -144,7 +144,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
       (c) => !['PAGATO', 'RIFIUTATO'].includes(c.stato),
     ).length;
 
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -165,7 +165,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
       (e) => !['PAGATO', 'RIFIUTATO'].includes(e.stato),
     ).length;
 
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -184,7 +184,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
     );
     const count = docs.length;
 
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -197,7 +197,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
 
   // S5 — Azioni rapide: link funzionanti
   test('S5 — azioni rapide navigano alle pagine corrette', async ({ page }) => {
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -226,7 +226,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
       return;
     }
 
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -251,7 +251,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
     );
     const isIncomplete = !collab?.iban || !collab?.codice_fiscale;
 
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
 
     if (!isIncomplete) {
       // Profilo già completo — verifica che il link "profilo" non appaia
@@ -274,7 +274,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
 
   // S8 — Feed: sezione aggiornamenti visibile
   test('S8 — sezione ultimi aggiornamenti è presente', async ({ page }) => {
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -302,7 +302,7 @@ test.describe.serial('Dashboard collaboratore UAT', () => {
       note:             null,
     });
 
-    await login(page, 'mario');
+    await login(page, 'collaboratore');
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 

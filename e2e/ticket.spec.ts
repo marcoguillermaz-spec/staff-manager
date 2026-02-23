@@ -4,7 +4,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utenti test: mario.rossi@test.com (collaboratore), admin-test@example.com
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com
  *   - Bucket `tickets` creato in Supabase Storage (migration 006)
  */
 
@@ -35,7 +35,7 @@ async function dbDelete(table: string, params: string) {
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  collaboratore: { email: 'mario.rossi@test.com',   password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com',   password: 'Testbusters123' },
   admin:         { email: 'admin-test@example.com',  password: 'Testbusters123' },
 };
 
@@ -57,7 +57,7 @@ async function login(page: Page, role: keyof typeof CREDS) {
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
-const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi
+const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 let collaboratorUserId: string;
 let ticketId: string;
@@ -71,7 +71,7 @@ test.describe.serial('Ticket UAT', () => {
       'collaborators',
       `id=eq.${COLLABORATOR_ID}&select=user_id`,
     );
-    if (!collab) throw new Error('Collaboratore mario.rossi not found');
+    if (!collab) throw new Error('Collaboratore collaboratore@test.com not found');
     collaboratorUserId = collab.user_id;
     console.log(`  ℹ️  collaboratorUserId: ${collaboratorUserId}`);
 

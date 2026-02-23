@@ -43,7 +43,7 @@ async function login(page: Page, role: keyof typeof CREDS = 'admin') {
 // ── Test IDs shared across serial tests ──────────────────────────────────────
 let testCompensationId: string;
 let testExpenseId: string;
-const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi test user
+const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 // ── Test suite ────────────────────────────────────────────────────────────────
 test.describe.serial('Export UAT', () => {

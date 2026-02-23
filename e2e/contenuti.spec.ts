@@ -4,7 +4,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utenti test: mario.rossi@test.com (collaboratore), admin-test@example.com,
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com,
  *     responsabile@test.com
  */
 
@@ -35,7 +35,7 @@ async function dbDelete(table: string, params: string) {
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  collaboratore: { email: 'mario.rossi@test.com',   password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com',   password: 'Testbusters123' },
   admin:         { email: 'admin-test@example.com',  password: 'Testbusters123' },
   responsabile:  { email: 'responsabile@test.com',   password: 'Testbusters123' },
 };

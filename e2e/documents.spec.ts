@@ -5,7 +5,7 @@
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
  *   - Bucket Supabase Storage 'documents' creato e privato
- *   - Collaboratore test: mario.rossi@test.com (collaborator_id noto)
+ *   - Collaboratore test: collaboratore@test.com (collaborator_id noto)
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -40,7 +40,7 @@ async function dbDelete(table: string, params: string) {
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
   admin:         { email: 'admin-test@example.com',  password: 'Testbusters123' },
-  collaboratore: { email: 'mario.rossi@test.com',    password: 'Testbusters123' },
+  collaboratore: { email: 'collaboratore@test.com',    password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {
@@ -53,7 +53,7 @@ async function login(page: Page, role: keyof typeof CREDS) {
 }
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
-const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // mario.rossi
+const COLLABORATOR_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
 
 let uploadedDocId: string;
 let batchDocId: string;
@@ -172,9 +172,9 @@ test.describe.serial('Documenti UAT', () => {
     await page.goto('/documenti?tab=cu-batch');
 
     // Create a test PDF
-    const pdfName = 'mario_rossi_CU_2025.pdf';
+    const pdfName = 'collaboratore_test_CU_2025.pdf';
     const pdfPath = path.join(tempDir, pdfName);
-    fs.writeFileSync(pdfPath, '%PDF-1.4 CU 2025 Mario Rossi UAT');
+    fs.writeFileSync(pdfPath, '%PDF-1.4 CU 2025 Collaboratore Test UAT');
 
     // Create ZIP containing the PDF
     const zip = new JSZip();
@@ -185,7 +185,7 @@ test.describe.serial('Documenti UAT', () => {
 
     // Create CSV
     const csvPath = path.join(tempDir, 'mapping.csv');
-    fs.writeFileSync(csvPath, `nome_file,nome,cognome\n${pdfName},Mario,Rossi`);
+    fs.writeFileSync(csvPath, `nome_file,nome,cognome\n${pdfName},Collaboratore,Test`);
 
     // Fill form
     await page.fill('input[type="number"]', '2025');
@@ -215,10 +215,10 @@ test.describe.serial('Documenti UAT', () => {
     await login(page, 'admin');
     await page.goto('/documenti?tab=cu-batch');
 
-    const pdfName = 'mario_rossi_CU_2025.pdf';
+    const pdfName = 'collaboratore_test_CU_2025.pdf';
     const pdfPath = path.join(tempDir, pdfName);
     if (!fs.existsSync(pdfPath)) {
-      fs.writeFileSync(pdfPath, '%PDF-1.4 CU 2025 Mario Rossi UAT');
+      fs.writeFileSync(pdfPath, '%PDF-1.4 CU 2025 Collaboratore Test UAT');
     }
 
     const zip = new JSZip();
@@ -228,7 +228,7 @@ test.describe.serial('Documenti UAT', () => {
     fs.writeFileSync(zipPath, zipBuffer);
 
     const csvPath = path.join(tempDir, 'mapping_dup.csv');
-    fs.writeFileSync(csvPath, `nome_file,nome,cognome\n${pdfName},Mario,Rossi`);
+    fs.writeFileSync(csvPath, `nome_file,nome,cognome\n${pdfName},Collaboratore,Test`);
 
     await page.fill('input[type="number"]', '2025');
     await page.locator('input[type="file"]').nth(0).setInputFiles(zipPath);
