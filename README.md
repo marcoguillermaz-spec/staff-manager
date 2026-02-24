@@ -80,8 +80,8 @@ app/
     collaboratori/[id]/page.tsx  → Collaborator detail: anagrafica + compensi/rimborsi/documenti + inline pre-approva/integrazioni
     coda/page.tsx                → Admin: pre-approved + approved queue (?tab=compensi|rimborsi)
     export/page.tsx              → Admin: export approved records as CSV/XLSX + bulk mark-paid (?tab=occasionali|piva|rimborsi)
-    documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Collaboratore: list only (?tab=)
-    documenti/[id]/page.tsx      → Document detail with signed URL + sign flow for collaboratore
+    documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Collaboratore/responsabile: list + upload (?tab=)
+    documenti/[id]/page.tsx      → Document detail with signed URL + sign flow (checkbox gate) + delete section for admin+CONTRATTO
     ticket/page.tsx              → Ticket list (collaboratore: own; admin/responsabile: all + Collaboratore column)
     ticket/nuova/page.tsx        → Create new ticket form
     ticket/[id]/page.tsx         → Ticket detail: message thread + reply form + status change buttons
@@ -111,9 +111,9 @@ app/
     expenses/[id]/transition/route.ts → POST (reimbursement state machine)
     expenses/[id]/attachments/route.ts → POST (register uploaded file)
     export/mark-paid/route.ts    → POST (bulk mark APPROVATO_ADMIN → PAGATO + history, admin only)
-    documents/route.ts           → GET (list, RLS-filtered) + POST (create, FormData, service-role upload)
-    documents/[id]/route.ts      → GET (detail + signed URL generation)
-    documents/[id]/sign/route.ts → POST (collaboratore uploads signed PDF, FormData, service-role upload)
+    documents/route.ts           → GET (list, RLS-filtered) + POST (create; collab/resp forces NON_RICHIESTO; enforces 1 CONTRATTO per collaboratore)
+    documents/[id]/route.ts      → GET (detail + signed URL) + DELETE (admin only, CONTRATTO only, hard-deletes storage + DB)
+    documents/[id]/sign/route.ts → POST (collab/resp uploads signed PDF; requires confirmed=true in FormData)
     documents/cu-batch/route.ts  → POST (ZIP+CSV batch import, dedup by collaborator+anno, notifications)
     notifications/route.ts       → GET (list + unread count) + PATCH (mark all read)
     tickets/route.ts             → GET (list, role-filtered + enriched with creator name) + POST (create)
@@ -167,9 +167,10 @@ components/
     ExportSection.tsx            → Client: tab bar + action buttons (CSV/XLSX/mark-paid) + modal
     ExportTable.tsx              → Table with checkboxes, columns vary by tab
   documents/
-    DocumentList.tsx             → Documents table with stato_firma badge and detail link
-    DocumentUploadForm.tsx       → Admin upload form (FormData → API, service-role storage)
-    DocumentSignFlow.tsx         → Collaboratore: download original + upload signed PDF
+    DocumentList.tsx             → Documents grouped by macro-type (CONTRATTO/RICEVUTA/CU) with type badges (violet/teal/blue) + delete button for admin on CONTRATTO
+    DocumentUploadForm.tsx       → Bifurcated admin/non-admin: admin gets collaboratore selector + tipo optgroup + firma toggle (CONTRATTO only); non-admin gets simplified form (NON_RICHIESTO enforced server-side)
+    DocumentSignFlow.tsx         → Collaboratore: download original + checkbox confirmation gate + upload signed PDF
+    DocumentDeleteButton.tsx     → Client component: delete CONTRATTO (admin only) via DELETE API + redirect
     CUBatchUpload.tsx            → Admin: ZIP + CSV + year batch import with success/duplicate/error detail
   ticket/
     TicketStatusBadge.tsx        → Pill badge for ticket status (APERTO=green, IN_LAVORAZIONE=yellow, CHIUSO=gray)
@@ -217,6 +218,7 @@ supabase/migrations/
   011_contract_fields.sql        → ADD COLUMN provincia_nascita, provincia_residenza, civico_residenza on collaborators
   012_notification_settings.sql  → notification_settings table + 15 default rows (per-event × recipient_role, inapp + email toggles)
   013_responsabile_publish_permission.sql → ADD COLUMN can_publish_announcements boolean DEFAULT true on user_profiles
+- `014_document_macro_type.sql` → macro_type stored generated column + unique partial index (one CONTRATTO per collaborator)
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (20 cases)
@@ -243,6 +245,7 @@ e2e/
   dashboard-admin.spec.ts          → Playwright UAT: admin dashboard S1–S10 (KPI cards, community cards, period charts, feed filter, blocks drawer, 10 tests)
   responsabile-actions.spec.ts     → Playwright UAT: responsabile reject_manager + can_publish_announcements S1–S10 (reject comp/rimborso, publish toggle, RBAC, 10 tests)
   notification-settings.spec.ts   → Playwright UAT: notification settings UI S1–S10 (tab notifiche, toggle in-app/email, DB verify, 10 tests)
+  documents-features.spec.ts      → Playwright UAT: document features S1/S7/S8/S10/S12/S13/S14 (type badges, collab upload, CONTRATTO uniqueness, DA_FIRMARE, checkbox sign gate, admin delete, 7 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -256,7 +259,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (93 cases) + Playwright e2e (161 tests across 16 spec files)
+npm test           # Run unit tests (93 cases) + Playwright e2e (168 tests across 17 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 

@@ -46,6 +46,7 @@
 | Dashboard admin | ✅ | — | 10 Playwright | 6 KPI card, community cards grid, urgenti >3gg, feed filtrable (cognome like + community dropdown), period metrics Recharts (importo pagato + compensi approvati + nuovi collab), collab breakdown (stato + contratto), blocks drawer (must_change_password, onboarding_incomplete, stalled). |
 | Verifica requisiti ruolo collaboratore + responsabile | ✅ | 93 vitest | 10 Playwright | C-01: email self-edit per tutti i ruoli. C-03: member_status enforcement (route guard + year filter docs). R-01: reject_manager per responsabile (INVIATO/INTEGRAZIONI → RIFIUTATO). R-02: can_publish_announcements toggle per responsabile. Migration 013. |
 | Email notifications + Notification Settings | ✅ | 93 vitest | 10 Playwright | 7 template HTML Resend (E1–E7). Migration 012 (notification_settings, 15 righe). Tab Notifiche in Impostazioni. Helpers getNotificationSettings/getCollaboratorInfo/getResponsabili*. Tutti i trigger in-app+email integrati in comp/expense/doc/ticket routes. |
+| Document features — type badges, collab upload, C7 | ✅ | — | 7 Playwright | Migration 014. macro_type generated column + unique index (1 CONTRATTO per collaboratore). Bifurcated upload form (admin vs collab/resp). TypeBadge violet/teal/blue. Checkbox conferma prima di firma. Admin CONTRATTO delete. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -89,6 +90,14 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Document features — type badges, collab upload, C7 — completato 2026-02-24
+- File: `supabase/migrations/014_document_macro_type.sql`, `e2e/documents-features.spec.ts`
+- Modificati: `lib/types.ts` (DocumentMacroType + maps), `app/api/documents/route.ts` (collab/resp upload, uniqueness, stato_firma logic), `app/api/documents/[id]/route.ts` (DELETE admin+CONTRATTO), `app/api/documents/[id]/sign/route.ts` (confirmed validation), `components/documents/DocumentList.tsx` (macro-type groups + TypeBadge), `components/documents/DocumentUploadForm.tsx` (bifurcated admin/non-admin), `components/documents/DocumentSignFlow.tsx` (confirmed checkbox gate), `components/documents/DocumentDeleteButton.tsx` (new), `app/(app)/documenti/page.tsx` (upload tab for collab/resp), `app/(app)/documenti/[id]/page.tsx` (delete section admin+CONTRATTO)
+- Migration: `014_document_macro_type.sql` — macro_type STORED generated column + uq_one_contratto_per_collaborator partial unique index
+- Test: 0 unit + 7 Playwright (S1, S7, S8, S10, S12, S13, S14 — tutti verdi, 40.5s)
+- Pattern: URL con `%` in PostgREST query string (es. `tipo=like.CONTRATTO_%`) non funziona via `dbGet` → usare fetch senza filtro tipo e filtrare in-memory o usare campo generato
+- Pattern: unique partial index su colonna generata come modo pulito per vincoli condizionali DB-side
 
 ### Email notifications + Notification Settings — completato 2026-02-24
 - File: `lib/email.ts`, `lib/email-templates.ts`, `lib/notification-helpers.ts`, `app/api/admin/notification-settings/route.ts`, `components/impostazioni/NotificationSettingsManager.tsx`, `e2e/notification-settings.spec.ts`
