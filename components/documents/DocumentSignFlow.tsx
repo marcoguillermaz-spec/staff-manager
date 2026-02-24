@@ -15,18 +15,20 @@ export default function DocumentSignFlow({ document: doc, originalUrl, firmatoUr
   const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
   const handleUploadSigned = async () => {
-    if (!file) return;
+    if (!file || !confirmed) return;
     setLoading(true);
     setError(null);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('confirmed', 'true');
 
       const res = await fetch(`/api/documents/${doc.id}/sign`, {
         method: 'POST',
@@ -105,11 +107,25 @@ export default function DocumentSignFlow({ document: doc, originalUrl, firmatoUr
             <input
               type="file"
               accept=".pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setConfirmed(false); }}
               className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gray-700 file:text-gray-200 hover:file:bg-gray-600"
             />
             {file && <p className="mt-1 text-xs text-gray-500">{file.name}</p>}
           </div>
+
+          {file && (
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg bg-yellow-900/20 border border-yellow-800/40 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded accent-blue-600 shrink-0"
+              />
+              <span className="text-sm text-yellow-200">
+                Confermo di aver firmato il documento e che il file caricato corrisponde alla versione firmata.
+              </span>
+            </label>
+          )}
 
           {error && (
             <div className="rounded-lg bg-red-900/30 border border-red-800/40 px-3 py-2 text-xs text-red-400">
@@ -119,7 +135,7 @@ export default function DocumentSignFlow({ document: doc, originalUrl, firmatoUr
 
           <button
             onClick={handleUploadSigned}
-            disabled={!file || loading}
+            disabled={!file || !confirmed || loading}
             className="rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 text-sm font-medium text-white transition"
           >
             {loading ? 'Caricamento…' : 'Invia documento firmato'}

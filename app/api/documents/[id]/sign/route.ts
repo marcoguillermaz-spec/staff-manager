@@ -38,8 +38,12 @@ export async function POST(
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
+  const confirmed = formData.get('confirmed') as string | null;
 
   if (!file) return NextResponse.json({ error: 'File mancante' }, { status: 400 });
+  if (confirmed !== 'true') {
+    return NextResponse.json({ error: 'Conferma firma mancante' }, { status: 400 });
+  }
 
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
