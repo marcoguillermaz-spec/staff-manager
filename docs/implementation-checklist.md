@@ -41,6 +41,7 @@
 | Onboarding flow | ✅ | — | 10 Playwright | Migration 010. Wizard 2-step post-primo-login: dati anagrafici (tutti obbligatori) + genera contratto. tipo_contratto obbligatorio nell'invite admin. Proxy redirect a /onboarding se onboarding_completed=false. collaborators per entrambi i ruoli. |
 | Campi CoCoCo + estensione profilo (province, civico) | ✅ | — | 10 Playwright | Migration 011. 3 nuovi campi su collaborators (provincia_nascita, provincia_residenza, civico_residenza). UI split: città/provincia nascita, comune/provincia residenza, via/civico. dual-name vars COCOCO in onboarding/complete. ContractTemplateManager: 13 segnaposto CoCoCo. |
 | Responsabile — completamento nav + fixture e2e | ✅ | — | 10 Playwright | Profilo + Documenti nav per responsabile. Sign API: responsabile può caricare firmato. e2e/fixtures/ con 3 template reali Testbusters. beforeAll cleanup-first pattern. |
+| Sezione Collaboratori responsabile | ✅ | — | 10 Playwright | Lista paginata 20/pag, filtri URL-driven (tutti/doc-da-firmare/stallo), dettaglio con azioni inline Pre-approva + Integrazioni. RBAC: responsabile filtrato per community, admin vede tutto, collaboratore redirect. Service role in server pages. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -77,6 +78,16 @@
 - Test: — unit + 10 Playwright (S1–S10, tutti verdi)
 - Pattern: wizard 2-step: step 1 = dati anagrafici (tutti required), step 2 = genera contratto via docxtemplater → onboarding_completed=true. Il download è step intermedio; l'utente clicca "Ho scaricato" per accedere alla dashboard.
 - Flow test e2e con browser.newPage() in beforeAll per condividere il contesto browser tra S2–S7 (sessione persistente durante il flusso).
+
+### Sezione Collaboratori responsabile — completato 2026-02-24
+- File: `app/(app)/collaboratori/page.tsx`, `app/(app)/collaboratori/[id]/page.tsx`, `components/responsabile/CollaboratoreDetail.tsx`, `e2e/collaboratori.spec.ts`
+- Nessuna migration necessaria — dati già esistenti
+- Test: — unit + 10 Playwright (S1–S10, tutti verdi)
+- Pattern: service role client usato direttamente nelle server page (stessa modalità di `app/onboarding/page.tsx`) per evitare dipendenze da RLS coverage dei join `collaborators` → `collaborator_communities` → `user_community_access`.
+- Filtri URL-driven (no client JS): `?filter=all|documenti|stallo&page=N` — filter chips sono `<Link>` puri.
+- Colonna DB state machine: `stato` (non `status`) sia su `compensations` che `expense_reimbursements`.
+- Azioni inline (Pre-approva / Richiedi integrazioni): chiamate alle API `/api/compensations/[id]/transition` e `/api/expenses/[id]/transition` già esistenti + `router.refresh()` per aggiornamento server component.
+- E2e S7: bottone "Richiedi" è disabled quando nota < 20 char — test verifica `.toBeDisabled()` invece di `.click()` sulla versione disabilitata.
 
 ### Responsabile — completamento nav + fixture e2e — completato 2026-02-23
 - File: `e2e/fixtures/` (3 template reali: Cococo, Occasionale, PIVA)
