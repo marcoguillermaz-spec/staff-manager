@@ -9,10 +9,14 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import PizZip from 'pizzip';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+
+// ── Real template fixtures (stored in e2e/fixtures/) ─────────────────────────
+const FIXTURES_DIR = path.join(__dirname, 'fixtures');
+const FIXTURE_OCCASIONALE = path.join(FIXTURES_DIR, 'Contratto_Occasionale_Testbusters.docx');
+const FIXTURE_COCOCO      = path.join(FIXTURES_DIR, 'Contratto_Cococo_Testbusters.docx');
 
 // ── Supabase REST helpers ─────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -43,6 +47,14 @@ async function dbPatch(table: string, params: string, body: Record<string, unkno
 }
 
 async function deleteAuthUser(userId: string) {
+  // Remove documents linked to the collaborator (FK prevents auth user deletion otherwise)
+  const collab = await dbFirst<{ id: string }>('collaborators', `user_id=eq.${userId}&select=id`);
+  if (collab?.id) {
+    await fetch(`${SUPABASE_URL}/rest/v1/documents?collaborator_id=eq.${collab.id}`, {
+      method: 'DELETE',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+    });
+  }
   await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
     method: 'DELETE',
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
@@ -143,94 +155,6 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 15_000 });
 }
 
-// ── Minimal .docx factory ─────────────────────────────────────────────────────
-function createMinimalDocx(tipo = 'occasionale'): Buffer {
-  const zip = new PizZip();
-
-  zip.file(
-    '[Content_Types].xml',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-    '<Default Extension="xml" ContentType="application/xml"/>' +
-    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
-    '</Types>',
-  );
-
-  zip.folder('_rels')!.file(
-    '.rels',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
-    '</Relationships>',
-  );
-
-  zip.folder('word')!.file(
-    'document.xml',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-    '<w:body>' +
-    '<w:p><w:r><w:t>Contratto ' + tipo + ': {nome} {cognome}</w:t></w:r></w:p>' +
-    '<w:p><w:r><w:t>CF: {codice_fiscale} - Luogo: {luogo_nascita}, {comune}</w:t></w:r></w:p>' +
-    '<w:p><w:r><w:t>Compenso: {compenso_lordo} - Dal {data_inizio} al {data_fine}</w:t></w:r></w:p>' +
-    '</w:body>' +
-    '</w:document>',
-  );
-
-  zip.folder('word/_rels')!.file(
-    'document.xml.rels',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-    '</Relationships>',
-  );
-
-  return zip.generate({ type: 'nodebuffer' });
-}
-
-function createMinimalDocxCococo(): Buffer {
-  const zip = new PizZip();
-
-  zip.file(
-    '[Content_Types].xml',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-    '<Default Extension="xml" ContentType="application/xml"/>' +
-    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
-    '</Types>',
-  );
-
-  zip.folder('_rels')!.file(
-    '.rels',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
-    '</Relationships>',
-  );
-
-  zip.folder('word')!.file(
-    'document.xml',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-    '<w:body>' +
-    '<w:p><w:r><w:t>Contratto CoCoCo: {nome} {cognome}</w:t></w:r></w:p>' +
-    '<w:p><w:r><w:t>Nato a: {citta_nascita} ({provincia_nascita}) il {data_di_nascita}</w:t></w:r></w:p>' +
-    '<w:p><w:r><w:t>CF: {codice_fiscale}</w:t></w:r></w:p>' +
-    '<w:p><w:r><w:t>Residente: {indirizzo_residenza} {civico_residenza}, {citta_residenza} ({provincia_residenza})</w:t></w:r></w:p>' +
-    '<w:p><w:r><w:t>Importo: {importo_euro}</w:t></w:r></w:p>' +
-    '</w:body>' +
-    '</w:document>',
-  );
-
-  zip.folder('word/_rels')!.file(
-    'document.xml.rels',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-    '</Relationships>',
-  );
-
-  return zip.generate({ type: 'nodebuffer' });
-}
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 const COLLAB_ID = '3a55c2da-4906-42d7-81e1-c7c7b399ab4b'; // collaboratore@test.com
@@ -263,53 +187,39 @@ let collabOriginalProfile: {
 test.describe.serial('Template contratti + Onboarding UAT', () => {
 
   test.beforeAll(async () => {
-    // Create temp test files
-    const docxBuf = createMinimalDocx('occasionale');
-    tmpDocxPath = path.join(os.tmpdir(), 'uat_template_occasionale.docx');
-    fs.writeFileSync(tmpDocxPath, docxBuf);
+    // ── CLEANUP FIRST — must run before any fs.readFileSync so partial failures don't leave stale users ──
+    for (const email of Object.values(TEST_EMAILS)) {
+      const row = await dbFirst<{ user_id: string }>('collaborators', `email=eq.${encodeURIComponent(email)}&select=user_id`);
+      if (row?.user_id) await deleteAuthUser(row.user_id);
+    }
+
+    // Use real fixture files — tests always restore production-quality templates
+    const docxContentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    // tmpDocxPath points to fixture (used by S2 UI upload test)
+    tmpDocxPath = FIXTURE_OCCASIONALE;
 
     // Minimal "pdf" (just a text file with .pdf extension — tests API rejection)
     tmpPdfPath = path.join(os.tmpdir(), 'uat_test.pdf');
     fs.writeFileSync(tmpPdfPath, Buffer.from('%PDF-1.4 test file'));
 
-    const docxContentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    // Pre-upload real templates to storage
+    const occasionaleBuf = fs.readFileSync(FIXTURE_OCCASIONALE);
+    const cococoBuf      = fs.readFileSync(FIXTURE_COCOCO);
+    await uploadToStorage('contracts', 'templates/occasionale.docx', occasionaleBuf, docxContentType);
+    await uploadToStorage('contracts', 'templates/cococo.docx',      cococoBuf,      docxContentType);
 
-    // Pre-upload OCCASIONALE template
-    await uploadToStorage('contracts', 'templates/occasionale.docx', docxBuf, docxContentType);
-
-    // Pre-upload COCOCO template (minimal test version)
-    const cococoBuf = createMinimalDocxCococo();
-    await uploadToStorage('contracts', 'templates/cococo.docx', cococoBuf, docxContentType);
-
-    // Upsert OCCASIONALE contract_templates record
+    // Ensure contract_templates records exist
     await fetch(`${SUPABASE_URL}/rest/v1/contract_templates`, {
       method: 'POST',
-      headers: {
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify({ tipo: 'OCCASIONALE', file_url: 'templates/occasionale.docx', file_name: 'template_occasionale.docx' }),
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ tipo: 'OCCASIONALE', file_url: 'templates/occasionale.docx', file_name: 'Contratto_Occasionale_Testbusters.docx' }),
     });
-
-    // Upsert COCOCO contract_templates record
     await fetch(`${SUPABASE_URL}/rest/v1/contract_templates`, {
       method: 'POST',
-      headers: {
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify({ tipo: 'COCOCO', file_url: 'templates/cococo.docx', file_name: 'template_cococo.docx' }),
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ tipo: 'COCOCO', file_url: 'templates/cococo.docx', file_name: 'Contratto_Cococo_Testbusters.docx' }),
     });
-
-    // Delete any leftover test users from previous runs
-    for (const email of Object.values(TEST_EMAILS)) {
-      const row = await dbFirst<{ user_id: string }>('collaborators', `email=eq.${encodeURIComponent(email)}&select=user_id`);
-      if (row?.user_id) await deleteAuthUser(row.user_id);
-    }
 
     // Create S7 test user (COCOCO, onboarding not yet completed) programmatically
     const s7UserId = await createDbUser(TEST_CREDS_S7.email, TEST_CREDS_S7.password, 'COCOCO');
@@ -351,9 +261,8 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
       });
     }
 
-    // Cleanup temp files
-    if (fs.existsSync(tmpDocxPath)) fs.unlinkSync(tmpDocxPath);
-    if (fs.existsSync(tmpPdfPath)) fs.unlinkSync(tmpPdfPath);
+    // Cleanup temp files only (not fixture files)
+    if (tmpPdfPath && fs.existsSync(tmpPdfPath)) fs.unlinkSync(tmpPdfPath);
   });
 
   // S1 — Tab Contratti visibile

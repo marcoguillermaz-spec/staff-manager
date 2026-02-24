@@ -341,7 +341,7 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <label className={labelCls}>Via/Piazza <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Via/Piazza di residenza <span className="text-red-500">*</span></label>
                 <input type="text" placeholder="Via Roma" value={indirizzo}
                   onChange={(e) => setIndirizzo(e.target.value)}
                   required className={inputCls} />
@@ -354,7 +354,7 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
               </div>
             </div>
             <div>
-              <label className={labelCls}>Telefono <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Telefono di contatto <span className="text-red-500">*</span></label>
               <input type="tel" placeholder="+39 333 0000000" value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
                 required className={inputCls} />

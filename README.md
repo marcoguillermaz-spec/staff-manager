@@ -15,7 +15,7 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 | Role | Access |
 |------|--------|
 | `collaboratore` | Own profile, compensation requests, reimbursements, documents, support tickets |
-| `responsabile` | Approve compensations/reimbursements for assigned communities |
+| `responsabile` | Approve compensations/reimbursements for assigned communities; own profile, documents, and support tickets |
 | `amministrazione` | Full approval queue, payments, user management, exports |
 | `super_admin` | Same as amministrazione + settings |
 
@@ -73,6 +73,8 @@ app/
     rimborsi/nuova/page.tsx      → Reimbursement creation form (single step)
     rimborsi/[id]/page.tsx       → Reimbursement detail + timeline + actions
     approvazioni/page.tsx        → Responsabile: pending queue (?tab=compensi|rimborsi)
+    collaboratori/page.tsx       → Responsabile + admin: paginated list (20/page) with URL-driven filters (all/doc-da-firmare/stallo)
+    collaboratori/[id]/page.tsx  → Collaborator detail: anagrafica + compensi/rimborsi/documenti + inline pre-approva/integrazioni
     coda/page.tsx                → Admin: pre-approved + approved queue (?tab=compensi|rimborsi)
     export/page.tsx              → Admin: export approved records as CSV/XLSX + bulk mark-paid (?tab=occasionali|piva|rimborsi)
     documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Collaboratore: list only (?tab=)
@@ -168,6 +170,8 @@ components/
     TicketForm.tsx               → Create form (fixed category dropdown, oggetto, optional initial message)
     TicketThread.tsx             → Server-side message thread with author labels, closed banner, signed URLs
     TicketMessageForm.tsx        → Reply form (textarea + file) + status change buttons (admin/responsabile)
+  responsabile/
+    CollaboratoreDetail.tsx      → Client: anagrafica header + compensi/rimborsi/documenti sections with inline action buttons + integration modal
   contenuti/
     AnnouncementBoard.tsx        → Announcement CRUD with pin, community scope, expiry-unaware display
     BenefitList.tsx              → Benefit CRUD with expiry badge (Attivo/In scadenza/Scaduto), discount code
@@ -218,6 +222,8 @@ e2e/
   dashboard.spec.ts                → Playwright UAT: collaboratore dashboard S1–S10 (cards, quick actions, feed, 10 tests)
   contratti.spec.ts                → Playwright UAT: contract templates + onboarding + CoCoCo fields S1–S10 (upload, new province/civico DB fields, full COCOCO onboarding wizard, 10 tests)
   onboarding.spec.ts               → Playwright UAT: onboarding flow S1–S10 (wizard, anagrafica, contract download, proxy redirect, 10 tests)
+  collaboratori.spec.ts            → Playwright UAT: collaboratori section S1–S10 (list/filters, detail, inline actions, RBAC, 10 tests)
+  fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
 vitest.config.ts                 → Vitest configuration
@@ -230,7 +236,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (111 tests across 11 spec files)
+npm test           # Run unit tests (81 cases) + Playwright e2e (121 tests across 12 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
