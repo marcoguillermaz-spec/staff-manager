@@ -30,6 +30,16 @@ type CompRow = {
 
 type ExpRow = { id: string; stato: string; importo: number | null };
 
+type CommStat = {
+  id: string;
+  name: string;
+  pendingComps: number;
+  pendingExps: number;
+  docsToSign: number;
+  totalCollabs: number;
+  stalloCount: number;
+};
+
 type FeedItem = {
   key:  string;
   icon: 'comp' | 'exp' | 'ticket' | 'ann';
@@ -110,6 +120,65 @@ function DocCard({ count }: { count: number }) {
   );
 }
 
+function CommCard({ stat }: { stat: CommStat }) {
+  return (
+    <div className={sectionCls + ' p-5 space-y-4'}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-100">{stat.name}</h2>
+        <span className="text-xs text-gray-500">
+          {stat.totalCollabs} collaborator{stat.totalCollabs === 1 ? 'e' : 'i'}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Link
+          href="/approvazioni?tab=compensi"
+          className={`flex flex-col items-center justify-center rounded-xl py-3 px-2 transition ${
+            stat.pendingComps > 0
+              ? 'bg-amber-950/40 border border-amber-800/30 hover:bg-amber-950/60'
+              : 'bg-gray-800/50 border border-gray-700/50'
+          }`}
+        >
+          <span className={`text-2xl font-bold tabular-nums ${stat.pendingComps > 0 ? 'text-amber-300' : 'text-gray-600'}`}>
+            {stat.pendingComps}
+          </span>
+          <span className="text-xs text-gray-400 mt-1 text-center leading-tight">Compensi</span>
+        </Link>
+        <Link
+          href="/approvazioni?tab=rimborsi"
+          className={`flex flex-col items-center justify-center rounded-xl py-3 px-2 transition ${
+            stat.pendingExps > 0
+              ? 'bg-amber-950/40 border border-amber-800/30 hover:bg-amber-950/60'
+              : 'bg-gray-800/50 border border-gray-700/50'
+          }`}
+        >
+          <span className={`text-2xl font-bold tabular-nums ${stat.pendingExps > 0 ? 'text-amber-300' : 'text-gray-600'}`}>
+            {stat.pendingExps}
+          </span>
+          <span className="text-xs text-gray-400 mt-1 text-center leading-tight">Rimborsi</span>
+        </Link>
+        <Link
+          href="/collaboratori?filter=documenti"
+          className={`flex flex-col items-center justify-center rounded-xl py-3 px-2 transition ${
+            stat.docsToSign > 0
+              ? 'bg-blue-950/40 border border-blue-800/30 hover:bg-blue-950/60'
+              : 'bg-gray-800/50 border border-gray-700/50'
+          }`}
+        >
+          <span className={`text-2xl font-bold tabular-nums ${stat.docsToSign > 0 ? 'text-blue-300' : 'text-gray-600'}`}>
+            {stat.docsToSign}
+          </span>
+          <span className="text-xs text-gray-400 mt-1 text-center leading-tight">Da firmare</span>
+        </Link>
+      </div>
+      {stat.stalloCount > 0 && (
+        <p className="text-xs text-gray-500 border-t border-gray-800 pt-3">
+          {stat.stalloCount} richiesta{stat.stalloCount === 1 ? '' : 'e'} in pipeline
+        </p>
+      )}
+    </div>
+  );
+}
+
 const FEED_ICONS: Record<FeedItem['icon'], string> = {
   comp:   '💼',
   exp:    '🧾',
@@ -149,7 +218,222 @@ export default async function DashboardPage() {
 
   const role = profile?.role ?? '';
 
-  // Non-collaboratori: semplice benvenuto
+  // ── RESPONSABILE DASHBOARD ────────────────────────────────
+  if (role === 'responsabile') {
+    const svc = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+
+    // Round 1 — community IDs for this responsabile
+    const { data: ucaRows } = await svc
+      .from('user_community_access')
+      .select('community_id')
+      .eq('user_id', user.id);
+
+    const communityIds = (ucaRows ?? []).map((r: { community_id: string }) => r.community_id);
+
+    if (communityIds.length === 0) {
+      return (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <p className="text-sm text-gray-500">Nessuna community assegnata.</p>
+        </div>
+      );
+    }
+
+    // Round 2 — communities + collaborator IDs (separate queries, no join) + announcements
+    type CommunityRow = { id: string; name: string };
+    type CCRow        = { collaborator_id: string; community_id: string };
+    type AnnRow       = { id: string; titolo: string; published_at: string };
+
+    const [commResult, ccResult, annResult] = await Promise.all([
+      svc.from('communities').select('id, name').in('id', communityIds),
+      svc.from('collaborator_communities').select('collaborator_id, community_id').in('community_id', communityIds),
+      svc.from('announcements')
+        .select('id, titolo, published_at')
+        .order('pinned', { ascending: false })
+        .order('published_at', { ascending: false })
+        .limit(3),
+    ]);
+
+    const commRows = commResult.data as CommunityRow[] | null;
+    const ccRows   = ccResult.data   as CCRow[] | null;
+    const annRows  = annResult.data  as AnnRow[] | null;
+
+    // Build lookup maps from round 2
+    const allCollabIds: string[] = [...new Set((ccRows ?? []).map(r => r.collaborator_id))];
+    const collabIdsByComm: Record<string, Set<string>> = {};
+    const commNameMap: Record<string, string> = {};
+
+    for (const c of commRows ?? []) commNameMap[c.id] = c.name;
+    for (const row of ccRows ?? []) {
+      if (!collabIdsByComm[row.community_id]) collabIdsByComm[row.community_id] = new Set();
+      collabIdsByComm[row.community_id].add(row.collaborator_id);
+    }
+
+    const noCollabs = allCollabIds.length === 0;
+
+    // Round 3 — all data in parallel using collabIds
+    type CollabRow = { id: string; nome: string | null; cognome: string | null };
+    type PComp     = { id: string; collaborator_id: string; community_id: string; created_at: string };
+    type PExp      = { id: string; collaborator_id: string; created_at: string };
+    type DocRow2   = { id: string; collaborator_id: string; community_id: string };
+    type SComp     = { id: string; collaborator_id: string; community_id: string };
+    type SExp      = { id: string; collaborator_id: string };
+
+    const resolve = <T,>(v: T[]) => Promise.resolve({ data: v, error: null });
+
+    const [collabsResult, pcRes, peRes, ddRes, scRes, seRes] = await Promise.all([
+      noCollabs ? resolve<CollabRow>([]) : svc.from('collaborators')
+        .select('id, nome, cognome').in('id', allCollabIds),
+      noCollabs ? resolve<PComp>([]) : svc.from('compensations')
+        .select('id, collaborator_id, community_id, created_at')
+        .in('collaborator_id', allCollabIds).eq('stato', 'INVIATO')
+        .order('created_at', { ascending: false }).limit(20),
+      noCollabs ? resolve<PExp>([]) : svc.from('expense_reimbursements')
+        .select('id, collaborator_id, created_at')
+        .in('collaborator_id', allCollabIds).eq('stato', 'INVIATO')
+        .order('created_at', { ascending: false }).limit(20),
+      noCollabs ? resolve<DocRow2>([]) : svc.from('documents')
+        .select('id, collaborator_id, community_id')
+        .in('collaborator_id', allCollabIds).eq('stato_firma', 'DA_FIRMARE'),
+      noCollabs ? resolve<SComp>([]) : svc.from('compensations')
+        .select('id, collaborator_id, community_id')
+        .in('collaborator_id', allCollabIds)
+        .neq('stato', 'PAGATO').neq('stato', 'RIFIUTATO').neq('stato', 'BOZZA'),
+      noCollabs ? resolve<SExp>([]) : svc.from('expense_reimbursements')
+        .select('id, collaborator_id')
+        .in('collaborator_id', allCollabIds)
+        .neq('stato', 'PAGATO').neq('stato', 'RIFIUTATO'),
+    ]);
+
+    const allCollabs   = (collabsResult.data ?? []) as CollabRow[];
+    const pendingComps = (pcRes.data ?? []) as PComp[];
+    const pendingExps  = (peRes.data ?? []) as PExp[];
+    const docsToSign   = (ddRes.data ?? []) as DocRow2[];
+    const stalloComps  = (scRes.data ?? []) as SComp[];
+    const stalloExps   = (seRes.data ?? []) as SExp[];
+
+    const collabByCollabId: Record<string, { nome: string; cognome: string }> = {};
+    for (const c of allCollabs) collabByCollabId[c.id] = { nome: c.nome ?? '', cognome: c.cognome ?? '' };
+
+    // ── Per-community stats ──────────────────────────────────
+    const communityStats: CommStat[] = communityIds.map(commId => {
+      const collabsInComm = collabIdsByComm[commId] ?? new Set<string>();
+      return {
+        id:           commId,
+        name:         commNameMap[commId] ?? commId,
+        pendingComps: pendingComps.filter(c => c.community_id === commId).length,
+        pendingExps:  pendingExps.filter(e => collabsInComm.has(e.collaborator_id)).length,
+        docsToSign:   docsToSign.filter(d => d.community_id === commId).length,
+        totalCollabs: collabsInComm.size,
+        stalloCount:  stalloComps.filter(c => c.community_id === commId).length +
+                      stalloExps.filter(e => collabsInComm.has(e.collaborator_id)).length,
+      };
+    });
+
+    // ── Cosa devo fare ───────────────────────────────────────
+    const collabsWithDocs = new Set(docsToSign.map(d => d.collaborator_id)).size;
+    const rCosaDevoFare = [
+      pendingComps.length > 0 && {
+        text: `${pendingComps.length} compensi in attesa di pre-approvazione`,
+        href: '/approvazioni?tab=compensi',
+      },
+      pendingExps.length > 0 && {
+        text: `${pendingExps.length} rimborsi in attesa di pre-approvazione`,
+        href: '/approvazioni?tab=rimborsi',
+      },
+      collabsWithDocs > 0 && {
+        text: `${collabsWithDocs} collaboratore${collabsWithDocs === 1 ? '' : 'i'} con documenti da firmare`,
+        href: '/collaboratori?filter=documenti',
+      },
+    ].filter(Boolean) as { text: string; href: string }[];
+
+    // ── Feed ─────────────────────────────────────────────────
+    const rFeedItems: FeedItem[] = [];
+
+    for (const c of pendingComps.slice(0, 5)) {
+      const collab = collabByCollabId[c.collaborator_id];
+      const name = collab ? `${collab.nome} ${collab.cognome}`.trim() : 'Collaboratore';
+      rFeedItems.push({ key: `pc-${c.id}`, icon: 'comp', text: `Compenso inviato da ${name}`, date: c.created_at, href: `/collaboratori/${c.collaborator_id}` });
+    }
+    for (const e of pendingExps.slice(0, 5)) {
+      const collab = collabByCollabId[e.collaborator_id];
+      const name = collab ? `${collab.nome} ${collab.cognome}`.trim() : 'Collaboratore';
+      rFeedItems.push({ key: `pe-${e.id}`, icon: 'exp', text: `Rimborso inviato da ${name}`, date: e.created_at, href: `/collaboratori/${e.collaborator_id}` });
+    }
+    for (const a of annRows ?? []) {
+      rFeedItems.push({ key: `ann-${a.id}`, icon: 'ann', text: a.titolo, date: a.published_at, href: '/contenuti?tab=bacheca' });
+    }
+    rFeedItems.sort((a, b) => b.date.localeCompare(a.date));
+    const rFeed = rFeedItems.slice(0, 10);
+
+    return (
+      <div className="p-6 max-w-4xl space-y-6">
+        <h1 className="text-xl font-semibold text-gray-100">Dashboard</h1>
+
+        {/* Per-community overview cards */}
+        <div className={`grid gap-4 ${communityStats.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          {communityStats.map(stat => <CommCard key={stat.id} stat={stat} />)}
+        </div>
+
+        {/* Cosa devo fare */}
+        {rCosaDevoFare.length > 0 && (
+          <div className={sectionCls}>
+            <div className="px-5 py-4 border-b border-gray-800">
+              <h2 className="text-sm font-medium text-gray-200">Cosa devo fare</h2>
+            </div>
+            <div className="p-5 space-y-2">
+              {rCosaDevoFare.map(item => (
+                <Link
+                  key={item.href + item.text}
+                  href={item.href}
+                  className="flex items-center gap-2 rounded-lg bg-amber-950/30 border border-amber-800/30 px-3 py-2.5 text-sm text-amber-300 hover:bg-amber-950/50 transition"
+                >
+                  <span className="flex-shrink-0 text-base">⚠</span>
+                  {item.text}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Azioni rapide */}
+        <div className={sectionCls}>
+          <div className="px-5 py-4 border-b border-gray-800">
+            <h2 className="text-sm font-medium text-gray-200">Azioni rapide</h2>
+          </div>
+          <div className="p-5 flex flex-wrap gap-3">
+            <Link href="/approvazioni" className="rounded-lg bg-blue-700 hover:bg-blue-600 px-4 py-2 text-sm font-medium text-white transition">
+              Approvazioni
+            </Link>
+            <Link href="/collaboratori" className="rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 text-sm font-medium text-gray-200 transition">
+              Collaboratori
+            </Link>
+            <Link href="/ticket/nuova" className="rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 text-sm font-medium text-gray-200 transition">
+              + Apri ticket
+            </Link>
+          </div>
+        </div>
+
+        {/* Ultimi aggiornamenti */}
+        <div className={sectionCls}>
+          <div className="px-5 py-4 border-b border-gray-800">
+            <h2 className="text-sm font-medium text-gray-200">Ultimi aggiornamenti</h2>
+          </div>
+          <div className="px-4 py-2 divide-y divide-gray-800/50">
+            {rFeed.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-6">Nessun aggiornamento recente.</p>
+            ) : (
+              rFeed.map(item => <FeedRow key={item.key} item={item} />)
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Non-collaboratori (admin, super_admin): semplice benvenuto
   if (role !== 'collaboratore') {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">

@@ -42,6 +42,7 @@
 | Campi CoCoCo + estensione profilo (province, civico) | ✅ | — | 10 Playwright | Migration 011. 3 nuovi campi su collaborators (provincia_nascita, provincia_residenza, civico_residenza). UI split: città/provincia nascita, comune/provincia residenza, via/civico. dual-name vars COCOCO in onboarding/complete. ContractTemplateManager: 13 segnaposto CoCoCo. |
 | Responsabile — completamento nav + fixture e2e | ✅ | — | 10 Playwright | Profilo + Documenti nav per responsabile. Sign API: responsabile può caricare firmato. e2e/fixtures/ con 3 template reali Testbusters. beforeAll cleanup-first pattern. |
 | Sezione Collaboratori responsabile | ✅ | — | 10 Playwright | Lista paginata 20/pag, filtri URL-driven (tutti/doc-da-firmare/stallo), dettaglio con azioni inline Pre-approva + Integrazioni. RBAC: responsabile filtrato per community, admin vede tutto, collaboratore redirect. Service role in server pages. |
+| Dashboard responsabile | ✅ | — | 10 Playwright | Per-community CommCards (pending compensi/rimborsi/doc DA_FIRMARE con stile ambra/blu), "Cosa devo fare" alert, feed (compensi/rimborsi inviati + annunci), azioni rapide. Fix: join embedded PostgREST → query separate. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -78,6 +79,14 @@
 - Test: — unit + 10 Playwright (S1–S10, tutti verdi)
 - Pattern: wizard 2-step: step 1 = dati anagrafici (tutti required), step 2 = genera contratto via docxtemplater → onboarding_completed=true. Il download è step intermedio; l'utente clicca "Ho scaricato" per accedere alla dashboard.
 - Flow test e2e con browser.newPage() in beforeAll per condividere il contesto browser tra S2–S7 (sessione persistente durante il flusso).
+
+### Dashboard responsabile — completato 2026-02-24
+- File: `app/(app)/page.tsx` (branch responsabile aggiunto), `e2e/dashboard-responsabile.spec.ts`
+- Nessuna migration necessaria — dati già esistenti
+- Test: — unit + 10 Playwright (S1–S10, tutti verdi)
+- Pattern: 3 round sequenziali di query con service role (nessun join embedded — PostgREST embedded join da service client fallisce silenziosamente restituendo null). Round 1: community IDs. Round 2: community names + collaborator IDs + announcements. Round 3: dati paralleli (collaborators, pending comps/exps, docs, stallo).
+- CommCard: stile ambra (text-amber-300) per pending > 0 su compensi/rimborsi; stile blu (text-blue-300) per docs > 0. Grey (text-gray-600) quando zero.
+- Feed: compensi INVIATO (con nome collaboratore via collabByCollabId map) + rimborsi INVIATO + annunci. Ticket rimosso (richiederebbe un 4° round per ottenere user_ids → ticket_ids).
 
 ### Sezione Collaboratori responsabile — completato 2026-02-24
 - File: `app/(app)/collaboratori/page.tsx`, `app/(app)/collaboratori/[id]/page.tsx`, `components/responsabile/CollaboratoreDetail.tsx`, `e2e/collaboratori.spec.ts`
