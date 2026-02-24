@@ -201,7 +201,7 @@ lib/
   notification-utils.ts          → Pure notification payload builders (comp/expense/ticket — collaboratore + responsabile side)
   notification-helpers.ts        → DB helpers: getNotificationSettings (SettingsMap), getCollaboratorInfo, getResponsabiliForCommunity/Collaborator/User
   email.ts                       → Resend transactional email wrapper (fire-and-forget, from noreply@testbusters.it)
-  email-templates.ts             → 7 branded HTML templates E1–E7 (Testbusters logo + legal footer)
+  email-templates.ts             → 8 branded HTML templates E1–E8 (Testbusters logo + legal footer; APP_URL env controls all CTA links)
 
 supabase/migrations/
   001_schema.sql                 → Full schema (compensations, expense_reimbursements, communities, documents, etc.)
