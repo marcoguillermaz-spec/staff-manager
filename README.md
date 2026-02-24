@@ -8,6 +8,7 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 - **Styling**: Tailwind CSS — no component libraries
 - **Auth**: Supabase Auth (email/password, invite-only, forced password change on first login)
 - **Database**: Supabase Postgres with Row Level Security
+- **Email**: Resend (transactional, fire-and-forget, `noreply@testbusters.it`)
 - **Testing**: Vitest + @vitest/coverage-v8
 
 ## Roles
