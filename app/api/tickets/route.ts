@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import type { TicketStatus } from '@/lib/types';
+import { buildTicketCreatedNotification } from '@/lib/notification-utils';
+import {
+  getNotificationSettings,
+  getResponsabiliForUser,
+} from '@/lib/notification-helpers';
+import { sendEmail } from '@/lib/email';
+import { emailNuovoTicket } from '@/lib/email-templates';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -104,6 +111,44 @@ export async function POST(request: Request) {
       author_user_id: user.id,
       message: messaggio.trim(),
     });
+  }
+
+  // Notify responsabili if creator is a collaboratore
+  if (profile.role === 'collaboratore') {
+    const svc = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    const [settings, responsabili] = await Promise.all([
+      getNotificationSettings(svc),
+      getResponsabiliForUser(user.id, svc),
+    ]);
+    const setting = settings.get('ticket_creato:responsabile');
+    if ((setting?.inapp_enabled || setting?.email_enabled) && responsabili.length > 0) {
+      const dataFormatted = new Date().toLocaleDateString('it-IT');
+      // Get collaborator name for email
+      const { data: collabRec } = await svc
+        .from('collaborators')
+        .select('nome, cognome')
+        .eq('user_id', user.id)
+        .single();
+      const nomeColl = collabRec ? `${collabRec.nome} ${collabRec.cognome}`.trim() : '';
+      for (const resp of responsabili) {
+        if (setting?.inapp_enabled) {
+          svc.from('notifications').insert(buildTicketCreatedNotification(resp.user_id, ticket.id, oggetto.trim())).then(() => {});
+        }
+        if (setting?.email_enabled && resp.email) {
+          const { subject, html } = emailNuovoTicket({
+            nomeResponsabile: resp.nome,
+            nomeCollaboratore: nomeColl,
+            oggetto: oggetto.trim(),
+            categoria: categoria.trim(),
+            data: dataFormatted,
+          });
+          sendEmail(resp.email, subject, html).catch(() => {});
+        }
+      }
+    }
   }
 
   return NextResponse.json({ ticket }, { status: 201 });

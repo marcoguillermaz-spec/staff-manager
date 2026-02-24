@@ -6,8 +6,25 @@ import { canExpenseTransition, applyExpenseTransition } from '@/lib/expense-tran
 import type { ExpenseAction } from '@/lib/expense-transitions';
 import { ROLE_LABELS } from '@/lib/types';
 import type { Role, ExpenseStatus } from '@/lib/types';
-import { buildExpenseNotification, EXPENSE_NOTIFIED_ACTIONS } from '@/lib/notification-utils';
+import {
+  buildExpenseNotification,
+  EXPENSE_NOTIFIED_ACTIONS,
+  buildExpenseSubmitNotification,
+} from '@/lib/notification-utils';
 import type { NotificationPayload } from '@/lib/notification-utils';
+import {
+  getNotificationSettings,
+  getCollaboratorInfo,
+  getResponsabiliForCollaborator,
+} from '@/lib/notification-helpers';
+import { sendEmail } from '@/lib/email';
+import {
+  emailIntegrazioni,
+  emailApprovato,
+  emailRifiutato,
+  emailPagato,
+  emailNuovoInviato,
+} from '@/lib/email-templates';
 
 const transitionSchema = z.object({
   action: z.enum([
@@ -45,7 +62,7 @@ export async function POST(
 
   const { data: expense, error: fetchError } = await supabase
     .from('expense_reimbursements')
-    .select('id, stato, collaborator_id')
+    .select('id, stato, collaborator_id, importo, data_spesa')
     .eq('id', id)
     .single();
 
@@ -117,25 +134,92 @@ export async function POST(
     console.error('Expense history insert failed:', historyError.message);
   }
 
-  // Insert notification for collaboratore on state-changing actions
-  // reject_manager maps to the same notification as reject
+  // Load notification settings
+  const settings = await getNotificationSettings(serviceClient);
+
+  // ── Notify responsabili on resubmit ─────────────────────────
+  if (action === 'resubmit') {
+    const setting = settings.get('rimborso_inviato:responsabile');
+    if (setting?.inapp_enabled || setting?.email_enabled) {
+      const [responsabili, collabInfo] = await Promise.all([
+        getResponsabiliForCollaborator(expense.collaborator_id, serviceClient),
+        getCollaboratorInfo(expense.collaborator_id, serviceClient),
+      ]);
+      const dataFormatted = expense.data_spesa
+        ? new Date(expense.data_spesa).toLocaleDateString('it-IT')
+        : '';
+      for (const resp of responsabili) {
+        if (setting.inapp_enabled) {
+          await serviceClient
+            .from('notifications')
+            .insert(buildExpenseSubmitNotification(resp.user_id, id));
+        }
+        if (setting.email_enabled && resp.email) {
+          const { subject, html } = emailNuovoInviato({
+            nomeResponsabile: resp.nome,
+            nomeCollaboratore: `${collabInfo?.nome ?? ''} ${collabInfo?.cognome ?? ''}`.trim(),
+            tipo: 'Rimborso',
+            importo: expense.importo ?? 0,
+            community: '',
+            data: dataFormatted,
+          });
+          sendEmail(resp.email, subject, html).catch(() => {});
+        }
+      }
+    }
+  }
+
+  // ── Notify collaboratore on admin/manager actions ────────────
   const notifAction = action === 'reject_manager' ? 'reject' : action;
   if ((EXPENSE_NOTIFIED_ACTIONS as string[]).includes(notifAction)) {
-    const { data: collab } = await serviceClient
-      .from('collaborators')
-      .select('user_id')
-      .eq('id', expense.collaborator_id)
-      .single();
+    const collabInfo = await getCollaboratorInfo(expense.collaborator_id, serviceClient);
 
-    if (collab?.user_id) {
+    if (collabInfo?.user_id) {
       const notif: NotificationPayload = buildExpenseNotification(
         notifAction as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
-        collab.user_id,
+        collabInfo.user_id,
         id,
         note,
       );
-      const { error: notifError } = await serviceClient.from('notifications').insert(notif);
-      if (notifError) console.error('Notification insert failed:', notifError.message);
+
+      const eventKeyMap: Record<string, string> = {
+        request_integration: 'rimborso_integrazioni',
+        approve_admin: 'rimborso_approvato',
+        reject: 'rimborso_rifiutato',
+        mark_paid: 'rimborso_pagato',
+      };
+      const eventKey = eventKeyMap[notifAction];
+      const setting = eventKey ? settings.get(`${eventKey}:collaboratore`) : undefined;
+
+      if (!setting || setting.inapp_enabled) {
+        const { error: notifError } = await serviceClient.from('notifications').insert(notif);
+        if (notifError) console.error('Notification insert failed:', notifError.message);
+      }
+
+      if (setting?.email_enabled && collabInfo.email) {
+        const dataFormatted = expense.data_spesa
+          ? new Date(expense.data_spesa).toLocaleDateString('it-IT')
+          : '';
+        const baseParams = {
+          nome: collabInfo.nome,
+          tipo: 'Rimborso' as const,
+          importo: expense.importo ?? 0,
+          data: dataFormatted,
+        };
+        let emailPayload: { subject: string; html: string } | null = null;
+        if (notifAction === 'request_integration') {
+          emailPayload = emailIntegrazioni({ ...baseParams, nota: note });
+        } else if (notifAction === 'approve_admin') {
+          emailPayload = emailApprovato(baseParams);
+        } else if (notifAction === 'reject') {
+          emailPayload = emailRifiutato(baseParams);
+        } else if (notifAction === 'mark_paid') {
+          emailPayload = emailPagato({ nome: collabInfo.nome, tipo: 'Rimborso', importo: expense.importo ?? 0, dataPagamento: dataFormatted });
+        }
+        if (emailPayload) {
+          sendEmail(collabInfo.email, emailPayload.subject, emailPayload.html).catch(() => {});
+        }
+      }
     }
   }
 

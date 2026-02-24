@@ -6,8 +6,25 @@ import { canTransition, applyTransition } from '@/lib/compensation-transitions';
 import type { CompensationAction } from '@/lib/compensation-transitions';
 import { ROLE_LABELS } from '@/lib/types';
 import type { Role, CompensationStatus } from '@/lib/types';
-import { buildCompensationNotification, COMPENSATION_NOTIFIED_ACTIONS } from '@/lib/notification-utils';
+import {
+  buildCompensationNotification,
+  COMPENSATION_NOTIFIED_ACTIONS,
+  buildCompensationSubmitNotification,
+} from '@/lib/notification-utils';
 import type { NotificationPayload } from '@/lib/notification-utils';
+import {
+  getNotificationSettings,
+  getCollaboratorInfo,
+  getResponsabiliForCommunity,
+} from '@/lib/notification-helpers';
+import { sendEmail } from '@/lib/email';
+import {
+  emailIntegrazioni,
+  emailApprovato,
+  emailRifiutato,
+  emailPagato,
+  emailNuovoInviato,
+} from '@/lib/email-templates';
 
 const transitionSchema = z.object({
   action: z.enum([
@@ -49,7 +66,7 @@ export async function POST(
   // Fetch current compensation (RLS filters access)
   const { data: comp, error: fetchError } = await supabase
     .from('compensations')
-    .select('id, stato, collaborator_id, community_id')
+    .select('id, stato, collaborator_id, community_id, importo, data_compenso')
     .eq('id', id)
     .single();
 
@@ -127,25 +144,97 @@ export async function POST(
     console.error('History insert failed:', historyError.message);
   }
 
-  // Insert notification for collaboratore on state-changing actions
-  // reject_manager maps to the same notification as reject
+  // Load notification settings (15 rows, O(1) lookup below)
+  const settings = await getNotificationSettings(serviceClient);
+
+  // ── Notify responsabili on submit / resubmit ────────────────
+  if ((action === 'submit' || action === 'resubmit') && comp.community_id) {
+    const setting = settings.get('comp_inviato:responsabile');
+    if (setting?.inapp_enabled || setting?.email_enabled) {
+      const [responsabili, collabInfo, commRes] = await Promise.all([
+        getResponsabiliForCommunity(comp.community_id, serviceClient),
+        getCollaboratorInfo(comp.collaborator_id, serviceClient),
+        serviceClient.from('communities').select('name').eq('id', comp.community_id).single(),
+      ]);
+      const communityName = (commRes.data as { name?: string } | null)?.name ?? '';
+      const dataFormatted = comp.data_compenso
+        ? new Date(comp.data_compenso).toLocaleDateString('it-IT')
+        : '';
+      for (const resp of responsabili) {
+        if (setting.inapp_enabled) {
+          await serviceClient
+            .from('notifications')
+            .insert(buildCompensationSubmitNotification(resp.user_id, id));
+        }
+        if (setting.email_enabled && resp.email) {
+          const { subject, html } = emailNuovoInviato({
+            nomeResponsabile: resp.nome,
+            nomeCollaboratore: `${collabInfo?.nome ?? ''} ${collabInfo?.cognome ?? ''}`.trim(),
+            tipo: 'Compenso',
+            importo: comp.importo ?? 0,
+            community: communityName,
+            data: dataFormatted,
+          });
+          sendEmail(resp.email, subject, html).catch(() => {});
+        }
+      }
+    }
+  }
+
+  // ── Notify collaboratore on admin/manager actions ────────────
   const notifAction = action === 'reject_manager' ? 'reject' : action;
   if ((COMPENSATION_NOTIFIED_ACTIONS as string[]).includes(notifAction)) {
-    const { data: collab } = await serviceClient
-      .from('collaborators')
-      .select('user_id')
-      .eq('id', comp.collaborator_id)
-      .single();
+    const collabInfo = await getCollaboratorInfo(comp.collaborator_id, serviceClient);
 
-    if (collab?.user_id) {
+    if (collabInfo?.user_id) {
       const notif: NotificationPayload = buildCompensationNotification(
         notifAction as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
-        collab.user_id,
+        collabInfo.user_id,
         id,
         note,
       );
-      const { error: notifError } = await serviceClient.from('notifications').insert(notif);
-      if (notifError) console.error('Notification insert failed:', notifError.message);
+
+      // event_key map for settings check
+      const eventKeyMap: Record<string, string> = {
+        request_integration: 'comp_integrazioni',
+        approve_admin: 'comp_approvato',
+        reject: 'comp_rifiutato',
+        mark_paid: 'comp_pagato',
+      };
+      const eventKey = eventKeyMap[notifAction];
+      const setting = eventKey ? settings.get(`${eventKey}:collaboratore`) : undefined;
+
+      // In-app notification (respects inapp_enabled, default on)
+      if (!setting || setting.inapp_enabled) {
+        const { error: notifError } = await serviceClient.from('notifications').insert(notif);
+        if (notifError) console.error('Notification insert failed:', notifError.message);
+      }
+
+      // Email notification
+      if (setting?.email_enabled && collabInfo.email) {
+        const dataFormatted = comp.data_compenso
+          ? new Date(comp.data_compenso).toLocaleDateString('it-IT')
+          : '';
+        const baseParams = {
+          nome: collabInfo.nome,
+          tipo: 'Compenso' as const,
+          importo: comp.importo ?? 0,
+          data: dataFormatted,
+        };
+        let emailPayload: { subject: string; html: string } | null = null;
+        if (notifAction === 'request_integration') {
+          emailPayload = emailIntegrazioni({ ...baseParams, nota: note });
+        } else if (notifAction === 'approve_admin') {
+          emailPayload = emailApprovato(baseParams);
+        } else if (notifAction === 'reject') {
+          emailPayload = emailRifiutato(baseParams);
+        } else if (notifAction === 'mark_paid') {
+          emailPayload = emailPagato({ nome: collabInfo.nome, tipo: 'Compenso', importo: comp.importo ?? 0, dataPagamento: dataFormatted });
+        }
+        if (emailPayload) {
+          sendEmail(collabInfo.email, emailPayload.subject, emailPayload.html).catch(() => {});
+        }
+      }
     }
   }
 

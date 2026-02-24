@@ -6,8 +6,9 @@ import CreateUserForm from '@/components/impostazioni/CreateUserForm';
 import CommunityManager from '@/components/impostazioni/CommunityManager';
 import MemberStatusManager from '@/components/impostazioni/MemberStatusManager';
 import ContractTemplateManager from '@/components/impostazioni/ContractTemplateManager';
+import NotificationSettingsManager from '@/components/impostazioni/NotificationSettingsManager';
 
-type Tab = 'utenti' | 'community' | 'collaboratori' | 'contratti';
+type Tab = 'utenti' | 'community' | 'collaboratori' | 'contratti' | 'notifiche';
 
 export default async function ImpostazioniPage({
   searchParams,
@@ -32,12 +33,22 @@ export default async function ImpostazioniPage({
   const activeTab: Tab = tab === 'community' ? 'community'
     : tab === 'collaboratori' ? 'collaboratori'
     : tab === 'contratti' ? 'contratti'
+    : tab === 'notifiche' ? 'notifiche'
     : 'utenti';
 
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
+
+  // Fetch notification settings for the notifiche tab
+  const notificationSettings = activeTab === 'notifiche'
+    ? await serviceClient
+        .from('notification_settings')
+        .select('id, event_key, recipient_role, label, inapp_enabled, email_enabled')
+        .order('event_key')
+        .then((r) => r.data ?? [])
+    : [];
 
   // Fetch contract templates for the contratti tab
   const contractTemplates = activeTab === 'contratti'
@@ -143,6 +154,7 @@ export default async function ImpostazioniPage({
         <Link href="?tab=community" className={tabCls('community')}>Community</Link>
         <Link href="?tab=collaboratori" className={tabCls('collaboratori')}>Collaboratori</Link>
         <Link href="?tab=contratti" className={tabCls('contratti')}>Contratti</Link>
+        <Link href="?tab=notifiche" className={tabCls('notifiche')}>Notifiche</Link>
       </div>
 
       {activeTab === 'utenti' && (
@@ -174,6 +186,29 @@ export default async function ImpostazioniPage({
         <ContractTemplateManager
           templates={contractTemplates as { id: string; tipo: 'OCCASIONALE' | 'COCOCO' | 'PIVA'; file_name: string; uploaded_at: string }[]}
         />
+      )}
+
+      {activeTab === 'notifiche' && (
+        <div className="rounded-2xl bg-gray-900 border border-gray-800">
+          <div className="px-5 py-4 border-b border-gray-800">
+            <h2 className="text-sm font-medium text-gray-200">Impostazioni notifiche</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Configura quali notifiche vengono inviate in-app e via email per ogni evento.
+            </p>
+          </div>
+          <div className="p-5">
+            <NotificationSettingsManager
+              initialSettings={notificationSettings as {
+                id: string;
+                event_key: string;
+                recipient_role: string;
+                label: string;
+                inapp_enabled: boolean;
+                email_enabled: boolean;
+              }[]}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

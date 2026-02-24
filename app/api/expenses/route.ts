@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { EXPENSE_CATEGORIES, ROLE_LABELS } from '@/lib/types';
 import type { Role } from '@/lib/types';
+import { buildExpenseSubmitNotification } from '@/lib/notification-utils';
+import {
+  getNotificationSettings,
+  getCollaboratorInfo,
+  getResponsabiliForCollaborator,
+} from '@/lib/notification-helpers';
+import { sendEmail } from '@/lib/email';
+import { emailNuovoInviato } from '@/lib/email-templates';
 
 const createSchema = z.object({
   categoria: z.enum(EXPENSE_CATEGORIES),
@@ -87,6 +96,39 @@ export async function POST(request: Request) {
     role_label: ROLE_LABELS[profile.role as Role],
     note: null,
   });
+
+  // Notify responsabili about new rimborso
+  const svc = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+  const [settings, collabInfo, responsabili] = await Promise.all([
+    getNotificationSettings(svc),
+    getCollaboratorInfo(col.id, svc),
+    getResponsabiliForCollaborator(col.id, svc),
+  ]);
+  const setting = settings.get('rimborso_inviato:responsabile');
+  if ((setting?.inapp_enabled || setting?.email_enabled) && responsabili.length > 0) {
+    const dataFormatted = parsed.data.data_spesa
+      ? new Date(parsed.data.data_spesa).toLocaleDateString('it-IT')
+      : '';
+    for (const resp of responsabili) {
+      if (setting?.inapp_enabled) {
+        svc.from('notifications').insert(buildExpenseSubmitNotification(resp.user_id, reimbursement.id)).then(() => {});
+      }
+      if (setting?.email_enabled && resp.email) {
+        const { subject, html } = emailNuovoInviato({
+          nomeResponsabile: resp.nome,
+          nomeCollaboratore: `${collabInfo?.nome ?? ''} ${collabInfo?.cognome ?? ''}`.trim(),
+          tipo: 'Rimborso',
+          importo: parsed.data.importo,
+          community: '',
+          data: dataFormatted,
+        });
+        sendEmail(resp.email, subject, html).catch(() => {});
+      }
+    }
+  }
 
   return NextResponse.json({ reimbursement }, { status: 201 });
 }

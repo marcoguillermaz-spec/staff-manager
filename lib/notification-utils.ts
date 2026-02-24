@@ -121,3 +121,83 @@ export function buildTicketReplyNotification(
     entity_id: ticketId,
   };
 }
+
+// ── Responsabile-destined builders ────────────────────────────
+
+export function buildCompensationSubmitNotification(
+  responsabileUserId: string,
+  entityId: string,
+): NotificationPayload {
+  return {
+    user_id: responsabileUserId,
+    tipo: 'comp_inviato',
+    titolo: 'Nuovo compenso da esaminare',
+    messaggio: 'Un collaboratore ha inviato un compenso in attesa di pre-approvazione.',
+    entity_type: 'compensation',
+    entity_id: entityId,
+  };
+}
+
+export function buildExpenseSubmitNotification(
+  responsabileUserId: string,
+  entityId: string,
+): NotificationPayload {
+  return {
+    user_id: responsabileUserId,
+    tipo: 'rimborso_inviato',
+    titolo: 'Nuovo rimborso da esaminare',
+    messaggio: 'Un collaboratore ha inviato un rimborso in attesa di pre-approvazione.',
+    entity_type: 'reimbursement',
+    entity_id: entityId,
+  };
+}
+
+export function buildTicketCreatedNotification(
+  responsabileUserId: string,
+  ticketId: string,
+  ticketOggetto: string,
+): NotificationPayload {
+  return {
+    user_id: responsabileUserId,
+    tipo: 'ticket_creato',
+    titolo: 'Nuovo ticket di supporto',
+    messaggio: `È stato aperto un nuovo ticket: ${ticketOggetto}`,
+    entity_type: 'ticket',
+    entity_id: ticketId,
+  };
+}
+
+export function buildTicketCollabReplyNotification(
+  responsabileUserId: string,
+  ticketId: string,
+  ticketOggetto: string,
+): NotificationPayload {
+  return {
+    user_id: responsabileUserId,
+    tipo: 'risposta_ticket_collab',
+    titolo: 'Risposta al ticket',
+    messaggio: `Il collaboratore ha risposto al ticket: ${ticketOggetto}`,
+    entity_type: 'ticket',
+    entity_id: ticketId,
+  };
+}
+
+export function buildTicketStatusNotification(
+  collaboratoreUserId: string,
+  ticketId: string,
+  nuovoStato: string,
+): NotificationPayload {
+  const statoLabel: Record<string, string> = {
+    APERTO: 'Aperto',
+    IN_LAVORAZIONE: 'In lavorazione',
+    CHIUSO: 'Chiuso',
+  };
+  return {
+    user_id: collaboratoreUserId,
+    tipo: 'ticket_stato',
+    titolo: 'Stato ticket aggiornato',
+    messaggio: `Il tuo ticket è ora: ${statoLabel[nuovoStato] ?? nuovoStato}`,
+    entity_type: 'ticket',
+    entity_id: ticketId,
+  };
+}

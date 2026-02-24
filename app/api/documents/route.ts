@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { getNotificationSettings } from '@/lib/notification-helpers';
+import { sendEmail } from '@/lib/email';
+import { emailDocumentoDaFirmare } from '@/lib/email-templates';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -121,16 +124,34 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Notify collaboratore if DA_FIRMARE
+  // Notify collaboratore if DA_FIRMARE (in-app + optional email)
   if (stato_firma === 'DA_FIRMARE' && collab.user_id) {
-    await serviceClient.from('notifications').insert({
-      user_id: collab.user_id,
-      tipo: 'documento_da_firmare',
-      titolo: 'Nuovo documento da firmare',
-      messaggio: `È disponibile un documento da firmare: ${titolo.trim()}`,
-      entity_type: 'document',
-      entity_id: doc.id,
-    });
+    const settings = await getNotificationSettings(serviceClient);
+    const setting = settings.get('documento_da_firmare:collaboratore');
+
+    if (!setting || setting.inapp_enabled) {
+      await serviceClient.from('notifications').insert({
+        user_id: collab.user_id,
+        tipo: 'documento_da_firmare',
+        titolo: 'Nuovo documento da firmare',
+        messaggio: `È disponibile un documento da firmare: ${titolo.trim()}`,
+        entity_type: 'document',
+        entity_id: doc.id,
+      });
+    }
+
+    if (setting?.email_enabled) {
+      const { data: authUser } = await serviceClient.auth.admin.getUserById(collab.user_id);
+      const email = authUser?.user?.email;
+      if (email) {
+        const { subject, html } = emailDocumentoDaFirmare({
+          nome: collab.nome ?? '',
+          titoloDocumento: titolo.trim(),
+          data: new Date().toLocaleDateString('it-IT'),
+        });
+        sendEmail(email, subject, html).catch(() => {});
+      }
+    }
   }
 
   return NextResponse.json({ document: doc }, { status: 201 });
