@@ -74,6 +74,9 @@ export default function ActionPanel({ compensationId, stato, role }: ActionPanel
   if (canTransition(role, stato, 'request_integration').ok) {
     actions.push({ action: 'request_integration', label: 'Richiedi integrazioni', variant: 'secondary', onClick: () => setShowIntegrationModal(true) });
   }
+  if (canTransition(role, stato, 'reject_manager').ok) {
+    actions.push({ action: 'reject_manager', label: 'Rifiuta', variant: 'danger', onClick: () => perform('reject_manager') });
+  }
   if (canTransition(role, stato, 'approve_admin').ok) {
     actions.push({ action: 'approve_admin', label: 'Approva', variant: 'primary', onClick: () => perform('approve_admin') });
   }

@@ -4,6 +4,7 @@ export type ExpenseAction =
   | 'resubmit'
   | 'approve_manager'
   | 'request_integration'
+  | 'reject_manager'
   | 'approve_admin'
   | 'reject'
   | 'mark_paid';
@@ -17,7 +18,8 @@ interface TransitionDef {
 export const ALLOWED_EXPENSE_TRANSITIONS: Record<ExpenseAction, TransitionDef> = {
   resubmit:            { fromStates: ['INTEGRAZIONI_RICHIESTE'],            allowedRoles: ['collaboratore'],                  requiresNote: false },
   approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                   requiresNote: false },
-  request_integration: { fromStates: ['INVIATO'],                           allowedRoles: ['responsabile'],                   requiresNote: true  },
+  request_integration: { fromStates: ['INVIATO'],                            allowedRoles: ['responsabile'],                   requiresNote: true  },
+  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                   requiresNote: false },
   approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
   reject:              { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
   mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                   allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
@@ -27,6 +29,7 @@ export const EXPENSE_ACTION_TO_STATE: Record<ExpenseAction, ExpenseStatus> = {
   resubmit:            'INVIATO',
   approve_manager:     'PRE_APPROVATO_RESP',
   request_integration: 'INTEGRAZIONI_RICHIESTE',
+  reject_manager:      'RIFIUTATO',
   approve_admin:       'APPROVATO_ADMIN',
   reject:              'RIFIUTATO',
   mark_paid:           'PAGATO',

@@ -16,6 +16,7 @@ const transitionSchema = z.object({
     'resubmit',
     'approve_manager',
     'request_integration',
+    'reject_manager',
     'approve_admin',
     'reject',
     'mark_paid',
@@ -127,7 +128,9 @@ export async function POST(
   }
 
   // Insert notification for collaboratore on state-changing actions
-  if ((COMPENSATION_NOTIFIED_ACTIONS as string[]).includes(action)) {
+  // reject_manager maps to the same notification as reject
+  const notifAction = action === 'reject_manager' ? 'reject' : action;
+  if ((COMPENSATION_NOTIFIED_ACTIONS as string[]).includes(notifAction)) {
     const { data: collab } = await serviceClient
       .from('collaborators')
       .select('user_id')
@@ -136,7 +139,7 @@ export async function POST(
 
     if (collab?.user_id) {
       const notif: NotificationPayload = buildCompensationNotification(
-        action as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
+        notifAction as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
         collab.user_id,
         id,
         note,

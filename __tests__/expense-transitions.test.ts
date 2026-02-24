@@ -148,15 +148,41 @@ describe('applyExpenseTransition', () => {
     expect(applyExpenseTransition('reject')).toBe('RIFIUTATO');
   });
 
+  it('reject_manager → RIFIUTATO', () => {
+    expect(applyExpenseTransition('reject_manager')).toBe('RIFIUTATO');
+  });
+
   it('mark_paid → PAGATO', () => {
     expect(applyExpenseTransition('mark_paid')).toBe('PAGATO');
   });
 });
 
+describe('reject_manager expense', () => {
+  it('responsabile può rifiutare da INVIATO', () => {
+    expect(canExpenseTransition('responsabile', 'INVIATO', 'reject_manager').ok).toBe(true);
+  });
+
+  it('responsabile può rifiutare da INTEGRAZIONI_RICHIESTE', () => {
+    expect(canExpenseTransition('responsabile', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
+  });
+
+  it('responsabile NON può rifiutare da PRE_APPROVATO_RESP', () => {
+    expect(canExpenseTransition('responsabile', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
+  });
+
+  it('collaboratore NON può eseguire reject_manager', () => {
+    expect(canExpenseTransition('collaboratore', 'INVIATO', 'reject_manager').ok).toBe(false);
+  });
+
+  it('admin NON può eseguire reject_manager', () => {
+    expect(canExpenseTransition('amministrazione', 'INVIATO', 'reject_manager').ok).toBe(false);
+  });
+});
+
 describe('ALLOWED_EXPENSE_TRANSITIONS map', () => {
-  it('contains exactly 6 defined actions', () => {
+  it('contains exactly 7 defined actions', () => {
     const actions = Object.keys(ALLOWED_EXPENSE_TRANSITIONS);
-    expect(actions).toHaveLength(6);
+    expect(actions).toHaveLength(7);
   });
 
   it('request_integration requiresNote è true', () => {

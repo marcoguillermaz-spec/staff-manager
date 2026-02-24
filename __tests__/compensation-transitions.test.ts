@@ -71,12 +71,38 @@ describe('applyTransition', () => {
   it('reject → RIFIUTATO', () => {
     expect(applyTransition('reject')).toBe('RIFIUTATO');
   });
+
+  it('reject_manager → RIFIUTATO', () => {
+    expect(applyTransition('reject_manager')).toBe('RIFIUTATO');
+  });
+});
+
+describe('reject_manager', () => {
+  it('responsabile può rifiutare da INVIATO', () => {
+    expect(canTransition('responsabile', 'INVIATO', 'reject_manager').ok).toBe(true);
+  });
+
+  it('responsabile può rifiutare da INTEGRAZIONI_RICHIESTE', () => {
+    expect(canTransition('responsabile', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
+  });
+
+  it('responsabile NON può rifiutare da PRE_APPROVATO_RESP', () => {
+    expect(canTransition('responsabile', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
+  });
+
+  it('collaboratore NON può eseguire reject_manager', () => {
+    expect(canTransition('collaboratore', 'INVIATO', 'reject_manager').ok).toBe(false);
+  });
+
+  it('admin NON può eseguire reject_manager', () => {
+    expect(canTransition('amministrazione', 'INVIATO', 'reject_manager').ok).toBe(false);
+  });
 });
 
 describe('ALLOWED_TRANSITIONS map', () => {
-  it('contains all 8 defined actions', () => {
+  it('contains all 9 defined actions', () => {
     const actions = Object.keys(ALLOWED_TRANSITIONS);
-    expect(actions).toHaveLength(8);
+    expect(actions).toHaveLength(9);
   });
 
   it('request_integration requiresNote è true', () => {

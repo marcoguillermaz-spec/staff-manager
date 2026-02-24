@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Community = { id: string; name: string; is_active: boolean };
-type Responsabile = { user_id: string; display_name: string; email: string; communities: { id: string; name: string }[] };
+type Responsabile = { user_id: string; display_name: string; email: string; communities: { id: string; name: string }[]; can_publish_announcements: boolean };
 
 export default function CommunityManager({
   communities,
@@ -73,6 +73,9 @@ export default function CommunityManager({
   const [selectedComms, setSelectedComms] = useState<string[]>([]);
   const [assignLoading, setAssignLoading] = useState(false);
 
+  // ── Publish permission toggle ─────────────────────────────
+  const [togglingPublishId, setTogglingPublishId] = useState<string | null>(null);
+
   function startEditAssignment(resp: Responsabile) {
     setEditingUserId(resp.user_id);
     setSelectedComms(resp.communities.map((c) => c.id));
@@ -87,6 +90,17 @@ export default function CommunityManager({
     });
     setAssignLoading(false);
     setEditingUserId(null);
+    router.refresh();
+  }
+
+  async function togglePublish(userId: string, current: boolean) {
+    setTogglingPublishId(userId);
+    await fetch(`/api/admin/responsabili/${userId}/publish-permission`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ can_publish_announcements: !current }),
+    });
+    setTogglingPublishId(null);
     router.refresh();
   }
 
@@ -179,6 +193,22 @@ export default function CommunityManager({
                   <p className="text-sm text-gray-200">{resp.display_name}</p>
                   <p className="text-xs text-gray-500">{resp.email}</p>
                 </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer" title="Abilita pubblicazione annunci">
+                    <span className="text-xs text-gray-500">Pubblica annunci</span>
+                    <button
+                      type="button"
+                      disabled={togglingPublishId === resp.user_id}
+                      onClick={() => togglePublish(resp.user_id, resp.can_publish_announcements)}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                        resp.can_publish_announcements ? 'bg-blue-600' : 'bg-gray-700'
+                      }`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        resp.can_publish_announcements ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </label>
                 {editingUserId === resp.user_id ? (
                   <div className="flex gap-2">
                     <button onClick={() => saveAssignment(resp.user_id)} disabled={assignLoading}
@@ -196,6 +226,7 @@ export default function CommunityManager({
                     Modifica
                   </button>
                 )}
+                </div>
               </div>
 
               {editingUserId === resp.user_id ? (

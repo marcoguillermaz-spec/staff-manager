@@ -61,7 +61,7 @@ export default async function ImpostazioniPage({
     ? await (async () => {
         const { data: profiles } = await serviceClient
           .from('user_profiles')
-          .select('user_id')
+          .select('user_id, can_publish_announcements')
           .eq('role', 'responsabile')
           .eq('is_active', true)
           .order('created_at', { ascending: true });
@@ -89,6 +89,7 @@ export default async function ImpostazioniPage({
           display_name: collabMap[p.user_id] ?? emailMap[p.user_id] ?? p.user_id,
           email: emailMap[p.user_id] ?? '',
           communities: assignMap[p.user_id] ?? [],
+          can_publish_announcements: p.can_publish_announcements ?? true,
         }));
       })()
     : [];

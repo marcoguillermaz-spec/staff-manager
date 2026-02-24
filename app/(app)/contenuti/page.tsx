@@ -24,7 +24,7 @@ export default async function ContenutiPage({
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, is_active, member_status')
+    .select('role, is_active, member_status, can_publish_announcements')
     .eq('user_id', user.id)
     .single();
 
@@ -81,7 +81,8 @@ export default async function ContenutiPage({
         .then((r) => r.data ?? [])) as ContentEvent[])
     : [];
 
-  const canWriteAnnouncements = WRITE_ROLES_ANNOUNCEMENTS.includes(role);
+  const canWriteAnnouncements = WRITE_ROLES_ANNOUNCEMENTS.includes(role)
+    && (role !== 'responsabile' || profile.can_publish_announcements === true);
   const canWriteContent = WRITE_ROLES_CONTENT.includes(role);
 
   const tabCls = (t: Tab) =>

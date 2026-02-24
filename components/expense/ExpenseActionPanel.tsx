@@ -66,6 +66,9 @@ export default function ExpenseActionPanel({ expenseId, stato, role }: ExpenseAc
   if (canExpenseTransition(role, stato, 'request_integration').ok) {
     actions.push({ action: 'request_integration', label: 'Richiedi integrazioni', variant: 'secondary', onClick: () => setShowIntegrationModal(true) });
   }
+  if (canExpenseTransition(role, stato, 'reject_manager').ok) {
+    actions.push({ action: 'reject_manager', label: 'Rifiuta', variant: 'danger', onClick: () => perform('reject_manager') });
+  }
   if (canExpenseTransition(role, stato, 'approve_admin').ok) {
     actions.push({ action: 'approve_admin', label: 'Approva', variant: 'primary', onClick: () => perform('approve_admin') });
   }
