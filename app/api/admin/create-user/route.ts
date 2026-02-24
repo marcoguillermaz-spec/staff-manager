@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { sendEmail } from '@/lib/email';
+import { emailInvito } from '@/lib/email-templates';
 
 const schema = z.object({
   email: z.string().email(),
@@ -153,5 +155,9 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ email, password });
+  // 5. Send invitation email (fire-and-forget — never blocks the response)
+  const { subject, html } = emailInvito({ email, password, ruolo: role });
+  sendEmail(email, subject, html).catch(() => {});
+
+  return NextResponse.json({ email });
 }

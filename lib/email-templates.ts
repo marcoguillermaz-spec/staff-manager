@@ -4,7 +4,9 @@
 const LOGO_URL =
   'https://nyajqcjqmgxctlqighql.supabase.co/storage/v1/object/public/avatars/brand/testbusters_logo.png';
 
-const APP_URL = process.env.APP_URL ?? 'https://staff-manager.testbusters.it';
+// APP_URL is the base URL of the application.
+// Set the APP_URL environment variable in production to point to the live deployment.
+const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 const BRAND_COLOR = '#E8320A';
 
@@ -247,6 +249,29 @@ export function emailNuovoInviato(p: {
   `;
   return {
     subject: `Nuovo ${p.tipo.toLowerCase()} da approvare — ${p.nomeCollaboratore}`,
+    html: layout(body),
+  };
+}
+
+// ── E8 — Invito utente ──────────────────────────────────────
+export function emailInvito(p: {
+  email: string;
+  password: string;
+  ruolo: string;
+}): { subject: string; html: string } {
+  const body = `
+    ${bodyText('Sei stato invitato ad accedere a <strong>Staff Manager</strong>, la piattaforma di gestione collaboratori di Testbusters.')}
+    ${highlight([
+      { label: 'Email',              value: p.email },
+      { label: 'Password temporanea', value: p.password },
+      { label: 'Ruolo',              value: p.ruolo },
+    ])}
+    ${note('Al primo accesso ti verrà chiesto di impostare una nuova password personale.')}
+    ${bodyText('Clicca sul pulsante qui sotto per accedere alla piattaforma.')}
+    ${ctaButton('Accedi a Staff Manager')}
+  `;
+  return {
+    subject: 'Sei stato invitato a Staff Manager — Testbusters',
     html: layout(body),
   };
 }
