@@ -27,6 +27,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
 
   amministrazione: [
+    { label: 'Dashboard',    href: '/',              icon: '🏠' },
     { label: 'Coda lavoro',  href: '/coda',         icon: '⚡' },
     { label: 'Collaboratori',href: '/collaboratori', icon: '👥' },
     { label: 'Export',       href: '/export',        icon: '📊' },
@@ -37,6 +38,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
 
   super_admin: [
+    { label: 'Dashboard',    href: '/',              icon: '🏠' },
     { label: 'Coda lavoro',  href: '/coda',         icon: '⚡' },
     { label: 'Collaboratori',href: '/collaboratori', icon: '👥' },
     { label: 'Export',       href: '/export',        icon: '📊' },
