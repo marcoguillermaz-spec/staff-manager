@@ -241,20 +241,14 @@ export default async function DashboardPage() {
       );
     }
 
-    // Round 2 — community data + collaborators (join via FK verified) + announcements
+    // Round 2 — communities + collaborator IDs (separate queries, no join) + announcements
     type CommunityRow = { id: string; name: string };
-    type CCRow = {
-      collaborator_id: string;
-      community_id: string;
-      collaborators: { id: string; nome: string | null; cognome: string | null; member_status: string; user_id: string } | null;
-    };
-    type AnnRow = { id: string; titolo: string; published_at: string };
+    type CCRow        = { collaborator_id: string; community_id: string };
+    type AnnRow       = { id: string; titolo: string; published_at: string };
 
     const [commResult, ccResult, annResult] = await Promise.all([
       svc.from('communities').select('id, name').in('id', communityIds),
-      svc.from('collaborator_communities')
-        .select('collaborator_id, community_id, collaborators(id, nome, cognome, member_status, user_id)')
-        .in('community_id', communityIds),
+      svc.from('collaborator_communities').select('collaborator_id, community_id').in('community_id', communityIds),
       svc.from('announcements')
         .select('id, titolo, published_at')
         .order('pinned', { ascending: false })
@@ -262,47 +256,36 @@ export default async function DashboardPage() {
         .limit(3),
     ]);
 
-    const commRows    = commResult.data  as CommunityRow[] | null;
-    const ccRawRows   = ccResult.data    as CCRow[] | null;
-    const annRows     = annResult.data   as AnnRow[] | null;
+    const commRows = commResult.data as CommunityRow[] | null;
+    const ccRows   = ccResult.data   as CCRow[] | null;
+    const annRows  = annResult.data  as AnnRow[] | null;
 
-    // Build lookup maps
-    const allCollabIds: string[] = [...new Set((ccRawRows ?? []).map(r => r.collaborator_id))];
-    const allUserIds:   string[] = [];
+    // Build lookup maps from round 2
+    const allCollabIds: string[] = [...new Set((ccRows ?? []).map(r => r.collaborator_id))];
     const collabIdsByComm: Record<string, Set<string>> = {};
-    const collabByCollabId: Record<string, { nome: string; cognome: string; member_status: string; user_id: string }> = {};
     const commNameMap: Record<string, string> = {};
 
     for (const c of commRows ?? []) commNameMap[c.id] = c.name;
-
-    for (const row of ccRawRows ?? []) {
+    for (const row of ccRows ?? []) {
       if (!collabIdsByComm[row.community_id]) collabIdsByComm[row.community_id] = new Set();
       collabIdsByComm[row.community_id].add(row.collaborator_id);
-      if (row.collaborators) {
-        collabByCollabId[row.collaborator_id] = {
-          nome: row.collaborators.nome ?? '',
-          cognome: row.collaborators.cognome ?? '',
-          member_status: row.collaborators.member_status,
-          user_id: row.collaborators.user_id,
-        };
-        if (row.collaborators.user_id) allUserIds.push(row.collaborators.user_id);
-      }
     }
 
     const noCollabs = allCollabIds.length === 0;
-    const noUsers   = allUserIds.length === 0;
 
-    // Round 3 — all data in parallel using collabIds + userIds
-    type PComp   = { id: string; collaborator_id: string; community_id: string; created_at: string };
-    type PExp    = { id: string; collaborator_id: string; created_at: string };
-    type DocRow2 = { id: string; collaborator_id: string; community_id: string };
-    type SComp   = { id: string; collaborator_id: string; community_id: string };
-    type SExp    = { id: string; collaborator_id: string };
-    type TRow    = { id: string; oggetto: string; stato: string; creator_user_id: string; created_at: string };
+    // Round 3 — all data in parallel using collabIds
+    type CollabRow = { id: string; nome: string | null; cognome: string | null };
+    type PComp     = { id: string; collaborator_id: string; community_id: string; created_at: string };
+    type PExp      = { id: string; collaborator_id: string; created_at: string };
+    type DocRow2   = { id: string; collaborator_id: string; community_id: string };
+    type SComp     = { id: string; collaborator_id: string; community_id: string };
+    type SExp      = { id: string; collaborator_id: string };
 
     const resolve = <T,>(v: T[]) => Promise.resolve({ data: v, error: null });
 
-    const [pcRes, peRes, ddRes, scRes, seRes, tkRes] = await Promise.all([
+    const [collabsResult, pcRes, peRes, ddRes, scRes, seRes] = await Promise.all([
+      noCollabs ? resolve<CollabRow>([]) : svc.from('collaborators')
+        .select('id, nome, cognome').in('id', allCollabIds),
       noCollabs ? resolve<PComp>([]) : svc.from('compensations')
         .select('id, collaborator_id, community_id, created_at')
         .in('collaborator_id', allCollabIds).eq('stato', 'INVIATO')
@@ -322,18 +305,17 @@ export default async function DashboardPage() {
         .select('id, collaborator_id')
         .in('collaborator_id', allCollabIds)
         .neq('stato', 'PAGATO').neq('stato', 'RIFIUTATO'),
-      noUsers ? resolve<TRow>([]) : svc.from('tickets')
-        .select('id, oggetto, stato, creator_user_id, created_at')
-        .in('creator_user_id', allUserIds).neq('stato', 'CHIUSO')
-        .order('created_at', { ascending: false }).limit(10),
     ]);
 
+    const allCollabs   = (collabsResult.data ?? []) as CollabRow[];
     const pendingComps = (pcRes.data ?? []) as PComp[];
     const pendingExps  = (peRes.data ?? []) as PExp[];
     const docsToSign   = (ddRes.data ?? []) as DocRow2[];
     const stalloComps  = (scRes.data ?? []) as SComp[];
     const stalloExps   = (seRes.data ?? []) as SExp[];
-    const openTickets  = (tkRes.data ?? []) as TRow[];
+
+    const collabByCollabId: Record<string, { nome: string; cognome: string }> = {};
+    for (const c of allCollabs) collabByCollabId[c.id] = { nome: c.nome ?? '', cognome: c.cognome ?? '' };
 
     // ── Per-community stats ──────────────────────────────────
     const communityStats: CommStat[] = communityIds.map(commId => {
@@ -365,10 +347,6 @@ export default async function DashboardPage() {
         text: `${collabsWithDocs} collaboratore${collabsWithDocs === 1 ? '' : 'i'} con documenti da firmare`,
         href: '/collaboratori?filter=documenti',
       },
-      openTickets.length > 0 && {
-        text: `${openTickets.length} ticket aperti nelle community`,
-        href: '/ticket',
-      },
     ].filter(Boolean) as { text: string; href: string }[];
 
     // ── Feed ─────────────────────────────────────────────────
@@ -383,9 +361,6 @@ export default async function DashboardPage() {
       const collab = collabByCollabId[e.collaborator_id];
       const name = collab ? `${collab.nome} ${collab.cognome}`.trim() : 'Collaboratore';
       rFeedItems.push({ key: `pe-${e.id}`, icon: 'exp', text: `Rimborso inviato da ${name}`, date: e.created_at, href: `/collaboratori/${e.collaborator_id}` });
-    }
-    for (const t of openTickets.slice(0, 4)) {
-      rFeedItems.push({ key: `tk-${t.id}`, icon: 'ticket', text: `Ticket aperto: "${t.oggetto}"`, date: t.created_at, href: `/ticket/${t.id}` });
     }
     for (const a of annRows ?? []) {
       rFeedItems.push({ key: `ann-${a.id}`, icon: 'ann', text: a.titolo, date: a.published_at, href: '/contenuti?tab=bacheca' });
