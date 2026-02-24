@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 type Collaborator = {
   nome: string;
@@ -81,6 +82,7 @@ function GuideBox({ guide }: { guide: GuideContent }) {
 
 export default function ProfileForm({ collaborator, role, email, communities, guidaFigli, guidaPiva }: Props) {
   // Editable personal data
+  const [emailVal, setEmailVal]       = useState(email);
   const [nome, setNome]               = useState(collaborator?.nome ?? '');
   const [cognome, setCognome]         = useState(collaborator?.cognome ?? '');
   const [codiceFiscale, setCodiceFiscale] = useState(collaborator?.codice_fiscale ?? '');
@@ -116,10 +118,12 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
     setError(null);
     setSaved(false);
 
+    const emailTrimmed = emailVal.trim().toLowerCase();
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        email:               emailTrimmed !== email.toLowerCase() ? emailTrimmed : undefined,
         nome:                nome.trim() || undefined,
         cognome:             cognome.trim() || undefined,
         codice_fiscale:      codiceFiscale.trim().toUpperCase() || null,
@@ -141,6 +145,10 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
     const data = await res.json();
     setLoading(false);
     if (!res.ok) { setError(data.error ?? 'Errore durante il salvataggio'); return; }
+    if (data.emailChanged) {
+      const supabase = createClient();
+      await supabase.auth.refreshSession();
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -242,7 +250,13 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
           </div>
           <div>
             <label className={labelCls}>Email</label>
-            <div className={readonlyCls}>{email}</div>
+            <input
+              type="email"
+              value={emailVal}
+              onChange={(e) => setEmailVal(e.target.value)}
+              disabled={loading}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className={labelCls}>Codice fiscale</label>
