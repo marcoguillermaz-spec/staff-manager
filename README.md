@@ -34,6 +34,7 @@ BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
 | approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
 | request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
+| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile |
 | approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
 | reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
 | mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
@@ -53,6 +54,7 @@ INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
 | approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
 | request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
+| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile |
 | approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
 | reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
 | mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
@@ -92,6 +94,7 @@ app/
     admin/communities/           → GET list communities (?all=1 returns inactive too) + POST create
     admin/communities/[id]/      → PATCH rename + toggle is_active
     admin/responsabili/[userId]/communities/ → PUT replace community assignments for a responsabile
+    admin/responsabili/[userId]/publish-permission/ → PATCH toggle can_publish_announcements for a responsabile
     admin/members/[id]/status/   → PATCH update member_status for a collaboratore
     admin/members/[id]/data-ingresso/ → PATCH update data_ingresso (admin only)
     admin/contract-templates/    → GET list templates + POST upload/replace .docx per type (OCCASIONALE/COCOCO/PIVA)
@@ -188,8 +191,8 @@ lib/
   supabase/server.ts             → Server Supabase client (SSR)
   types.ts                       → Role, status enums, DB row interfaces (Compensation, Expense, HistoryEvent)
   nav.ts                         → NAV_BY_ROLE config
-  compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (8 actions)
-  expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (6 actions)
+  compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (9 actions incl. reject_manager)
+  expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (7 actions incl. reject_manager)
   export-utils.ts                → Pure functions: buildCSV, buildXLSXWorkbook, ExportItem type
   documents-storage.ts           → buildStoragePath, getSignedUrl, getDocumentUrls (1h TTL, service role)
   notification-utils.ts          → buildCompensationNotification, buildExpenseNotification, buildTicketReplyNotification (pure helpers)
@@ -206,10 +209,12 @@ supabase/migrations/
   009_contract_templates.sql     → luogo_nascita/comune on collaborators, CONTRATTO_COCOCO/PIVA doc types, contract_templates table, contracts bucket
   010_onboarding.sql             → onboarding_completed on user_profiles, tipo_contratto on collaborators, nome/cognome nullable
   011_contract_fields.sql        → ADD COLUMN provincia_nascita, provincia_residenza, civico_residenza on collaborators
+  012_notification_settings.sql  → notification_settings table (per-event preferences, prepared for future use)
+  013_responsabile_publish_permission.sql → ADD COLUMN can_publish_announcements boolean DEFAULT true on user_profiles
 
 __tests__/
-  compensation-transitions.test.ts → State machine unit tests for compensations (14 cases)
-  expense-transitions.test.ts      → State machine unit tests for reimbursements (31 cases)
+  compensation-transitions.test.ts → State machine unit tests for compensations (20 cases)
+  expense-transitions.test.ts      → State machine unit tests for reimbursements (36 cases)
   export-utils.test.ts             → Unit tests for CSV/XLSX builders (7 cases)
   cu-batch-parser.test.ts          → Unit tests for CU batch CSV parser + dedup logic (11 cases)
   notification-utils.test.ts       → Unit tests for notification payload builders (12 cases)
@@ -230,6 +235,7 @@ e2e/
   collaboratori.spec.ts            → Playwright UAT: collaboratori section S1–S10 (list/filters, detail, inline actions, RBAC, 10 tests)
   dashboard-responsabile.spec.ts   → Playwright UAT: responsabile dashboard S1–S10 (CommCards, pending counters, alert, feed, RBAC, 10 tests)
   dashboard-admin.spec.ts          → Playwright UAT: admin dashboard S1–S10 (KPI cards, community cards, period charts, feed filter, blocks drawer, 10 tests)
+  responsabile-actions.spec.ts     → Playwright UAT: responsabile reject_manager + can_publish_announcements S1–S10 (reject comp/rimborso, publish toggle, RBAC, 10 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -243,7 +249,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (141 tests across 14 spec files)
+npm test           # Run unit tests (93 cases) + Playwright e2e (151 tests across 15 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 

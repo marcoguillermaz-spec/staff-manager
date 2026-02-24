@@ -44,6 +44,7 @@
 | Sezione Collaboratori responsabile | ✅ | — | 10 Playwright | Lista paginata 20/pag, filtri URL-driven (tutti/doc-da-firmare/stallo), dettaglio con azioni inline Pre-approva + Integrazioni. RBAC: responsabile filtrato per community, admin vede tutto, collaboratore redirect. Service role in server pages. |
 | Dashboard responsabile | ✅ | — | 10 Playwright | Per-community CommCards (pending compensi/rimborsi/doc DA_FIRMARE con stile ambra/blu), "Cosa devo fare" alert, feed (compensi/rimborsi inviati + annunci), azioni rapide. Fix: join embedded PostgREST → query separate. |
 | Dashboard admin | ✅ | — | 10 Playwright | 6 KPI card, community cards grid, urgenti >3gg, feed filtrable (cognome like + community dropdown), period metrics Recharts (importo pagato + compensi approvati + nuovi collab), collab breakdown (stato + contratto), blocks drawer (must_change_password, onboarding_incomplete, stalled). |
+| Verifica requisiti ruolo collaboratore + responsabile | ✅ | 93 vitest | 10 Playwright | C-01: email self-edit per tutti i ruoli. C-03: member_status enforcement (route guard + year filter docs). R-01: reject_manager per responsabile (INVIATO/INTEGRAZIONI → RIFIUTATO). R-02: can_publish_announcements toggle per responsabile. Migration 013. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -87,6 +88,16 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Verifica requisiti collaboratore + responsabile — completato 2026-02-24
+- File: `supabase/migrations/013_responsabile_publish_permission.sql`, `app/api/admin/responsabili/[userId]/publish-permission/route.ts`, `e2e/responsabile-actions.spec.ts`
+- Modificati: `lib/compensation-transitions.ts` (reject_manager), `lib/expense-transitions.ts` (reject_manager), `app/api/compensations/[id]/transition/route.ts`, `app/api/expenses/[id]/transition/route.ts`, `components/compensation/ActionPanel.tsx`, `components/expense/ExpenseActionPanel.tsx`, `components/impostazioni/CommunityManager.tsx`, `app/(app)/impostazioni/page.tsx`, `app/(app)/contenuti/page.tsx`, `app/api/profile/route.ts` (email self-edit), `components/ProfileForm.tsx`, `app/(app)/compensi/page.tsx`, `app/(app)/rimborsi/page.tsx`, `app/(app)/ticket/page.tsx`, `app/(app)/documenti/page.tsx`, `app/(app)/documenti/[id]/page.tsx`, `components/documents/DocumentSignFlow.tsx`
+- Migration: `013_responsabile_publish_permission.sql` — ADD COLUMN can_publish_announcements boolean DEFAULT true on user_profiles
+- Test: 93 vitest + 10 Playwright (S1–S10, tutti verdi)
+- C-01: email self-edit via admin.updateUserById (service role, no confirmation) + client-side session refresh
+- C-03: uscente_senza_compenso → redirect /documenti da compensi/rimborsi/ticket/contenuti. uscente_con_compenso → year filter su documenti. canSign=false per uscente_senza_compenso.
+- R-01: reject_manager → RIFIUTATO da INVIATO/INTEGRAZIONI. Notifica: remap reject_manager → 'reject' via notifAction var in API routes.
+- R-02: toggle can_publish_announcements per responsabile in Impostazioni > Community. canWriteAnnouncements = role check AND (role ≠ responsabile OR can_publish_announcements=true).
 
 ### Dashboard responsabile — completato 2026-02-24
 - File: `app/(app)/page.tsx` (branch responsabile aggiunto), `e2e/dashboard-responsabile.spec.ts`
