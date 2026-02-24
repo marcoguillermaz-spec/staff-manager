@@ -69,6 +69,52 @@ describe('canExpenseTransition', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('responsabile può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
+    const result = canExpenseTransition(
+      'responsabile',
+      'INTEGRAZIONI_RICHIESTE',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga per passare la validazione',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('amministrazione può fare request_integration da INVIATO con nota valida', () => {
+    const result = canExpenseTransition(
+      'amministrazione',
+      'INVIATO',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga per passare la validazione',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('amministrazione può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
+    const result = canExpenseTransition(
+      'amministrazione',
+      'INTEGRAZIONI_RICHIESTE',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga per passare la validazione',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('super_admin può fare request_integration da INVIATO con nota valida', () => {
+    const result = canExpenseTransition(
+      'super_admin',
+      'INVIATO',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga per passare la validazione',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('collaboratore NON può fare request_integration', () => {
+    const result = canExpenseTransition('collaboratore', 'INVIATO', 'request_integration');
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
+  });
+
   it('responsabile NON può fare approve_admin', () => {
     const result = canExpenseTransition('responsabile', 'PRE_APPROVATO_RESP', 'approve_admin');
     expect(result.ok).toBe(false);

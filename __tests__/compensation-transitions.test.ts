@@ -57,6 +57,52 @@ describe('canTransition', () => {
     const result = canTransition('collaboratore', 'INVIATO', 'withdraw');
     expect(result.ok).toBe(true);
   });
+
+  it('amministrazione può fare request_integration da INVIATO con nota valida', () => {
+    const result = canTransition(
+      'amministrazione',
+      'INVIATO',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('super_admin può fare request_integration da INVIATO con nota valida', () => {
+    const result = canTransition(
+      'super_admin',
+      'INVIATO',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('responsabile può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
+    const result = canTransition(
+      'responsabile',
+      'INTEGRAZIONI_RICHIESTE',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('amministrazione può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
+    const result = canTransition(
+      'amministrazione',
+      'INTEGRAZIONI_RICHIESTE',
+      'request_integration',
+      'Questa è una nota sufficientemente lunga',
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('collaboratore NON può fare request_integration', () => {
+    const result = canTransition('collaboratore', 'INVIATO', 'request_integration');
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
+  });
 });
 
 describe('applyTransition', () => {
