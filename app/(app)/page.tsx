@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import AdminDashboard from '@/components/admin/AdminDashboard';
+import type { AdminDashboardData } from '@/components/admin/types';
 
 // ── Constants ──────────────────────────────────────────────
 const ACTIVE_STATES = new Set([
@@ -433,16 +435,449 @@ export default async function DashboardPage() {
     );
   }
 
-  // Non-collaboratori (admin, super_admin): semplice benvenuto
-  if (role !== 'collaboratore') {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold text-gray-100">Benvenuto</h1>
-          <p className="mt-2 text-sm text-gray-500 capitalize">{role.replace('_', ' ')}</p>
-        </div>
-      </div>
+  // ── Admin / super_admin dashboard ──────────────────────────
+  if (role === 'amministrazione' || role === 'super_admin') {
+    const svc = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
+    const stalledThreshold = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Parallel fetches
+    const [
+      pendingCompsRes,
+      pendingExpsRes,
+      inApprovalRes,
+      toPayCompsRes,
+      toPayExpsRes,
+      docsToSignRes,
+      activeCollabsRes,
+      communitiesRes,
+      collabsByStatusRes,
+      collabsByContractRes,
+      // Period metrics
+      paidCompsThisMonthRes,
+      paidCompsLastMonthRes,
+      paidCompsYtdRes,
+      approvedThisMonthRes,
+      approvedLastMonthRes,
+      approvedYtdRes,
+      newCollabsThisMonthRes,
+      newCollabsLastMonthRes,
+      newCollabsYtdRes,
+      // Urgenti
+      stalledCompsRes,
+      stalledExpsRes,
+      // Feed
+      feedCompsRes,
+      feedExpsRes,
+      // Blocks
+      mustChangePwdRes,
+      onboardingIncompleteRes,
+    ] = await Promise.all([
+      // pending comps (INVIATO, INTEGRAZIONI_RICHIESTE, PRE_APPROVATO_RESP)
+      svc.from('compensations').select('id', { count: 'exact', head: true })
+        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP']),
+      // pending exps
+      svc.from('expense_reimbursements').select('id', { count: 'exact', head: true })
+        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP']),
+      // in approval amount (APPROVATO_ADMIN comps)
+      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
+        .eq('stato', 'APPROVATO_ADMIN'),
+      // to pay comps (APPROVATO_ADMIN — same states but different label)
+      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
+        .eq('stato', 'APPROVATO_ADMIN'),
+      // to pay exps
+      svc.from('expense_reimbursements').select('importo')
+        .eq('stato', 'APPROVATO_ADMIN'),
+      // docs to sign
+      svc.from('documents').select('id', { count: 'exact', head: true })
+        .eq('stato_firma', 'DA_FIRMARE'),
+      // active collabs
+      svc.from('user_profiles').select('id', { count: 'exact', head: true })
+        .eq('is_active', true).neq('role', 'amministrazione').neq('role', 'super_admin'),
+      // communities
+      svc.from('communities').select('id, name').eq('is_active', true).order('name'),
+      // collab breakdown by status
+      svc.from('collaborators').select('member_status'),
+      // collab breakdown by contract
+      svc.from('collaborators').select('tipo_contratto'),
+      // paid comps this month
+      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
+        .eq('stato', 'PAGATO').gte('updated_at', startOfMonth),
+      // paid comps last month
+      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
+        .eq('stato', 'PAGATO').gte('updated_at', startOfLastMonth).lt('updated_at', startOfMonth),
+      // paid comps ytd
+      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
+        .eq('stato', 'PAGATO').gte('updated_at', startOfYear),
+      // approved comps this month
+      svc.from('compensations').select('id', { count: 'exact', head: true })
+        .in('stato', ['APPROVATO_ADMIN', 'PAGATO']).gte('updated_at', startOfMonth),
+      // approved comps last month
+      svc.from('compensations').select('id', { count: 'exact', head: true })
+        .in('stato', ['APPROVATO_ADMIN', 'PAGATO']).gte('updated_at', startOfLastMonth).lt('updated_at', startOfMonth),
+      // approved comps ytd
+      svc.from('compensations').select('id', { count: 'exact', head: true })
+        .in('stato', ['APPROVATO_ADMIN', 'PAGATO']).gte('updated_at', startOfYear),
+      // new collabs this month
+      svc.from('collaborators').select('id', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth),
+      // new collabs last month
+      svc.from('collaborators').select('id', { count: 'exact', head: true })
+        .gte('created_at', startOfLastMonth).lt('created_at', startOfMonth),
+      // new collabs ytd
+      svc.from('collaborators').select('id', { count: 'exact', head: true })
+        .gte('created_at', startOfYear),
+      // stalled comps (>3 days in actionable states)
+      svc.from('compensations')
+        .select('id, stato, importo_netto, totale_fattura, tipo, created_at, community_id, collaborator_id')
+        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP'])
+        .lt('created_at', stalledThreshold)
+        .order('created_at', { ascending: true })
+        .limit(20),
+      // stalled exps
+      svc.from('expense_reimbursements')
+        .select('id, stato, importo, created_at, community_id, collaborator_id')
+        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP'])
+        .lt('created_at', stalledThreshold)
+        .order('created_at', { ascending: true })
+        .limit(20),
+      // feed comps (recent, actionable)
+      svc.from('compensations')
+        .select('id, stato, importo_netto, totale_fattura, tipo, created_at, community_id, collaborator_id')
+        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP', 'APPROVATO_ADMIN', 'PAGATO'])
+        .order('created_at', { ascending: false })
+        .limit(30),
+      // feed exps
+      svc.from('expense_reimbursements')
+        .select('id, stato, importo, created_at, community_id, collaborator_id')
+        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP', 'APPROVATO_ADMIN', 'PAGATO'])
+        .order('created_at', { ascending: false })
+        .limit(30),
+      // users with must_change_password
+      svc.from('user_profiles')
+        .select('user_id, must_change_password')
+        .eq('must_change_password', true)
+        .eq('is_active', true),
+      // users with onboarding incomplete
+      svc.from('user_profiles')
+        .select('user_id, onboarding_completed')
+        .eq('onboarding_completed', false)
+        .eq('is_active', true)
+        .neq('role', 'amministrazione')
+        .neq('role', 'super_admin'),
+    ]);
+
+    // Fetch collabs + communities lookup for urgenti/feed enrichment
+    const allCollabIds = [
+      ...(stalledCompsRes.data ?? []).map((r: { collaborator_id: string }) => r.collaborator_id),
+      ...(stalledExpsRes.data ?? []).map((r: { collaborator_id: string }) => r.collaborator_id),
+      ...(feedCompsRes.data ?? []).map((r: { collaborator_id: string }) => r.collaborator_id),
+      ...(feedExpsRes.data ?? []).map((r: { collaborator_id: string }) => r.collaborator_id),
+    ];
+    const uniqueCollabIds = [...new Set(allCollabIds)];
+
+    const [collabsLookupRes, commLookupRes, blockCollabsRes] = await Promise.all([
+      uniqueCollabIds.length > 0
+        ? svc.from('collaborators').select('id, nome, cognome, email').in('id', uniqueCollabIds)
+        : Promise.resolve({ data: [] as { id: string; nome: string | null; cognome: string | null; email: string | null }[] }),
+      svc.from('communities').select('id, name'),
+      // collaborators for block items
+      svc.from('collaborators').select('id, user_id, nome, cognome, email'),
+    ]);
+
+    const collabMap = new Map<string, { nome: string; cognome: string; email: string }>(
+      (collabsLookupRes.data ?? []).map(c => [
+        c.id,
+        { nome: c.nome ?? '', cognome: c.cognome ?? '', email: c.email ?? '' },
+      ])
+    );
+    const commMap = new Map<string, string>(
+      (commLookupRes.data ?? []).map(c => [c.id, c.name])
+    );
+
+    // ── KPIs ──
+    const inApprovalAmount = (inApprovalRes.data ?? []).reduce((sum, c) => {
+      return sum + (c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0));
+    }, 0);
+    const toPayAmount = (toPayCompsRes.data ?? []).reduce((sum, c) => {
+      return sum + (c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0));
+    }, 0) + (toPayExpsRes.data ?? []).reduce((sum, e) => sum + (e.importo ?? 0), 0);
+
+    const kpis = {
+      pendingCompsCount: pendingCompsRes.count ?? 0,
+      pendingExpsCount: pendingExpsRes.count ?? 0,
+      inApprovalAmount,
+      toPayAmount,
+      docsToSignCount: docsToSignRes.count ?? 0,
+      activeCollabsCount: activeCollabsRes.count ?? 0,
+    };
+
+    // ── Community cards ──
+    const communityCards = (communitiesRes.data ?? []).map(comm => {
+      const pComps = (stalledCompsRes.data ?? []).filter((r: { community_id: string }) => r.community_id === comm.id).length;
+      const pExps = (stalledExpsRes.data ?? []).filter((r: { community_id: string }) => r.community_id === comm.id).length;
+      return {
+        id: comm.id,
+        name: comm.name,
+        pendingComps: pComps,
+        pendingExps: pExps,
+        docsToSign: 0, // simplified — docs don't carry community_id directly
+        collabCount: 0, // will be enriched below
+      };
+    });
+
+    // enrich collabCount per community
+    const collabCommRes = await svc.from('collab_communities')
+      .select('community_id', { count: 'exact' });
+    if (collabCommRes.data) {
+      const countMap = new Map<string, number>();
+      for (const row of collabCommRes.data as { community_id: string }[]) {
+        countMap.set(row.community_id, (countMap.get(row.community_id) ?? 0) + 1);
+      }
+      for (const card of communityCards) {
+        card.collabCount = countMap.get(card.id) ?? 0;
+      }
+    }
+
+    // ── Collab breakdown ──
+    const statusLabels: Record<string, string> = {
+      attivo: 'Attivo',
+      uscente_con_compenso: 'Uscente con compenso',
+      uscente_senza_compenso: 'Uscente senza compenso',
+    };
+    const contractLabels: Record<string, string> = {
+      OCCASIONALE: 'Occasionale',
+      COCOCO: 'CoCoCo',
+      PIVA: 'P.IVA',
+    };
+    const statusCounts = new Map<string, number>();
+    const contractCounts = new Map<string, number>();
+    for (const c of (collabsByStatusRes.data ?? []) as { member_status: string | null }[]) {
+      const k = c.member_status ?? 'attivo';
+      statusCounts.set(k, (statusCounts.get(k) ?? 0) + 1);
+    }
+    for (const c of (collabsByContractRes.data ?? []) as { tipo_contratto: string | null }[]) {
+      if (!c.tipo_contratto) continue;
+      contractCounts.set(c.tipo_contratto, (contractCounts.get(c.tipo_contratto) ?? 0) + 1);
+    }
+    const collabBreakdown = {
+      byStatus: Object.entries(statusLabels).map(([key, label]) => ({
+        key, label, count: statusCounts.get(key) ?? 0,
+      })),
+      byContract: Object.entries(contractLabels).map(([key, label]) => ({
+        key, label, count: contractCounts.get(key) ?? 0,
+      })),
+    };
+
+    // ── Period metrics ──
+    function sumPaidComps(rows: { importo_netto: number | null; totale_fattura: number | null; tipo: string }[]) {
+      return rows.reduce((s, c) => s + (c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0)), 0);
+    }
+    const periodMetrics = {
+      currentMonth: {
+        paidAmount: sumPaidComps(paidCompsThisMonthRes.data ?? []),
+        approvedCount: approvedThisMonthRes.count ?? 0,
+        newCollabs: newCollabsThisMonthRes.count ?? 0,
+      },
+      lastMonth: {
+        paidAmount: sumPaidComps(paidCompsLastMonthRes.data ?? []),
+        approvedCount: approvedLastMonthRes.count ?? 0,
+        newCollabs: newCollabsLastMonthRes.count ?? 0,
+      },
+      ytd: {
+        paidAmount: sumPaidComps(paidCompsYtdRes.data ?? []),
+        approvedCount: approvedYtdRes.count ?? 0,
+        newCollabs: newCollabsYtdRes.count ?? 0,
+      },
+    };
+
+    // ── Urgenti ──
+    const urgentItems = [
+      ...(stalledCompsRes.data ?? []).map((c: {
+        id: string; stato: string; importo_netto: number | null;
+        totale_fattura: number | null; tipo: string;
+        created_at: string; community_id: string; collaborator_id: string;
+      }) => {
+        const collab = collabMap.get(c.collaborator_id);
+        const days = Math.floor((Date.now() - new Date(c.created_at).getTime()) / 86400000);
+        return {
+          key: `comp-${c.id}`,
+          entityType: 'compensation' as const,
+          entityId: c.id,
+          collabName: collab?.nome ?? '',
+          collabCognome: collab?.cognome ?? '',
+          collabId: c.collaborator_id,
+          communityId: c.community_id,
+          communityName: commMap.get(c.community_id) ?? '',
+          daysWaiting: days,
+          stato: c.stato,
+          amount: c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0),
+          href: `/coda?tab=compensi&id=${c.id}`,
+        };
+      }),
+      ...(stalledExpsRes.data ?? []).map((e: {
+        id: string; stato: string; importo: number | null;
+        created_at: string; community_id: string; collaborator_id: string;
+      }) => {
+        const collab = collabMap.get(e.collaborator_id);
+        const days = Math.floor((Date.now() - new Date(e.created_at).getTime()) / 86400000);
+        return {
+          key: `exp-${e.id}`,
+          entityType: 'expense' as const,
+          entityId: e.id,
+          collabName: collab?.nome ?? '',
+          collabCognome: collab?.cognome ?? '',
+          collabId: e.collaborator_id,
+          communityId: e.community_id,
+          communityName: commMap.get(e.community_id) ?? '',
+          daysWaiting: days,
+          stato: e.stato,
+          amount: e.importo ?? 0,
+          href: `/coda?tab=rimborsi&id=${e.id}`,
+        };
+      }),
+    ].sort((a, b) => b.daysWaiting - a.daysWaiting);
+
+    // ── Feed ──
+    const feedItems = [
+      ...(feedCompsRes.data ?? []).map((c: {
+        id: string; stato: string; importo_netto: number | null;
+        totale_fattura: number | null; tipo: string;
+        created_at: string; community_id: string; collaborator_id: string;
+      }) => {
+        const collab = collabMap.get(c.collaborator_id);
+        return {
+          key: `comp-${c.id}`,
+          entityType: 'compensation' as const,
+          entityId: c.id,
+          collabId: c.collaborator_id,
+          collabName: collab?.nome ?? '',
+          collabCognome: collab?.cognome ?? '',
+          communityId: c.community_id,
+          communityName: commMap.get(c.community_id) ?? '',
+          stato: c.stato,
+          createdAt: c.created_at,
+          amount: c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0),
+          href: `/coda?tab=compensi&id=${c.id}`,
+        };
+      }),
+      ...(feedExpsRes.data ?? []).map((e: {
+        id: string; stato: string; importo: number | null;
+        created_at: string; community_id: string; collaborator_id: string;
+      }) => {
+        const collab = collabMap.get(e.collaborator_id);
+        return {
+          key: `exp-${e.id}`,
+          entityType: 'expense' as const,
+          entityId: e.id,
+          collabId: e.collaborator_id,
+          collabName: collab?.nome ?? '',
+          collabCognome: collab?.cognome ?? '',
+          communityId: e.community_id,
+          communityName: commMap.get(e.community_id) ?? '',
+          stato: e.stato,
+          createdAt: e.created_at,
+          amount: e.importo ?? 0,
+          href: `/coda?tab=rimborsi&id=${e.id}`,
+        };
+      }),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 50);
+
+    // ── Block items ──
+    const blockCollabMap = new Map<string, { id: string; nome: string; cognome: string; email: string }>(
+      (blockCollabsRes.data ?? []).map((c: {
+        id: string; user_id: string; nome: string | null; cognome: string | null; email: string | null;
+      }) => [
+        c.user_id,
+        { id: c.id, nome: c.nome ?? '', cognome: c.cognome ?? '', email: c.email ?? '' },
+      ])
+    );
+
+    const blockItems: AdminDashboardData['blockItems'] = [];
+
+    for (const u of (mustChangePwdRes.data ?? []) as { user_id: string }[]) {
+      const collab = blockCollabMap.get(u.user_id);
+      blockItems.push({
+        key: `pwd-${u.user_id}`,
+        blockType: 'must_change_password',
+        userId: u.user_id,
+        collabId: collab?.id ?? '',
+        collabName: collab ? `${collab.nome} ${collab.cognome}` : 'Utente',
+        collabEmail: collab?.email ?? '',
+        href: `/impostazioni`,
+      });
+    }
+
+    for (const u of (onboardingIncompleteRes.data ?? []) as { user_id: string }[]) {
+      const collab = blockCollabMap.get(u.user_id);
+      blockItems.push({
+        key: `onb-${u.user_id}`,
+        blockType: 'onboarding_incomplete',
+        userId: u.user_id,
+        collabId: collab?.id ?? '',
+        collabName: collab ? `${collab.nome} ${collab.cognome}` : 'Utente',
+        collabEmail: collab?.email ?? '',
+        href: collab?.id ? `/impostazioni` : `/impostazioni`,
+      });
+    }
+
+    // stalled comps already fetched above — add block items for those >3 days
+    for (const c of (stalledCompsRes.data ?? []) as {
+      id: string; stato: string; created_at: string; collaborator_id: string; community_id: string;
+    }[]) {
+      const collab = collabMap.get(c.collaborator_id);
+      const days = Math.floor((Date.now() - new Date(c.created_at).getTime()) / 86400000);
+      blockItems.push({
+        key: `stall-comp-${c.id}`,
+        blockType: 'stalled_comp',
+        userId: '',
+        collabId: c.collaborator_id,
+        collabName: collab ? `${collab.nome} ${collab.cognome}` : '',
+        collabEmail: collab?.email ?? '',
+        entityId: c.id,
+        href: `/coda?tab=compensi`,
+        daysWaiting: days,
+      });
+    }
+
+    for (const e of (stalledExpsRes.data ?? []) as {
+      id: string; stato: string; created_at: string; collaborator_id: string; community_id: string;
+    }[]) {
+      const collab = collabMap.get(e.collaborator_id);
+      const days = Math.floor((Date.now() - new Date(e.created_at).getTime()) / 86400000);
+      blockItems.push({
+        key: `stall-exp-${e.id}`,
+        blockType: 'stalled_exp',
+        userId: '',
+        collabId: e.collaborator_id,
+        collabName: collab ? `${collab.nome} ${collab.cognome}` : '',
+        collabEmail: collab?.email ?? '',
+        entityId: e.id,
+        href: `/coda?tab=rimborsi`,
+        daysWaiting: days,
+      });
+    }
+
+    const dashData: AdminDashboardData = {
+      kpis,
+      communityCards,
+      collabBreakdown,
+      periodMetrics,
+      urgentItems,
+      feedItems,
+      blockItems,
+      communities: (communitiesRes.data ?? []).map(c => ({ id: c.id, name: c.name })),
+    };
+
+    return <AdminDashboard data={dashData} />;
   }
 
   // Fetch collaborator record (needed for documents filter + profile completeness)

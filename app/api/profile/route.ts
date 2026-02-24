@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 // All fields a collaborator can update on their own record
-// data_ingresso is admin-only; email never changes via this route
+// data_ingresso is admin-only; email is handled separately via auth.admin
 const SELF_EDIT_FIELDS = [
   'nome', 'cognome', 'codice_fiscale', 'data_nascita', 'luogo_nascita', 'provincia_nascita',
   'comune', 'provincia_residenza', 'telefono', 'indirizzo', 'civico_residenza',
@@ -12,6 +13,7 @@ const SELF_EDIT_FIELDS = [
 ] as const;
 
 const patchSchema = z.object({
+  email:               z.string().email().optional(),
   nome:                z.string().min(1).max(100).optional(),
   cognome:             z.string().min(1).max(100).optional(),
   codice_fiscale:      z.string().max(16).nullable().optional(),
@@ -53,16 +55,32 @@ export async function PATCH(request: Request) {
     if (field in parsed.data) update[field] = parsed.data[field as keyof typeof parsed.data];
   }
 
-  if (Object.keys(update).length === 0) {
+  const newEmail = parsed.data.email?.trim().toLowerCase();
+  const emailChanged = !!newEmail && newEmail !== user.email?.toLowerCase();
+
+  if (Object.keys(update).length === 0 && !emailChanged) {
     return NextResponse.json({ error: 'Nessun campo da aggiornare' }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from('collaborators')
-    .update(update)
-    .eq('user_id', user.id);
+  if (Object.keys(update).length > 0) {
+    const { error } = await supabase
+      .from('collaborators')
+      .update(update)
+      .eq('user_id', user.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (emailChanged) {
+    const svc = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    const { error: emailError } = await svc.auth.admin.updateUserById(user.id, {
+      email: newEmail,
+      email_confirm: true,
+    });
+    if (emailError) return NextResponse.json({ error: 'Errore aggiornamento email: ' + emailError.message }, { status: 500 });
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, emailChanged });
 }

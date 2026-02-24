@@ -46,12 +46,13 @@ export default async function CompensiPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, is_active')
+    .select('role, is_active, member_status')
     .eq('user_id', user.id)
     .single();
 
   if (!profile?.is_active) redirect('/pending');
   if (profile.role !== 'collaboratore') redirect('/');
+  if (profile.member_status === 'uscente_senza_compenso') redirect('/documenti');
 
   const [{ data: compensations }, { data: allCompens }, { data: allExpenses }] = await Promise.all([
     supabase

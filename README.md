@@ -62,7 +62,7 @@ INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 ```
 app/
   (app)/
-    page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed) + responsabile (CommCard per community, cosa devo fare, feed pending)
+    page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed) + responsabile (CommCard per community, cosa devo fare, feed pending) + admin/super_admin (KPI, community cards, urgenti, feed filtrable, period metrics, blocks drawer)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
     profilo/page.tsx             → Profile editor (avatar, fiscal data, editable IBAN/phone/address/tshirt)
     impostazioni/page.tsx        → Settings: 4-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload)
@@ -95,6 +95,7 @@ app/
     admin/members/[id]/status/   → PATCH update member_status for a collaboratore
     admin/members/[id]/data-ingresso/ → PATCH update data_ingresso (admin only)
     admin/contract-templates/    → GET list templates + POST upload/replace .docx per type (OCCASIONALE/COCOCO/PIVA)
+    admin/blocks/clear-flag/     → POST clear must_change_password flag for a user (admin/super_admin only)
     compensations/route.ts       → GET (list, role-filtered) + POST (create)
     compensations/[id]/route.ts  → GET (detail + history + attachments)
     compensations/[id]/transition/route.ts → POST (state machine transition)
@@ -170,6 +171,10 @@ components/
     TicketForm.tsx               → Create form (fixed category dropdown, oggetto, optional initial message)
     TicketThread.tsx             → Server-side message thread with author labels, closed banner, signed URLs
     TicketMessageForm.tsx        → Reply form (textarea + file) + status change buttons (admin/responsabile)
+  admin/
+    types.ts                     → Shared TypeScript types for admin dashboard (AdminDashboardData, AdminKPIs, AdminBlockItem, etc.)
+    BlocksDrawer.tsx             → Slide-in drawer: block situations grouped by type (password, onboarding, stalled comps/exps) with direct actions
+    AdminDashboard.tsx           → Main admin dashboard client component (KPI cards, community cards, urgenti, feed filters, Recharts period charts, blocks drawer trigger)
   responsabile/
     CollaboratoreDetail.tsx      → Client: anagrafica header + compensi/rimborsi/documenti sections with inline action buttons + integration modal
   contenuti/
@@ -224,6 +229,7 @@ e2e/
   onboarding.spec.ts               → Playwright UAT: onboarding flow S1–S10 (wizard, anagrafica, contract download, proxy redirect, 10 tests)
   collaboratori.spec.ts            → Playwright UAT: collaboratori section S1–S10 (list/filters, detail, inline actions, RBAC, 10 tests)
   dashboard-responsabile.spec.ts   → Playwright UAT: responsabile dashboard S1–S10 (CommCards, pending counters, alert, feed, RBAC, 10 tests)
+  dashboard-admin.spec.ts          → Playwright UAT: admin dashboard S1–S10 (KPI cards, community cards, period charts, feed filter, blocks drawer, 10 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -237,7 +243,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (81 cases) + Playwright e2e (131 tests across 13 spec files)
+npm test           # Run unit tests (81 cases) + Playwright e2e (141 tests across 14 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
