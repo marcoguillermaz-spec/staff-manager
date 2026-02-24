@@ -54,32 +54,66 @@ export async function POST(request: Request) {
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  if (!['amministrazione', 'super_admin'].includes(profile.role)) {
-    return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
-  }
+  const isAdmin = ['amministrazione', 'super_admin'].includes(profile.role);
+  const canUpload = isAdmin || ['collaboratore', 'responsabile'].includes(profile.role);
+  if (!canUpload) return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
-  const collaborator_id = formData.get('collaborator_id') as string | null;
   const tipo = formData.get('tipo') as string | null;
   const titolo = formData.get('titolo') as string | null;
-  const stato_firma = (formData.get('stato_firma') as string | null) ?? 'DA_FIRMARE';
   const annoStr = formData.get('anno') as string | null;
   const anno = annoStr ? parseInt(annoStr, 10) : null;
 
-  if (!file || !collaborator_id || !tipo || !titolo?.trim()) {
+  const validTipi = ['CONTRATTO_OCCASIONALE', 'CONTRATTO_COCOCO', 'CONTRATTO_PIVA', 'RICEVUTA_PAGAMENTO', 'CU'];
+  if (!file || !tipo || !titolo?.trim()) {
     return NextResponse.json({ error: 'Campi obbligatori mancanti' }, { status: 400 });
   }
-
-  const validTipi = ['CONTRATTO_OCCASIONALE', 'RICEVUTA_PAGAMENTO', 'CU'];
-  const validStati = ['DA_FIRMARE', 'FIRMATO', 'NON_RICHIESTO'];
   if (!validTipi.includes(tipo)) return NextResponse.json({ error: 'Tipo non valido' }, { status: 400 });
-  if (!validStati.includes(stato_firma)) return NextResponse.json({ error: 'Stato firma non valido' }, { status: 400 });
 
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
+
+  // Resolve collaborator_id
+  let collaborator_id: string;
+  if (isAdmin) {
+    const cid = formData.get('collaborator_id') as string | null;
+    if (!cid) return NextResponse.json({ error: 'Collaboratore obbligatorio' }, { status: 400 });
+    collaborator_id = cid;
+  } else {
+    const { data: ownCollab } = await serviceClient
+      .from('collaborators')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!ownCollab) return NextResponse.json({ error: 'Profilo collaboratore non trovato' }, { status: 404 });
+    collaborator_id = ownCollab.id;
+  }
+
+  // stato_firma: admin can choose DA_FIRMARE only for CONTRATTO; non-admin always NON_RICHIESTO
+  const isContratto = tipo.startsWith('CONTRATTO_');
+  let stato_firma = 'NON_RICHIESTO';
+  if (isAdmin && isContratto) {
+    const raw = (formData.get('stato_firma') as string | null) ?? 'NON_RICHIESTO';
+    stato_firma = ['DA_FIRMARE', 'NON_RICHIESTO'].includes(raw) ? raw : 'NON_RICHIESTO';
+  }
+
+  // Max 1 CONTRATTO attivo per collaboratore
+  if (isContratto) {
+    const { count } = await serviceClient
+      .from('documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('collaborator_id', collaborator_id)
+      .like('tipo', 'CONTRATTO_%');
+    if ((count ?? 0) > 0) {
+      return NextResponse.json(
+        { error: 'Esiste già un contratto per questo collaboratore. Eliminarlo prima di caricarne uno nuovo.' },
+        { status: 409 },
+      );
+    }
+  }
 
   // Get collaborator user_id for storage path
   const { data: collab } = await serviceClient

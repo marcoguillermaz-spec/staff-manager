@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import DocumentSignFlow from '@/components/documents/DocumentSignFlow';
+import DocumentDeleteButton from '@/components/documents/DocumentDeleteButton';
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_SIGN_STATUS_LABELS } from '@/lib/types';
 import type { Role, Document } from '@/lib/types';
 import { getDocumentUrls } from '@/lib/documents-storage';
@@ -45,6 +46,7 @@ export default async function DocumentDetailPage({
   );
 
   const collab = doc.collaborators as { nome: string; cognome: string } | null;
+  const isContratto = (doc.tipo as string).startsWith('CONTRATTO_');
 
   return (
     <div className="p-6 max-w-2xl">
@@ -114,6 +116,17 @@ export default async function DocumentDetailPage({
           firmatoUrl={firmatoUrl}
           canSign={canSign}
         />
+
+        {/* Delete — admin only, CONTRATTO only */}
+        {isAdmin && isContratto && (
+          <div className="rounded-xl bg-gray-900 border border-gray-800 px-4 py-4 space-y-2">
+            <p className="text-sm font-medium text-gray-200">Elimina contratto</p>
+            <p className="text-xs text-gray-500">
+              L&apos;eliminazione è definitiva. Permette di caricare un nuovo contratto per questo collaboratore.
+            </p>
+            <DocumentDeleteButton documentId={doc.id} />
+          </div>
+        )}
       </div>
     </div>
   );

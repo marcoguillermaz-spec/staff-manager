@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DOCUMENT_TYPE_LABELS } from '@/lib/types';
+import { DOCUMENT_TYPE_LABELS, DOCUMENT_MACRO_TYPE_LABELS } from '@/lib/types';
 import type { DocumentType, DocumentSignStatus } from '@/lib/types';
 
 interface Collaborator {
@@ -14,42 +14,47 @@ interface Collaborator {
 
 interface Props {
   collaborators: Collaborator[];
+  isAdmin: boolean;
+  userCollaboratorId?: string;
 }
 
 const inputCls =
   'w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm text-gray-100 ' +
   'placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50';
 
-const DOCUMENT_TYPES: DocumentType[] = ['CONTRATTO_OCCASIONALE', 'RICEVUTA_PAGAMENTO', 'CU'];
-
-export default function DocumentUploadForm({ collaborators }: Props) {
+export default function DocumentUploadForm({ collaborators, isAdmin }: Props) {
   const router = useRouter();
 
   const [collaboratorId, setCollaboratorId] = useState('');
   const [tipo, setTipo] = useState<DocumentType | ''>('');
   const [anno, setAnno] = useState('');
   const [titolo, setTitolo] = useState('');
-  const [statoFirma, setStatoFirma] = useState<DocumentSignStatus>('DA_FIRMARE');
+  const [statoFirma, setStatoFirma] = useState<DocumentSignStatus>('NON_RICHIESTO');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const isValid = collaboratorId && tipo && titolo.trim() && file;
+  const isContratto = tipo.startsWith('CONTRATTO_');
+  const isValid = (isAdmin ? !!collaboratorId : true) && !!tipo && titolo.trim() && !!file;
 
   const handleSubmit = async () => {
     if (!isValid || !file) return;
     setLoading(true);
     setError(null);
+    setSuccess(false);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('collaborator_id', collaboratorId);
       formData.append('tipo', tipo);
       formData.append('titolo', titolo.trim());
-      formData.append('stato_firma', statoFirma);
       if (anno) formData.append('anno', anno);
+
+      if (isAdmin) {
+        formData.append('collaborator_id', collaboratorId);
+        if (isContratto) formData.append('stato_firma', statoFirma);
+      }
 
       const res = await fetch('/api/documents', {
         method: 'POST',
@@ -65,6 +70,7 @@ export default function DocumentUploadForm({ collaborators }: Props) {
       setAnno('');
       setTitolo('');
       setFile(null);
+      setStatoFirma('NON_RICHIESTO');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore imprevisto');
@@ -89,24 +95,26 @@ export default function DocumentUploadForm({ collaborators }: Props) {
         </div>
       )}
 
-      {/* Collaboratore */}
-      <div>
-        <label className="block text-xs text-gray-400 mb-1.5">
-          Collaboratore <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={collaboratorId}
-          onChange={(e) => setCollaboratorId(e.target.value)}
-          className={inputCls}
-        >
-          <option value="">— Seleziona collaboratore —</option>
-          {collaborators.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.cognome} {c.nome}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Collaboratore — admin only */}
+      {isAdmin && (
+        <div>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Collaboratore <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={collaboratorId}
+            onChange={(e) => setCollaboratorId(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">— Seleziona collaboratore —</option>
+            {collaborators.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.cognome} {c.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Tipo + Anno */}
       <div className="grid grid-cols-2 gap-4">
@@ -116,13 +124,19 @@ export default function DocumentUploadForm({ collaborators }: Props) {
           </label>
           <select
             value={tipo}
-            onChange={(e) => setTipo(e.target.value as DocumentType)}
+            onChange={(e) => { setTipo(e.target.value as DocumentType); setStatoFirma('NON_RICHIESTO'); }}
             className={inputCls}
           >
             <option value="">— Seleziona —</option>
-            {DOCUMENT_TYPES.map((t) => (
-              <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
-            ))}
+            <optgroup label={DOCUMENT_MACRO_TYPE_LABELS['CONTRATTO']}>
+              <option value="CONTRATTO_OCCASIONALE">{DOCUMENT_TYPE_LABELS['CONTRATTO_OCCASIONALE']}</option>
+              <option value="CONTRATTO_COCOCO">{DOCUMENT_TYPE_LABELS['CONTRATTO_COCOCO']}</option>
+              <option value="CONTRATTO_PIVA">{DOCUMENT_TYPE_LABELS['CONTRATTO_PIVA']}</option>
+            </optgroup>
+            <optgroup label="Altro">
+              <option value="RICEVUTA_PAGAMENTO">{DOCUMENT_TYPE_LABELS['RICEVUTA_PAGAMENTO']}</option>
+              <option value="CU">{DOCUMENT_TYPE_LABELS['CU']}</option>
+            </optgroup>
           </select>
         </div>
         <div>
@@ -153,27 +167,29 @@ export default function DocumentUploadForm({ collaborators }: Props) {
         />
       </div>
 
-      {/* Stato firma */}
-      <div>
-        <label className="block text-xs text-gray-400 mb-1.5">Firma richiesta</label>
-        <div className="flex gap-4">
-          {(['DA_FIRMARE', 'NON_RICHIESTO'] as DocumentSignStatus[]).map((s) => (
-            <label key={s} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="stato_firma"
-                value={s}
-                checked={statoFirma === s}
-                onChange={() => setStatoFirma(s)}
-                className="accent-blue-600"
-              />
-              <span className="text-sm text-gray-300">
-                {s === 'DA_FIRMARE' ? 'Sì — richiedi firma' : 'No — solo informativo'}
-              </span>
-            </label>
-          ))}
+      {/* Stato firma — admin only, only for CONTRATTO */}
+      {isAdmin && isContratto && (
+        <div>
+          <label className="block text-xs text-gray-400 mb-1.5">Firma richiesta</label>
+          <div className="flex gap-4">
+            {(['DA_FIRMARE', 'NON_RICHIESTO'] as DocumentSignStatus[]).map((s) => (
+              <label key={s} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="stato_firma"
+                  value={s}
+                  checked={statoFirma === s}
+                  onChange={() => setStatoFirma(s)}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm text-gray-300">
+                  {s === 'DA_FIRMARE' ? 'Sì — richiedi firma' : 'No — solo informativo'}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* File */}
       <div>

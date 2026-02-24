@@ -26,14 +26,16 @@ export default async function DocumentiPage({
 
   const role = profile.role as Role;
   const isAdmin = ['amministrazione', 'super_admin'].includes(role);
+  const canUpload = isAdmin || ['collaboratore', 'responsabile'].includes(role);
 
   const { tab: rawTab } = await searchParams;
   const tab = isAdmin
     ? (rawTab === 'carica' ? 'carica' : rawTab === 'cu-batch' ? 'cu-batch' : 'lista')
+    : canUpload
+    ? (rawTab === 'carica' ? 'carica' : 'lista')
     : 'lista';
 
   // Fetch documents (RLS filters by role automatically)
-  // uscente_con_compenso: exclude documents from future years (new-year docs not yet assigned)
   const currentYear = new Date().getFullYear();
   let docQuery = supabase
     .from('documents')
@@ -67,23 +69,25 @@ export default async function DocumentiPage({
         <p className="text-sm text-gray-500 mt-0.5">
           {isAdmin
             ? 'Gestione documenti collaboratori, upload CU batch e contratti.'
-            : 'I tuoi documenti. Scarica, firma e ricarica i documenti richiesti.'}
+            : 'I tuoi documenti per tipologia. Carica, scarica e firma.'}
         </p>
       </div>
 
-      {isAdmin && (
+      {(isAdmin || canUpload) && (
         <div className="flex gap-2 mb-6 overflow-x-auto">
           <Link href="?tab=lista" className={tabCls('lista')}>Lista documenti</Link>
           <Link href="?tab=carica" className={tabCls('carica')}>Carica documento</Link>
-          <Link href="?tab=cu-batch" className={tabCls('cu-batch')}>Import CU batch</Link>
+          {isAdmin && (
+            <Link href="?tab=cu-batch" className={tabCls('cu-batch')}>Import CU batch</Link>
+          )}
         </div>
       )}
 
       {tab === 'lista' && (
         <DocumentList documents={documents ?? []} isAdmin={isAdmin} />
       )}
-      {isAdmin && tab === 'carica' && (
-        <DocumentUploadForm collaborators={collaborators} />
+      {canUpload && tab === 'carica' && (
+        <DocumentUploadForm collaborators={collaborators} isAdmin={isAdmin} />
       )}
       {isAdmin && tab === 'cu-batch' && (
         <CUBatchUpload />

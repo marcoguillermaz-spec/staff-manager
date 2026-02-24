@@ -77,6 +77,22 @@ export interface ContractTemplate {
   uploaded_at: string;
 }
 
+export type DocumentMacroType = 'CONTRATTO' | 'RICEVUTA_PAGAMENTO' | 'CU';
+
+export const DOCUMENT_MACRO_TYPE: Record<DocumentType, DocumentMacroType> = {
+  CONTRATTO_OCCASIONALE: 'CONTRATTO',
+  CONTRATTO_COCOCO:      'CONTRATTO',
+  CONTRATTO_PIVA:        'CONTRATTO',
+  RICEVUTA_PAGAMENTO:    'RICEVUTA_PAGAMENTO',
+  CU:                    'CU',
+};
+
+export const DOCUMENT_MACRO_TYPE_LABELS: Record<DocumentMacroType, string> = {
+  CONTRATTO:          'Contratto',
+  RICEVUTA_PAGAMENTO: 'Ricevuta di pagamento',
+  CU:                 'Certificazione Unica',
+};
+
 export const DOCUMENT_SIGN_STATUS_LABELS: Record<DocumentSignStatus, string> = {
   DA_FIRMARE:    'Da firmare',
   FIRMATO:       'Firmato',
