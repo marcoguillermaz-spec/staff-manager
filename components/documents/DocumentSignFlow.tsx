@@ -8,9 +8,10 @@ interface Props {
   document: Document;
   originalUrl: string | null;
   firmatoUrl: string | null;
+  canSign?: boolean;
 }
 
-export default function DocumentSignFlow({ document: doc, originalUrl, firmatoUrl }: Props) {
+export default function DocumentSignFlow({ document: doc, originalUrl, firmatoUrl, canSign = true }: Props) {
   const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
@@ -90,8 +91,8 @@ export default function DocumentSignFlow({ document: doc, originalUrl, firmatoUr
         </div>
       )}
 
-      {/* Upload signed — only if DA_FIRMARE */}
-      {doc.stato_firma === 'DA_FIRMARE' && !done && (
+      {/* Upload signed — only if DA_FIRMARE and user can sign */}
+      {doc.stato_firma === 'DA_FIRMARE' && !done && canSign && (
         <div className="space-y-3 border-t border-gray-800 pt-5">
           <p className="text-sm text-gray-300">
             Scarica il documento, firmalo e ricarica il PDF firmato.

@@ -18,7 +18,7 @@ export default async function DocumentDetailPage({
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, is_active')
+    .select('role, is_active, member_status')
     .eq('user_id', user.id)
     .single();
 
@@ -26,6 +26,7 @@ export default async function DocumentDetailPage({
 
   const role = profile.role as Role;
   const isAdmin = ['amministrazione', 'super_admin'].includes(role);
+  const canSign = profile.member_status !== 'uscente_senza_compenso';
   const { id } = await params;
 
   // RLS ensures only authorized users can read this document
@@ -111,6 +112,7 @@ export default async function DocumentDetailPage({
           document={doc as Document}
           originalUrl={originalUrl}
           firmatoUrl={firmatoUrl}
+          canSign={canSign}
         />
       </div>
     </div>

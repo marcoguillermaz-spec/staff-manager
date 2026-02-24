@@ -24,13 +24,14 @@ export default async function ContenutiPage({
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, is_active')
+    .select('role, is_active, member_status')
     .eq('user_id', user.id)
     .single();
 
   if (!profile?.is_active) redirect('/pending');
 
   const role = profile.role as Role;
+  if (role === 'collaboratore' && profile.member_status === 'uscente_senza_compenso') redirect('/documenti');
 
   const { tab } = await searchParams;
   const activeTab: Tab = tab === 'agevolazioni' ? 'agevolazioni'

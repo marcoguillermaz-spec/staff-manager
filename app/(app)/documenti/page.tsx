@@ -33,10 +33,16 @@ export default async function DocumentiPage({
     : 'lista';
 
   // Fetch documents (RLS filters by role automatically)
-  const { data: documents } = await supabase
+  // uscente_con_compenso: exclude documents from future years (new-year docs not yet assigned)
+  const currentYear = new Date().getFullYear();
+  let docQuery = supabase
     .from('documents')
     .select('*, collaborators(nome, cognome)')
     .order('created_at', { ascending: false });
+  if (profile.member_status === 'uscente_con_compenso') {
+    docQuery = docQuery.lte('created_at', `${currentYear}-12-31T23:59:59.999Z`);
+  }
+  const { data: documents } = await docQuery;
 
   // Fetch collaborators list for admin upload form
   const collaborators = isAdmin
