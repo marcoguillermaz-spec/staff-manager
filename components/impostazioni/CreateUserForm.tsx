@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CONTRACT_TEMPLATE_LABELS, type ContractTemplateType } from '@/lib/types';
 
 type Role = 'collaboratore' | 'responsabile' | 'amministrazione' | 'super_admin';
+type Credentials = { email: string; password: string };
 type Community = { id: string; name: string; is_active: boolean };
 type TemplateStatus = { tipo: ContractTemplateType; file_name: string } | null;
 
@@ -60,9 +61,10 @@ export default function CreateUserForm() {
   const [templateStatus, setTemplateStatus]   = useState<TemplateStatus[]>([]);
 
   // UI state
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [successEmail, setSuccessEmail] = useState<string | null>(null);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<Credentials | null>(null);
+  const [copied, setCopied]           = useState<'email' | 'password' | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/communities')
@@ -80,6 +82,12 @@ export default function CreateUserForm() {
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
 
+  const copyToClipboard = async (text: string, field: 'email' | 'password') => {
+    await navigator.clipboard.writeText(text);
+    setCopied(field);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
   const hasTemplate = (tipo: ContractTemplateType) =>
     templateStatus.some((t) => t?.tipo === tipo);
 
@@ -89,7 +97,7 @@ export default function CreateUserForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccessEmail(null);
+    setCredentials(null);
 
     const body: Record<string, unknown> = {
       email,
@@ -123,7 +131,7 @@ export default function CreateUserForm() {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) { setError(data.error ?? 'Errore durante la creazione'); return; }
-    setSuccessEmail(data.email);
+    setCredentials({ email: data.email, password: data.password });
 
     // Reset
     setEmail('');
@@ -135,22 +143,47 @@ export default function CreateUserForm() {
     setTipoContratto('');
   };
 
-  if (successEmail) {
+  if (credentials) {
     return (
       <div className="space-y-4">
-        <div className="rounded-xl bg-green-900/20 border border-green-700/40 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-sm font-medium text-green-400">Invito inviato con successo</span>
-          </div>
-          <p className="text-xs text-gray-400">
-            Un&apos;email con le credenziali di accesso è stata inviata a{' '}
-            <span className="text-gray-200 font-medium">{successEmail}</span>.
+        {/* Invite sent confirmation */}
+        <div className="rounded-xl bg-green-900/20 border border-green-700/40 px-4 py-3 flex items-center gap-2">
+          <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-xs text-gray-300">
+            Invito inviato a <span className="font-medium text-gray-100">{credentials.email}</span>.
           </p>
         </div>
-        <button onClick={() => setSuccessEmail(null)}
+
+        {/* Credentials backup */}
+        <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-4 space-y-3">
+          <p className="text-xs text-gray-500">
+            Credenziali di accesso — da condividere manualmente in caso di mancato recapito dell&apos;email.
+          </p>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Email</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-lg bg-gray-900 px-3 py-2 text-sm text-gray-100 font-mono">{credentials.email}</code>
+              <button onClick={() => copyToClipboard(credentials.email, 'email')}
+                className="rounded-lg bg-gray-700 hover:bg-gray-600 px-3 py-2 text-xs text-gray-300 transition whitespace-nowrap">
+                {copied === 'email' ? 'Copiato!' : 'Copia'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Password temporanea</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-lg bg-gray-900 px-3 py-2 text-sm text-gray-100 font-mono tracking-wider">{credentials.password}</code>
+              <button onClick={() => copyToClipboard(credentials.password, 'password')}
+                className="rounded-lg bg-gray-700 hover:bg-gray-600 px-3 py-2 text-xs text-gray-300 transition whitespace-nowrap">
+                {copied === 'password' ? 'Copiata!' : 'Copia'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => setCredentials(null)}
           className="w-full rounded-lg border border-gray-700 py-2.5 text-sm text-gray-300 hover:bg-gray-800 transition">
           Crea un altro utente
         </button>

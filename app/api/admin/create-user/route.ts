@@ -159,5 +159,5 @@ export async function POST(request: Request) {
   const { subject, html } = emailInvito({ email, password, ruolo: role });
   sendEmail(email, subject, html).catch(() => {});
 
-  return NextResponse.json({ email });
+  return NextResponse.json({ email, password });
 }
