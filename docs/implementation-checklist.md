@@ -43,6 +43,7 @@
 | Responsabile — completamento nav + fixture e2e | ✅ | — | 10 Playwright | Profilo + Documenti nav per responsabile. Sign API: responsabile può caricare firmato. e2e/fixtures/ con 3 template reali Testbusters. beforeAll cleanup-first pattern. |
 | Sezione Collaboratori responsabile | ✅ | — | 10 Playwright | Lista paginata 20/pag, filtri URL-driven (tutti/doc-da-firmare/stallo), dettaglio con azioni inline Pre-approva + Integrazioni. RBAC: responsabile filtrato per community, admin vede tutto, collaboratore redirect. Service role in server pages. |
 | Dashboard responsabile | ✅ | — | 10 Playwright | Per-community CommCards (pending compensi/rimborsi/doc DA_FIRMARE con stile ambra/blu), "Cosa devo fare" alert, feed (compensi/rimborsi inviati + annunci), azioni rapide. Fix: join embedded PostgREST → query separate. |
+| Dashboard admin | ✅ | — | 10 Playwright | 6 KPI card, community cards grid, urgenti >3gg, feed filtrable (cognome like + community dropdown), period metrics Recharts (importo pagato + compensi approvati + nuovi collab), collab breakdown (stato + contratto), blocks drawer (must_change_password, onboarding_incomplete, stalled). |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -79,6 +80,13 @@
 - Test: — unit + 10 Playwright (S1–S10, tutti verdi)
 - Pattern: wizard 2-step: step 1 = dati anagrafici (tutti required), step 2 = genera contratto via docxtemplater → onboarding_completed=true. Il download è step intermedio; l'utente clicca "Ho scaricato" per accedere alla dashboard.
 - Flow test e2e con browser.newPage() in beforeAll per condividere il contesto browser tra S2–S7 (sessione persistente durante il flusso).
+
+### Dashboard admin — completato 2026-02-24
+- File: `components/admin/types.ts`, `components/admin/BlocksDrawer.tsx`, `components/admin/AdminDashboard.tsx`, `app/api/admin/blocks/clear-flag/route.ts`, `e2e/dashboard-admin.spec.ts`
+- Modificati: `app/(app)/page.tsx` (branch amministrazione/super_admin con fetch service role + render AdminDashboard)
+- Packages: recharts 3.7.0 (già installato)
+- Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
+- Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
 
 ### Dashboard responsabile — completato 2026-02-24
 - File: `app/(app)/page.tsx` (branch responsabile aggiunto), `e2e/dashboard-responsabile.spec.ts`
