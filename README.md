@@ -67,7 +67,7 @@ app/
     page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed) + responsabile (CommCard per community, cosa devo fare, feed pending) + admin/super_admin (KPI, community cards, urgenti, feed filtrable, period metrics, blocks drawer)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
     profilo/page.tsx             → Profile editor (avatar, fiscal data, editable IBAN/phone/address/tshirt)
-    impostazioni/page.tsx        → Settings: 4-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload)
+    impostazioni/page.tsx        → Settings: 5-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload), Notifiche (in-app + email toggles per event)
     compensi/page.tsx            → Collaboratore: list own compensations
     compensi/nuova/page.tsx      → Compensation creation wizard (3 steps)
     compensi/[id]/page.tsx       → Compensation detail + timeline + actions
@@ -99,6 +99,7 @@ app/
     admin/members/[id]/data-ingresso/ → PATCH update data_ingresso (admin only)
     admin/contract-templates/    → GET list templates + POST upload/replace .docx per type (OCCASIONALE/COCOCO/PIVA)
     admin/blocks/clear-flag/     → POST clear must_change_password flag for a user (admin/super_admin only)
+    admin/notification-settings/ → GET list all 15 settings + PATCH toggle inapp_enabled/email_enabled (admin only)
     compensations/route.ts       → GET (list, role-filtered) + POST (create)
     compensations/[id]/route.ts  → GET (detail + history + attachments)
     compensations/[id]/transition/route.ts → POST (state machine transition)
@@ -143,6 +144,7 @@ components/
     CommunityManager.tsx          → Community CRUD (create/rename/toggle active) + responsabile→community assignment
     MemberStatusManager.tsx       → Collaborator list with member_status dropdown + data_ingresso inline edit
     ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference (including 13 CoCoCo-specific vars)
+    NotificationSettingsManager.tsx → Admin: toggle grid for in-app + email per event×role (15 rows, optimistic updates)
   Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
   NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read on open)
   ProfileForm.tsx                → Profile edit form (avatar, fiscal data, guide collassabili)
@@ -195,7 +197,10 @@ lib/
   expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (7 actions incl. reject_manager)
   export-utils.ts                → Pure functions: buildCSV, buildXLSXWorkbook, ExportItem type
   documents-storage.ts           → buildStoragePath, getSignedUrl, getDocumentUrls (1h TTL, service role)
-  notification-utils.ts          → buildCompensationNotification, buildExpenseNotification, buildTicketReplyNotification (pure helpers)
+  notification-utils.ts          → Pure notification payload builders (comp/expense/ticket — collaboratore + responsabile side)
+  notification-helpers.ts        → DB helpers: getNotificationSettings (SettingsMap), getCollaboratorInfo, getResponsabiliForCommunity/Collaborator/User
+  email.ts                       → Resend transactional email wrapper (fire-and-forget, from noreply@testbusters.it)
+  email-templates.ts             → 7 branded HTML templates E1–E7 (Testbusters logo + legal footer)
 
 supabase/migrations/
   001_schema.sql                 → Full schema (compensations, expense_reimbursements, communities, documents, etc.)
@@ -209,7 +214,7 @@ supabase/migrations/
   009_contract_templates.sql     → luogo_nascita/comune on collaborators, CONTRATTO_COCOCO/PIVA doc types, contract_templates table, contracts bucket
   010_onboarding.sql             → onboarding_completed on user_profiles, tipo_contratto on collaborators, nome/cognome nullable
   011_contract_fields.sql        → ADD COLUMN provincia_nascita, provincia_residenza, civico_residenza on collaborators
-  012_notification_settings.sql  → notification_settings table (per-event preferences, prepared for future use)
+  012_notification_settings.sql  → notification_settings table + 15 default rows (per-event × recipient_role, inapp + email toggles)
   013_responsabile_publish_permission.sql → ADD COLUMN can_publish_announcements boolean DEFAULT true on user_profiles
 
 __tests__/
@@ -236,6 +241,7 @@ e2e/
   dashboard-responsabile.spec.ts   → Playwright UAT: responsabile dashboard S1–S10 (CommCards, pending counters, alert, feed, RBAC, 10 tests)
   dashboard-admin.spec.ts          → Playwright UAT: admin dashboard S1–S10 (KPI cards, community cards, period charts, feed filter, blocks drawer, 10 tests)
   responsabile-actions.spec.ts     → Playwright UAT: responsabile reject_manager + can_publish_announcements S1–S10 (reject comp/rimborso, publish toggle, RBAC, 10 tests)
+  notification-settings.spec.ts   → Playwright UAT: notification settings UI S1–S10 (tab notifiche, toggle in-app/email, DB verify, 10 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -249,7 +255,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (93 cases) + Playwright e2e (151 tests across 15 spec files)
+npm test           # Run unit tests (93 cases) + Playwright e2e (161 tests across 16 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
@@ -259,6 +265,8 @@ npm run build      # Production build (TypeScript check included)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+RESEND_API_KEY=           # Transactional email (Resend)
+APP_URL=                  # e.g. https://staff-manager.testbusters.it (used in email CTAs)
 ```
 
 ## Storage Setup (Supabase)

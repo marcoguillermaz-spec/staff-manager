@@ -45,6 +45,7 @@
 | Dashboard responsabile | ✅ | — | 10 Playwright | Per-community CommCards (pending compensi/rimborsi/doc DA_FIRMARE con stile ambra/blu), "Cosa devo fare" alert, feed (compensi/rimborsi inviati + annunci), azioni rapide. Fix: join embedded PostgREST → query separate. |
 | Dashboard admin | ✅ | — | 10 Playwright | 6 KPI card, community cards grid, urgenti >3gg, feed filtrable (cognome like + community dropdown), period metrics Recharts (importo pagato + compensi approvati + nuovi collab), collab breakdown (stato + contratto), blocks drawer (must_change_password, onboarding_incomplete, stalled). |
 | Verifica requisiti ruolo collaboratore + responsabile | ✅ | 93 vitest | 10 Playwright | C-01: email self-edit per tutti i ruoli. C-03: member_status enforcement (route guard + year filter docs). R-01: reject_manager per responsabile (INVIATO/INTEGRAZIONI → RIFIUTATO). R-02: can_publish_announcements toggle per responsabile. Migration 013. |
+| Email notifications + Notification Settings | ✅ | 93 vitest | 10 Playwright | 7 template HTML Resend (E1–E7). Migration 012 (notification_settings, 15 righe). Tab Notifiche in Impostazioni. Helpers getNotificationSettings/getCollaboratorInfo/getResponsabili*. Tutti i trigger in-app+email integrati in comp/expense/doc/ticket routes. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -88,6 +89,16 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Email notifications + Notification Settings — completato 2026-02-24
+- File: `lib/email.ts`, `lib/email-templates.ts`, `lib/notification-helpers.ts`, `app/api/admin/notification-settings/route.ts`, `components/impostazioni/NotificationSettingsManager.tsx`, `e2e/notification-settings.spec.ts`
+- Migration: `012_notification_settings.sql` — tabella `notification_settings` + 15 righe default (applicata al DB remoto)
+- Modificati: `lib/notification-utils.ts` (5 nuovi builder), `app/(app)/impostazioni/page.tsx` (tab Notifiche), `app/api/compensations/[id]/transition/route.ts`, `app/api/expenses/[id]/transition/route.ts`, `app/api/expenses/route.ts`, `app/api/documents/route.ts`, `app/api/tickets/route.ts`, `app/api/tickets/[id]/messages/route.ts`, `app/api/tickets/[id]/status/route.ts`
+- Packages: `resend` (già installato)
+- Test: 93 vitest + 10 Playwright (S1–S10, tutti verdi, 35s)
+- Chiave tecnica: `Svc` type in helpers → `SupabaseClient<any, any, any>` (non `ReturnType<typeof createServiceClient>` — incompatibile con client generic params dei route handlers)
+- Pattern Playwright: `page.locator('div').filter({ has: h3 }).first()` cattura il container ESTERNO. Fix: usare `h3.locator('xpath=following-sibling::div[1]')` per selezionare il sibling immediato.
+- Notifiche email fire-and-forget: `sendEmail(...).catch(() => {})` — non blocca la risposta HTTP in caso di errore Resend.
 
 ### Verifica requisiti collaboratore + responsabile — completato 2026-02-24
 - File: `supabase/migrations/013_responsabile_publish_permission.sql`, `app/api/admin/responsabili/[userId]/publish-permission/route.ts`, `e2e/responsabile-actions.spec.ts`
