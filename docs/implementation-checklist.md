@@ -50,6 +50,7 @@
 | Dual-mode invite form (Invito rapido / Invito completo) | ✅ | — | 4 Playwright | Toggle quick/full in CreateUserForm. Quick: email+nome+cognome+tipo. Full: anagrafica completa as-is. CTA "Conferma". Nessuna modifica API. |
 | Notification bell — funzionalità avanzate | ✅ | — | 6 Playwright | §8.2 req. entityHref ticket, mark-read singola, segna-tutte esplicito, dismiss ×, loading/error state, avviso troncata, pagina /notifiche (filtro+paginazione). API: GET paginato + PATCH/DELETE /[id]. |
 | Rimozione ruolo super_admin | ✅ | — | 4 Playwright | Migration 015. CHECK constraint + RLS aggiornati. 40+ file codice aggiornati (mass-replace). superadmin@test.com eliminato. 6 unit test rimossi (super_admin cases da comp/expense-transitions). |
+| Feedback tool + login credentials | ✅ | — | 5 Playwright | Migration 016. Tabella `feedback` + bucket privato. Floating button su tutte le pagine app. POST /api/feedback (FormData + screenshot storage). Pagina /feedback admin-only. Credenziali test autofill sulla login page. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -93,6 +94,14 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Feedback tool + login credentials — completato 2026-02-25
+- File: `supabase/migrations/016_feedback.sql`, `app/api/feedback/route.ts`, `components/FeedbackButton.tsx`, `app/(app)/feedback/page.tsx`, `e2e/feedback.spec.ts`
+- Modificati: `app/(app)/layout.tsx` (FeedbackButton), `lib/nav.ts` (voce Feedback), `app/login/page.tsx` (TEST_USERS array + autofill)
+- Migration: `016_feedback.sql` — tabella feedback + RLS (insert autenticato, select/delete admin) + bucket `feedback` privato (5 MB, immagini)
+- Test: 0 unit + 5 Playwright (S1–S5, tutti verdi, 22.5s)
+- Pattern: `button:has-text("Invia")` fa substring match → cattura "Inviato" chips. Fix: scope a `div.fixed.inset-0.z-50` (modal overlay) per tutte le interazioni form.
+- Pattern: `waitForLoadState('networkidle')` va in timeout su pagine con NotificationBell (polling 30s) → usare `domcontentloaded`.
 
 ### Rimozione ruolo super_admin — completato 2026-02-25
 - File: `supabase/migrations/015_remove_super_admin.sql`, `e2e/remove-super-admin.spec.ts`
