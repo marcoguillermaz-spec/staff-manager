@@ -35,6 +35,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Ticket',       href: '/ticket',        icon: '🎫' },
     { label: 'Contenuti',    href: '/contenuti',     icon: '📋' },
     { label: 'Impostazioni', href: '/impostazioni',  icon: '⚙️' },
+    { label: 'Feedback',     href: '/feedback',      icon: '💬' },
   ],
 
 };

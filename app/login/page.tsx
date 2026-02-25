@@ -1,14 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+
+const TEST_USERS = [
+  { role: 'Collaboratore', email: 'collaboratore_test@test.com' },
+  { role: 'Responsabile',  email: 'responsabile_test@test.com' },
+  { role: 'Admin',         email: 'admin_test@test.com' },
+] as const;
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -68,6 +75,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs text-gray-400 mb-1.5">Password</label>
               <input
+                ref={passwordRef}
                 type="password"
                 placeholder="••••••••"
                 value={password}
@@ -99,6 +107,27 @@ export default function LoginPage() {
         <p className="mt-4 text-center text-xs text-gray-600">
           Per problemi di accesso contatta l&apos;amministrazione.
         </p>
+
+        {/* Test credentials */}
+        <div className="mt-6 space-y-2">
+          <p className="text-center text-xs text-gray-600">Utenze di test</p>
+          <div className="grid grid-cols-3 gap-2">
+            {TEST_USERS.map((u) => (
+              <button
+                key={u.email}
+                type="button"
+                onClick={() => {
+                  setEmail(u.email);
+                  passwordRef.current?.focus();
+                }}
+                className="rounded-lg bg-gray-900 border border-gray-800 px-2 py-2.5 text-left hover:border-gray-700 hover:bg-gray-800/60 transition"
+              >
+                <p className="text-xs font-medium text-gray-400">{u.role}</p>
+                <p className="text-xs text-gray-600 truncate mt-0.5">{u.email}</p>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
