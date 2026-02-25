@@ -36,7 +36,7 @@ export default async function CollaboratoriPage({
 
   if (!profile?.is_active) redirect('/pending');
   const role = profile?.role as Role;
-  if (!['responsabile', 'amministrazione', 'super_admin'].includes(role)) redirect('/');
+  if (!['responsabile', 'amministrazione'].includes(role)) redirect('/');
 
   const { filter: filterParam, page: pageParam } = await searchParams;
   const filter = (['all', 'documenti', 'stallo'].includes(filterParam ?? '') ? filterParam : 'all') as Filter;

@@ -8,7 +8,7 @@ import { emailInvito } from '@/lib/email-templates';
 
 const schema = z.object({
   email: z.string().email(),
-  role: z.enum(['collaboratore', 'responsabile', 'amministrazione', 'super_admin']),
+  role: z.enum(['collaboratore', 'responsabile', 'amministrazione']),
   community_ids: z.array(z.string().uuid()).optional(),
   // Tipo rapporto (obbligatorio per collaboratore e responsabile)
   tipo_contratto: z.enum(['OCCASIONALE', 'COCOCO', 'PIVA']).optional(),
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     .eq('user_id', user.id)
     .single();
 
-  if (!caller?.is_active || !['amministrazione', 'super_admin'].includes(caller.role)) {
+  if (!caller?.is_active || !['amministrazione'].includes(caller.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

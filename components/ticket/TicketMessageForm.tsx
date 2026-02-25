@@ -28,7 +28,7 @@ export default function TicketMessageForm({
   const [error, setError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
 
-  const canChangeStatus = ['amministrazione', 'super_admin', 'responsabile'].includes(currentUserRole);
+  const canChangeStatus = ['amministrazione', 'responsabile'].includes(currentUserRole);
   const nextStati = canChangeStatus ? STATUS_TRANSITIONS[ticketStato] : [];
 
   async function handleSend(e: React.FormEvent) {

@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // For admin/responsabile, enrich with creator name from collaborators
-  const isManager = ['amministrazione', 'super_admin', 'responsabile'].includes(profile.role);
+  const isManager = ['amministrazione', 'responsabile'].includes(profile.role);
   if (isManager && tickets && tickets.length > 0) {
     const creatorIds = [...new Set(tickets.map((t) => t.creator_user_id))];
     const serviceClient = createServiceClient(

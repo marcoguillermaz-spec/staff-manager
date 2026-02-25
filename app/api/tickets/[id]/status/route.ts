@@ -24,7 +24,7 @@ export async function PATCH(
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  if (!['amministrazione', 'super_admin', 'responsabile'].includes(profile.role)) {
+  if (!['amministrazione', 'responsabile'].includes(profile.role)) {
     return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
   }
 

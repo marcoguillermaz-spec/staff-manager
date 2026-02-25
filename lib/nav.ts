@@ -37,14 +37,4 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Impostazioni', href: '/impostazioni',  icon: '⚙️' },
   ],
 
-  super_admin: [
-    { label: 'Dashboard',    href: '/',              icon: '🏠' },
-    { label: 'Coda lavoro',  href: '/coda',         icon: '⚡' },
-    { label: 'Collaboratori',href: '/collaboratori', icon: '👥' },
-    { label: 'Export',       href: '/export',        icon: '📊' },
-    { label: 'Documenti',    href: '/documenti',     icon: '📄' },
-    { label: 'Ticket',       href: '/ticket',        icon: '🎫' },
-    { label: 'Contenuti',    href: '/contenuti',     icon: '📋' },
-    { label: 'Impostazioni', href: '/impostazioni',  icon: '⚙️' },
-  ],
 };

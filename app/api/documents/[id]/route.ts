@@ -56,7 +56,7 @@ export async function DELETE(
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  if (!['amministrazione', 'super_admin'].includes(profile.role)) {
+  if (!['amministrazione'].includes(profile.role)) {
     return NextResponse.json({ error: 'Solo gli amministratori possono eliminare documenti' }, { status: 403 });
   }
 

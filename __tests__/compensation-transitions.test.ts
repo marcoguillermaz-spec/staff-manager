@@ -28,11 +28,6 @@ describe('canTransition', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('super_admin può fare approve_admin da PRE_APPROVATO_RESP', () => {
-    const result = canTransition('super_admin', 'PRE_APPROVATO_RESP', 'approve_admin');
-    expect(result.ok).toBe(true);
-  });
-
   it('transizione da stato non valido → errore', () => {
     const result = canTransition('responsabile', 'BOZZA', 'approve_manager');
     expect(result.ok).toBe(false);
@@ -68,15 +63,6 @@ describe('canTransition', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('super_admin può fare request_integration da INVIATO con nota valida', () => {
-    const result = canTransition(
-      'super_admin',
-      'INVIATO',
-      'request_integration',
-      'Questa è una nota sufficientemente lunga',
-    );
-    expect(result.ok).toBe(true);
-  });
 
   it('responsabile può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
     const result = canTransition(

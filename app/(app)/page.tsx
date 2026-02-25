@@ -435,8 +435,8 @@ export default async function DashboardPage() {
     );
   }
 
-  // ── Admin / super_admin dashboard ──────────────────────────
-  if (role === 'amministrazione' || role === 'super_admin') {
+  // ── Admin dashboard ──────────────────────────
+  if (role === 'amministrazione') {
     const svc = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -500,7 +500,7 @@ export default async function DashboardPage() {
         .eq('stato_firma', 'DA_FIRMARE'),
       // active collabs
       svc.from('user_profiles').select('id', { count: 'exact', head: true })
-        .eq('is_active', true).neq('role', 'amministrazione').neq('role', 'super_admin'),
+        .eq('is_active', true).neq('role', 'amministrazione'),
       // communities
       svc.from('communities').select('id, name').eq('is_active', true).order('name'),
       // collab breakdown by status
@@ -570,8 +570,7 @@ export default async function DashboardPage() {
         .select('user_id, onboarding_completed')
         .eq('onboarding_completed', false)
         .eq('is_active', true)
-        .neq('role', 'amministrazione')
-        .neq('role', 'super_admin'),
+        .neq('role', 'amministrazione'),
     ]);
 
     // Fetch collabs + communities lookup for urgenti/feed enrichment

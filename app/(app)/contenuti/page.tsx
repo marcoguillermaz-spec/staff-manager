@@ -9,8 +9,8 @@ import type { Role, Announcement, Benefit, Resource, ContentEvent, Community } f
 
 type Tab = 'bacheca' | 'agevolazioni' | 'guide' | 'eventi';
 
-const WRITE_ROLES_ANNOUNCEMENTS: Role[] = ['amministrazione', 'super_admin', 'responsabile'];
-const WRITE_ROLES_CONTENT: Role[] = ['amministrazione', 'super_admin'];
+const WRITE_ROLES_ANNOUNCEMENTS: Role[] = ['amministrazione', 'responsabile'];
+const WRITE_ROLES_CONTENT: Role[] = ['amministrazione'];
 
 export default async function ContenutiPage({
   searchParams,

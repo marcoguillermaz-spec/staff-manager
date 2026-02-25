@@ -28,7 +28,7 @@ export default async function CollaboratoreDetailPage({
 
   if (!profile?.is_active) redirect('/pending');
   const role = profile?.role as Role;
-  if (!['responsabile', 'amministrazione', 'super_admin'].includes(role)) redirect('/');
+  if (!['responsabile', 'amministrazione'].includes(role)) redirect('/');
 
   // ── Fetch collaborator ───────────────────────────────────────────────────
   const { data: collab, error: collabErr } = await svc

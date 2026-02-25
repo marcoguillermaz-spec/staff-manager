@@ -23,7 +23,7 @@ export default async function CodaPage({
     .single();
 
   if (!profile?.is_active) redirect('/pending');
-  if (!['amministrazione', 'super_admin'].includes(profile.role)) redirect('/');
+  if (!['amministrazione'].includes(profile.role)) redirect('/');
 
   const { tab } = await searchParams;
   const activeTab = tab === 'rimborsi' ? 'rimborsi' : tab === 'ticket' ? 'ticket' : 'compensi';

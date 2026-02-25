@@ -20,7 +20,7 @@ export default async function ExportPage({
     .single();
 
   if (!profile?.is_active) redirect('/pending');
-  if (!['amministrazione', 'super_admin'].includes(profile.role)) redirect('/');
+  if (!['amministrazione'].includes(profile.role)) redirect('/');
 
   const { tab: rawTab } = await searchParams;
   const tab: ExportTab =

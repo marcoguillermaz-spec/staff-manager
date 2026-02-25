@@ -1,5 +1,5 @@
 // ── Roles ──────────────────────────────────────────────────
-export type Role = 'collaboratore' | 'responsabile' | 'amministrazione' | 'super_admin';
+export type Role = 'collaboratore' | 'responsabile' | 'amministrazione';
 
 export type MemberStatus = 'attivo' | 'uscente_con_compenso' | 'uscente_senza_compenso';
 
@@ -227,7 +227,6 @@ export const ROLE_LABELS: Record<Role, string> = {
   collaboratore:   'Collaboratore',
   responsabile:    'Responsabile',
   amministrazione: 'Amministrazione',
-  super_admin:     'Amministrazione',
 };
 
 // ── Status display labels ────────────────────────────────────

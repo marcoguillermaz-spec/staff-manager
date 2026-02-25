@@ -52,7 +52,7 @@ export async function POST(
   // Explicit access check: only creator or admin/responsabile can reply
   const canAccess =
     ticket.creator_user_id === user.id ||
-    ['amministrazione', 'super_admin', 'responsabile'].includes(profile.role);
+    ['amministrazione', 'responsabile'].includes(profile.role);
 
   if (!canAccess) {
     return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });

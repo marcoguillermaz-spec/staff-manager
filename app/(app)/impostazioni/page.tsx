@@ -27,7 +27,7 @@ export default async function ImpostazioniPage({
     .single();
 
   if (!profile?.is_active) redirect('/pending');
-  if (!['amministrazione', 'super_admin'].includes(profile.role)) redirect('/');
+  if (!['amministrazione'].includes(profile.role)) redirect('/');
 
   const { tab } = await searchParams;
   const activeTab: Tab = tab === 'community' ? 'community'

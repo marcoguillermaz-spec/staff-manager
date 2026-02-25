@@ -25,7 +25,7 @@ export default async function DocumentiPage({
   if (!profile?.is_active) redirect('/pending');
 
   const role = profile.role as Role;
-  const isAdmin = ['amministrazione', 'super_admin'].includes(role);
+  const isAdmin = ['amministrazione'].includes(role);
   const canUpload = isAdmin || ['collaboratore', 'responsabile'].includes(role);
 
   const { tab: rawTab } = await searchParams;

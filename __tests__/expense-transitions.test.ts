@@ -99,16 +99,6 @@ describe('canExpenseTransition', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('super_admin può fare request_integration da INVIATO con nota valida', () => {
-    const result = canExpenseTransition(
-      'super_admin',
-      'INVIATO',
-      'request_integration',
-      'Questa è una nota sufficientemente lunga per passare la validazione',
-    );
-    expect(result.ok).toBe(true);
-  });
-
   it('collaboratore NON può fare request_integration', () => {
     const result = canExpenseTransition('collaboratore', 'INVIATO', 'request_integration');
     expect(result.ok).toBe(false);
@@ -140,22 +130,6 @@ describe('canExpenseTransition', () => {
 
   it('amministrazione può fare mark_paid da APPROVATO_ADMIN', () => {
     const result = canExpenseTransition('amministrazione', 'APPROVATO_ADMIN', 'mark_paid');
-    expect(result.ok).toBe(true);
-  });
-
-  // ── super_admin ────────────────────────────────────────────────
-  it('super_admin può fare approve_admin da PRE_APPROVATO_RESP', () => {
-    const result = canExpenseTransition('super_admin', 'PRE_APPROVATO_RESP', 'approve_admin');
-    expect(result.ok).toBe(true);
-  });
-
-  it('super_admin può fare reject da PRE_APPROVATO_RESP', () => {
-    const result = canExpenseTransition('super_admin', 'PRE_APPROVATO_RESP', 'reject');
-    expect(result.ok).toBe(true);
-  });
-
-  it('super_admin può fare mark_paid da APPROVATO_ADMIN', () => {
-    const result = canExpenseTransition('super_admin', 'APPROVATO_ADMIN', 'mark_paid');
     expect(result.ok).toBe(true);
   });
 
@@ -239,9 +213,8 @@ describe('ALLOWED_EXPENSE_TRANSITIONS map', () => {
     expect(ALLOWED_EXPENSE_TRANSITIONS.resubmit.requiresNote).toBe(false);
   });
 
-  it('mark_paid è consentito solo ad amministrazione e super_admin', () => {
+  it('mark_paid è consentito solo ad amministrazione', () => {
     expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).toContain('amministrazione');
-    expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).toContain('super_admin');
     expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).not.toContain('responsabile');
     expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).not.toContain('collaboratore');
   });

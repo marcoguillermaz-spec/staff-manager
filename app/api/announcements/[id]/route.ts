@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
-const WRITE_ROLES = ['amministrazione', 'super_admin', 'responsabile'];
+const WRITE_ROLES = ['amministrazione', 'responsabile'];
 
 async function authorizeWriter(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();

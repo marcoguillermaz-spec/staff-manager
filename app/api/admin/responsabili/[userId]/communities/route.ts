@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
-const ADMIN_ROLES = ['amministrazione', 'super_admin'];
+const ADMIN_ROLES = ['amministrazione'];
 
 // PUT — replace all community assignments for a responsabile
 export async function PUT(

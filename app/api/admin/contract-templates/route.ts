@@ -23,7 +23,7 @@ async function getCallerRole(cookieStore: Awaited<ReturnType<typeof cookies>>) {
 export async function GET() {
   const cookieStore = await cookies();
   const { role } = await getCallerRole(cookieStore);
-  if (!role || !['amministrazione', 'super_admin'].includes(role)) {
+  if (!role || !['amministrazione'].includes(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -45,7 +45,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const { user, role } = await getCallerRole(cookieStore);
-  if (!user || !role || !['amministrazione', 'super_admin'].includes(role)) {
+  if (!user || !role || !['amministrazione'].includes(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

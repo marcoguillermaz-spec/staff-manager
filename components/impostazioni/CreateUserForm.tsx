@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CONTRACT_TEMPLATE_LABELS, type ContractTemplateType } from '@/lib/types';
 
-type Role = 'collaboratore' | 'responsabile' | 'amministrazione' | 'super_admin';
+type Role = 'collaboratore' | 'responsabile' | 'amministrazione';
 type Credentials = { email: string; password: string };
 type Community = { id: string; name: string; is_active: boolean };
 type TemplateStatus = { tipo: ContractTemplateType; file_name: string } | null;
@@ -12,7 +12,6 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'collaboratore',   label: 'Collaboratore' },
   { value: 'responsabile',    label: 'Responsabile' },
   { value: 'amministrazione', label: 'Amministrazione' },
-  { value: 'super_admin',     label: 'Super Admin' },
 ];
 
 const CONTRACT_TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];

@@ -81,7 +81,7 @@ export async function POST(
   const { data: admins } = await serviceClient
     .from('user_profiles')
     .select('user_id')
-    .in('role', ['amministrazione', 'super_admin'])
+    .in('role', ['amministrazione'])
     .eq('is_active', true);
 
   if (admins && admins.length > 0) {

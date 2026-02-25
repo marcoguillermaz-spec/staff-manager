@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
   if (tipoFilter) query = query.eq('tipo', tipoFilter);
   if (statoFilter) query = query.eq('stato_firma', statoFilter);
-  if (collaboratorFilter && ['amministrazione', 'super_admin'].includes(profile.role)) {
+  if (collaboratorFilter && ['amministrazione'].includes(profile.role)) {
     query = query.eq('collaborator_id', collaboratorFilter);
   }
 
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  const isAdmin = ['amministrazione', 'super_admin'].includes(profile.role);
+  const isAdmin = ['amministrazione'].includes(profile.role);
   const canUpload = isAdmin || ['collaboratore', 'responsabile'].includes(profile.role);
   if (!canUpload) return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
 

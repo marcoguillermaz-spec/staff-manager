@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  if (!['amministrazione', 'super_admin'].includes(profile.role)) {
+  if (!['amministrazione'].includes(profile.role)) {
     return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
   }
 

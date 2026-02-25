@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     .eq('user_id', user.id)
     .single();
 
-  if (!profile?.is_active || !['amministrazione', 'super_admin'].includes(profile.role)) {
+  if (!profile?.is_active || !['amministrazione'].includes(profile.role)) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 });
   }
 

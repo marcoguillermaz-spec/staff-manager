@@ -22,11 +22,11 @@ export const ALLOWED_TRANSITIONS: Record<CompensationAction, TransitionDef> = {
   withdraw:            { fromStates: ['INVIATO'],                          allowedRoles: ['collaboratore'],                  requiresNote: false },
   resubmit:            { fromStates: ['INTEGRAZIONI_RICHIESTE'],           allowedRoles: ['collaboratore'],                  requiresNote: false },
   approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'],allowedRoles: ['responsabile'],                   requiresNote: false },
-  request_integration: { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile', 'amministrazione', 'super_admin'], requiresNote: true  },
-  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                   requiresNote: false },
-  approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
-  reject:              { fromStates: ['PRE_APPROVATO_RESP'],               allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
-  mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                  allowedRoles: ['amministrazione', 'super_admin'], requiresNote: false },
+  request_integration: { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile', 'amministrazione'], requiresNote: true  },
+  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                  requiresNote: false },
+  approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
+  reject:              { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
+  mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                   allowedRoles: ['amministrazione'],               requiresNote: false },
 };
 
 export const ACTION_TO_STATE: Record<CompensationAction, CompensationStatus> = {
