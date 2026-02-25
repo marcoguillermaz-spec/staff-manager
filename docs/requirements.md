@@ -200,11 +200,25 @@ Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collabor
 
 ## 8. Notifiche (in-app, minimo)
 
+### 8.1 Trigger eventi
 - Integrazioni richieste (cambio stato)
 - Documento da firmare assegnato
 - Documento firmato ricevuto (notifica ad admin)
 - Risposta ticket
 - Cambio stato generico richiesta
+
+### 8.2 Comportamento UI campanello
+- **Link entità**: tutte le notifiche con `entity_type` valorizzato sono cliccabili:
+  `compensation → /compensi/:id`, `reimbursement → /rimborsi/:id`, `document → /documenti/:id`, `ticket → /ticket/:id`
+- **Mark-read singola**: cliccare una notifica la marca come letta; nessun auto-mark-all-read all'apertura del dropdown
+- **"Segna tutte come lette"**: pulsante esplicito nell'header del dropdown, visibile solo se `unread > 0`
+- **Stato loading/errore**: indicatore visivo durante il primo fetch; messaggio se la fetch fallisce
+- **Dismiss singola**: pulsante × (visibile on hover) per rimuovere definitivamente una notifica
+- **Avviso lista troncata**: se il dropdown raggiunge il limite (50 notifiche), mostrare banner + link "Vedi tutte"
+- **Pagina completa**: link "Vedi tutte →" in fondo al dropdown → `/notifiche` con:
+  - Paginazione (20 per pagina)
+  - Toggle "Solo non lette"
+  - Mark-read singola e dismiss per ogni voce
 
 ---
 
