@@ -34,8 +34,6 @@ yarn-error.log*
 .env*
 !.env.local.example
 
-# Claude
-CLAUDE.md
 
 # vercel
 .vercel
