@@ -51,6 +51,7 @@
 | Notification bell — funzionalità avanzate | ✅ | — | 6 Playwright | §8.2 req. entityHref ticket, mark-read singola, segna-tutte esplicito, dismiss ×, loading/error state, avviso troncata, pagina /notifiche (filtro+paginazione). API: GET paginato + PATCH/DELETE /[id]. |
 | Rimozione ruolo super_admin | ✅ | — | 4 Playwright | Migration 015. CHECK constraint + RLS aggiornati. 40+ file codice aggiornati (mass-replace). superadmin@test.com eliminato. 6 unit test rimossi (super_admin cases da comp/expense-transitions). |
 | Feedback tool + login credentials | ✅ | — | 5 Playwright | Migration 016. Tabella `feedback` + bucket privato. Floating button su tutte le pagine app. POST /api/feedback (FormData + screenshot storage). Pagina /feedback admin-only. Credenziali test autofill sulla login page. |
+| Replit Autoscale deployment | ✅ | — | — | .replit config, build + run commands, env vars. App live su https://staff-manager-tb.replit.app |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -94,6 +95,12 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Replit Autoscale deployment — completato 2026-02-25
+- File: `.replit` (modules, run, ports, deployment build/run), `replit.nix`
+- Repo GitHub reso pubblico per import Replit. Build: `npm install && npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public`. Run: `HOSTNAME=0.0.0.0 node .next/standalone/server.js`. localPort=80. Env vars configurate nei Secrets Replit.
+- App live: https://staff-manager-tb.replit.app
+- `APP_URL` in `.env.local` aggiornato a `https://staff-manager-tb.replit.app`
 
 ### Feedback tool + login credentials — completato 2026-02-25
 - File: `supabase/migrations/016_feedback.sql`, `app/api/feedback/route.ts`, `components/FeedbackButton.tsx`, `app/(app)/feedback/page.tsx`, `e2e/feedback.spec.ts`
