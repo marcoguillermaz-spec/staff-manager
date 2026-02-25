@@ -49,6 +49,7 @@
 | Document features — type badges, collab upload, C7 | ✅ | — | 7 Playwright | Migration 014. macro_type generated column + unique index (1 CONTRATTO per collaboratore). Bifurcated upload form (admin vs collab/resp). TypeBadge violet/teal/blue. Checkbox conferma prima di firma. Admin CONTRATTO delete. |
 | Dual-mode invite form (Invito rapido / Invito completo) | ✅ | — | 4 Playwright | Toggle quick/full in CreateUserForm. Quick: email+nome+cognome+tipo. Full: anagrafica completa as-is. CTA "Conferma". Nessuna modifica API. |
 | Notification bell — funzionalità avanzate | ✅ | — | 6 Playwright | §8.2 req. entityHref ticket, mark-read singola, segna-tutte esplicito, dismiss ×, loading/error state, avviso troncata, pagina /notifiche (filtro+paginazione). API: GET paginato + PATCH/DELETE /[id]. |
+| Rimozione ruolo super_admin | ✅ | — | 4 Playwright | Migration 015. CHECK constraint + RLS aggiornati. 40+ file codice aggiornati (mass-replace). superadmin@test.com eliminato. 6 unit test rimossi (super_admin cases da comp/expense-transitions). |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -92,6 +93,14 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Rimozione ruolo super_admin — completato 2026-02-25
+- File: `supabase/migrations/015_remove_super_admin.sql`, `e2e/remove-super-admin.spec.ts`
+- Modificati: `lib/types.ts` (Role type, ROLE_LABELS), `lib/nav.ts` (rimosso blocco super_admin), `lib/compensation-transitions.ts` (allowedRoles), `lib/expense-transitions.ts` (allowedRoles), 40 file app/components/__tests__ via mass-replace Node.js script (ADMIN_ROLES, WRITE_ROLES, z.enum, role checks), `app/(app)/page.tsx`, `components/responsabile/CollaboratoreDetail.tsx`, `components/impostazioni/CreateUserForm.tsx`, `__tests__/compensation-transitions.test.ts` (2 test rimossi), `__tests__/expense-transitions.test.ts` (4 test rimossi)
+- Migration: `015_remove_super_admin.sql` — UPDATE utenti esistenti → amministrazione, DROP/ADD CHECK constraint, DROP/CREATE tutte le RLS policy impattate
+- Test: 97 vitest (-6 super_admin cases rimossi) + 4 Playwright (S1–S4, tutti verdi)
+- Utenza: `superadmin@test.com` eliminata (DELETE /auth/v1/admin/users)
+- Pattern: mass-replace con Node.js one-shot script per aggiornamenti uniformi su 40+ file; targeted Edit per lib/ e file con logica specifica
 
 ### Notification bell — funzionalità avanzate — completato 2026-02-25
 - File: `app/api/notifications/[id]/route.ts` (nuovo), `components/notifications/NotificationPageClient.tsx` (nuovo), `app/(app)/notifiche/page.tsx` (nuovo), `e2e/notifications-enhanced.spec.ts` (nuovo)

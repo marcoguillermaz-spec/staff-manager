@@ -17,8 +17,7 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 |------|--------|
 | `collaboratore` | Own profile, compensation requests, reimbursements, documents, support tickets |
 | `responsabile` | Approve compensations/reimbursements for assigned communities; own profile, documents, and support tickets |
-| `amministrazione` | Full approval queue, payments, user management, exports |
-| `super_admin` | Same as amministrazione + settings |
+| `amministrazione` | Full approval queue, payments, user management, exports, settings |
 
 ## Compensation Flow (State Machine)
 
@@ -36,9 +35,9 @@ BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
 | request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
 | reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile |
-| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
-| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
-| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
+| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
+| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
+| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
 
 ## Reimbursement Flow (State Machine)
 
@@ -56,16 +55,16 @@ INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
 | request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
 | reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile |
-| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
-| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
-| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
+| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
+| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
+| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
 
 ## Project Structure
 
 ```
 app/
   (app)/
-    page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed) + responsabile (CommCard per community, cosa devo fare, feed pending) + admin/super_admin (KPI, community cards, urgenti, feed filtrable, period metrics, blocks drawer)
+    page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed) + responsabile (CommCard per community, cosa devo fare, feed pending) + amministrazione (KPI, community cards, urgenti, feed filtrable, period metrics, blocks drawer)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
     profilo/page.tsx             → Profile editor (avatar, fiscal data, editable IBAN/phone/address/tshirt)
     impostazioni/page.tsx        → Settings: 5-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload), Notifiche (in-app + email toggles per event)
@@ -100,7 +99,7 @@ app/
     admin/members/[id]/status/   → PATCH update member_status for a collaboratore
     admin/members/[id]/data-ingresso/ → PATCH update data_ingresso (admin only)
     admin/contract-templates/    → GET list templates + POST upload/replace .docx per type (OCCASIONALE/COCOCO/PIVA)
-    admin/blocks/clear-flag/     → POST clear must_change_password flag for a user (admin/super_admin only)
+    admin/blocks/clear-flag/     → POST clear must_change_password flag for a user (admin only)
     admin/notification-settings/ → GET list all 15 settings + PATCH toggle inapp_enabled/email_enabled (admin only)
     compensations/route.ts       → GET (list, role-filtered) + POST (create)
     compensations/[id]/route.ts  → GET (detail + history + attachments)
@@ -122,13 +121,13 @@ app/
     tickets/[id]/route.ts        → GET (detail + messages + signed attachment URLs + author role labels)
     tickets/[id]/messages/route.ts → POST (reply FormData + optional file, service role, notification on reply)
     tickets/[id]/status/route.ts → PATCH (change status APERTO/IN_LAVORAZIONE/CHIUSO, admin/responsabile)
-    announcements/route.ts       → GET (pinned first) + POST (admin/super_admin/responsabile)
+    announcements/route.ts       → GET (pinned first) + POST (admin/responsabile)
     announcements/[id]/route.ts  → PATCH + DELETE
-    benefits/route.ts            → GET + POST (admin/super_admin)
+    benefits/route.ts            → GET + POST (admin)
     benefits/[id]/route.ts       → PATCH + DELETE
-    resources/route.ts           → GET + POST with tag[] (admin/super_admin)
+    resources/route.ts           → GET + POST with tag[] (admin)
     resources/[id]/route.ts      → PATCH + DELETE
-    events/route.ts              → GET (ordered by start_datetime asc) + POST (admin/super_admin)
+    events/route.ts              → GET (ordered by start_datetime asc) + POST (admin)
     events/[id]/route.ts         → PATCH + DELETE
     onboarding/complete/route.ts → POST save anagrafica + generate contract (docxtemplater) + onboarding_completed=true
   auth/callback/route.ts
@@ -222,7 +221,8 @@ supabase/migrations/
   011_contract_fields.sql        → ADD COLUMN provincia_nascita, provincia_residenza, civico_residenza on collaborators
   012_notification_settings.sql  → notification_settings table + 15 default rows (per-event × recipient_role, inapp + email toggles)
   013_responsabile_publish_permission.sql → ADD COLUMN can_publish_announcements boolean DEFAULT true on user_profiles
-- `014_document_macro_type.sql` → macro_type stored generated column + unique partial index (one CONTRATTO per collaborator)
+  014_document_macro_type.sql    → macro_type stored generated column + unique partial index (one CONTRATTO per collaborator)
+  015_remove_super_admin.sql     → Remove super_admin role: update CHECK constraint, migrate existing users to amministrazione, recreate all RLS policies
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (20 cases)
@@ -252,6 +252,7 @@ e2e/
   documents-features.spec.ts      → Playwright UAT: document features S1/S7/S8/S10/S12/S13/S14 (type badges, collab upload, CONTRATTO uniqueness, DA_FIRMARE, checkbox sign gate, admin delete, 7 tests)
   invite-form.spec.ts              → Playwright UAT: dual-mode invite form S1/S4/S6/S7 (toggle default, disabled gate, quick invite DB verify, full invite CF+community, 4 tests)
   notifications-enhanced.spec.ts  → Playwright UAT: notification bell advanced features S1–S6 (badge persistence, mark-read single, mark-all, dismiss, ticket link, /notifiche filter, 6 tests)
+  remove-super-admin.spec.ts       → Playwright UAT: super_admin role removal S1–S4 (admin access, form options, login blocked, DB constraint, 4 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -265,7 +266,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (103 cases) + Playwright e2e (178 tests across 19 spec files)
+npm test           # Run unit tests (97 cases) + Playwright e2e (182 tests across 20 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
