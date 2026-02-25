@@ -60,6 +60,9 @@ export default function CreateUserForm() {
   // Template status (which tipos have templates uploaded)
   const [templateStatus, setTemplateStatus]   = useState<TemplateStatus[]>([]);
 
+  // Invite mode
+  const [mode, setMode] = useState<'quick' | 'full'>('quick');
+
   // UI state
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState<string | null>(null);
@@ -193,6 +196,29 @@ export default function CreateUserForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* Mode toggle */}
+      <div className="flex gap-2">
+        <button type="button"
+          onClick={() => setMode('quick')}
+          className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+            mode === 'quick'
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+          }`}>
+          Invito rapido
+        </button>
+        <button type="button"
+          onClick={() => setMode('full')}
+          className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+            mode === 'full'
+              ? 'bg-blue-600 border-blue-600 text-white'
+              : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+          }`}>
+          Invito completo
+        </button>
+      </div>
+
       {/* Auth */}
       <div>
         <p className={sectionTitle}>Accesso</p>
@@ -257,8 +283,29 @@ export default function CreateUserForm() {
         </div>
       )}
 
-      {/* Anagrafica opzionale (pre-fill per l'onboarding) */}
-      {needsContract && (
+      {/* Invito rapido: nome + cognome required */}
+      {needsContract && mode === 'quick' && (
+        <div>
+          <p className={sectionTitle}>Dati personali</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Nome <span className="text-red-500">*</span></label>
+              <input type="text" placeholder="Mario" value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required disabled={loading} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Cognome <span className="text-red-500">*</span></label>
+              <input type="text" placeholder="Rossi" value={cognome}
+                onChange={(e) => setCognome(e.target.value)}
+                required disabled={loading} className={inputCls} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invito completo: anagrafica opzionale (pre-fill per l'onboarding) */}
+      {needsContract && mode === 'full' && (
         <div>
           <p className={sectionTitle}>Dati personali <span className="font-normal text-gray-600 normal-case">(opzionale — pre-compilazione onboarding)</span></p>
           <div className="space-y-3">
@@ -345,7 +392,7 @@ export default function CreateUserForm() {
       )}
 
       <button type="submit"
-        disabled={loading || !email || (needsContract && !tipoContratto)}
+        disabled={loading || !email || (needsContract && (!tipoContratto || (mode === 'quick' && (!nome.trim() || !cognome.trim()))))}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-medium text-white transition disabled:opacity-50 flex items-center justify-center gap-2">
         {loading ? (
           <>
@@ -355,7 +402,7 @@ export default function CreateUserForm() {
             </svg>
             Creazione in corso…
           </>
-        ) : 'Crea utente'}
+        ) : 'Conferma'}
       </button>
     </form>
   );
