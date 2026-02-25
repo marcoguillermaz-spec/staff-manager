@@ -141,7 +141,7 @@ components/
   onboarding/
     OnboardingWizard.tsx         → 2-step client wizard: anagrafica (all fields required) + contract generation + download
   impostazioni/
-    CreateUserForm.tsx            → Create user form (email + role + tipo_contratto required; anagrafica optional pre-fill)
+    CreateUserForm.tsx            → Create user form with dual-mode toggle: "Invito rapido" (email + nome + cognome + tipo_contratto required) and "Invito completo" (full optional anagrafica pre-fill)
     CommunityManager.tsx          → Community CRUD (create/rename/toggle active) + responsabile→community assignment
     MemberStatusManager.tsx       → Collaborator list with member_status dropdown + data_ingresso inline edit
     ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference (including 13 CoCoCo-specific vars)
@@ -246,6 +246,7 @@ e2e/
   responsabile-actions.spec.ts     → Playwright UAT: responsabile reject_manager + can_publish_announcements S1–S10 (reject comp/rimborso, publish toggle, RBAC, 10 tests)
   notification-settings.spec.ts   → Playwright UAT: notification settings UI S1–S10 (tab notifiche, toggle in-app/email, DB verify, 10 tests)
   documents-features.spec.ts      → Playwright UAT: document features S1/S7/S8/S10/S12/S13/S14 (type badges, collab upload, CONTRATTO uniqueness, DA_FIRMARE, checkbox sign gate, admin delete, 7 tests)
+  invite-form.spec.ts              → Playwright UAT: dual-mode invite form S1/S4/S6/S7 (toggle default, disabled gate, quick invite DB verify, full invite CF+community, 4 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -259,7 +260,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (93 cases) + Playwright e2e (168 tests across 17 spec files)
+npm test           # Run unit tests (93 cases) + Playwright e2e (172 tests across 18 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 

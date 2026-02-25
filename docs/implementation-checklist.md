@@ -47,6 +47,7 @@
 | Verifica requisiti ruolo collaboratore + responsabile | ✅ | 93 vitest | 10 Playwright | C-01: email self-edit per tutti i ruoli. C-03: member_status enforcement (route guard + year filter docs). R-01: reject_manager per responsabile (INVIATO/INTEGRAZIONI → RIFIUTATO). R-02: can_publish_announcements toggle per responsabile. Migration 013. |
 | Email notifications + Notification Settings | ✅ | 93 vitest | 10 Playwright | 7 template HTML Resend (E1–E7). Migration 012 (notification_settings, 15 righe). Tab Notifiche in Impostazioni. Helpers getNotificationSettings/getCollaboratorInfo/getResponsabili*. Tutti i trigger in-app+email integrati in comp/expense/doc/ticket routes. |
 | Document features — type badges, collab upload, C7 | ✅ | — | 7 Playwright | Migration 014. macro_type generated column + unique index (1 CONTRATTO per collaboratore). Bifurcated upload form (admin vs collab/resp). TypeBadge violet/teal/blue. Checkbox conferma prima di firma. Admin CONTRATTO delete. |
+| Dual-mode invite form (Invito rapido / Invito completo) | ✅ | — | 4 Playwright | Toggle quick/full in CreateUserForm. Quick: email+nome+cognome+tipo. Full: anagrafica completa as-is. CTA "Conferma". Nessuna modifica API. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -90,6 +91,12 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Dual-mode invite form — completato 2026-02-25
+- File: `e2e/invite-form.spec.ts`
+- Modificati: `components/impostazioni/CreateUserForm.tsx` — state `mode: 'quick' | 'full'`, toggle UI, sezione quick (nome/cognome required), sezione full (anagrafica as-is), disabled gate aggiornato, CTA "Conferma"
+- Test: 0 unit + 4 Playwright (S1, S4, S6, S7 — tutti verdi, 19.2s)
+- Nessuna modifica API: Zod schema già accettava i campi come optional. Dual-mode gestito puramente client-side.
 
 ### Document features — type badges, collab upload, C7 — completato 2026-02-24
 - File: `supabase/migrations/014_document_macro_type.sql`, `e2e/documents-features.spec.ts`
