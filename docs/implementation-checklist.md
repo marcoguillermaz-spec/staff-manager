@@ -48,6 +48,7 @@
 | Email notifications + Notification Settings | ✅ | 93 vitest | 10 Playwright | 7 template HTML Resend (E1–E7). Migration 012 (notification_settings, 15 righe). Tab Notifiche in Impostazioni. Helpers getNotificationSettings/getCollaboratorInfo/getResponsabili*. Tutti i trigger in-app+email integrati in comp/expense/doc/ticket routes. |
 | Document features — type badges, collab upload, C7 | ✅ | — | 7 Playwright | Migration 014. macro_type generated column + unique index (1 CONTRATTO per collaboratore). Bifurcated upload form (admin vs collab/resp). TypeBadge violet/teal/blue. Checkbox conferma prima di firma. Admin CONTRATTO delete. |
 | Dual-mode invite form (Invito rapido / Invito completo) | ✅ | — | 4 Playwright | Toggle quick/full in CreateUserForm. Quick: email+nome+cognome+tipo. Full: anagrafica completa as-is. CTA "Conferma". Nessuna modifica API. |
+| Notification bell — funzionalità avanzate | ✅ | — | 6 Playwright | §8.2 req. entityHref ticket, mark-read singola, segna-tutte esplicito, dismiss ×, loading/error state, avviso troncata, pagina /notifiche (filtro+paginazione). API: GET paginato + PATCH/DELETE /[id]. |
 | Definizione corso unificata (Staff + Simu) | 🔲 fuori scope | | | Vedere §9 requirements.md — valutare in futuro |
 
 ---
@@ -91,6 +92,13 @@
 - Packages: recharts 3.7.0 (già installato)
 - Test: 0 unit + 10 Playwright (S1–S10, tutti verdi, 47s)
 - Pattern: server page fetches tutto con service role (parallel Promise.all); AdminDashboard è un client component che riceve i dati serializzati come prop. Feed filtrato client-side su ~50 item pre-fetchati. Collab breakdown: query su collaborators → map aggregation in-memory. Urgenti = items in stato actionable con created_at < now-3gg. Block items aggregati da 4 sorgenti (pwd, onboarding, stalled comps, stalled exps).
+
+### Notification bell — funzionalità avanzate — completato 2026-02-25
+- File: `app/api/notifications/[id]/route.ts` (nuovo), `components/notifications/NotificationPageClient.tsx` (nuovo), `app/(app)/notifiche/page.tsx` (nuovo), `e2e/notifications-enhanced.spec.ts` (nuovo)
+- Modificati: `app/api/notifications/route.ts` (GET con page/limit/unread_only + real unread count), `components/NotificationBell.tsx` (rewrite: entityHref ticket, mark-read singola, segna-tutte, dismiss ×, loading/error state, avviso troncata, footer Vedi tutte), `docs/requirements.md` (§8.2 aggiunta)
+- Test: 0 unit + 6 Playwright (S1–S6, tutti verdi, 27s)
+- Pattern: `button[aria-label="Rimuovi notifica"]` con `opacity-0` → usare `click({ force: true })` in e2e. Targeting preciso con `div.group` + `.filter({ hasText })` per dismiss su notifica specifica (evita ambiguità sull'ordinamento DOM).
+- Nessuna migration necessaria.
 
 ### Dual-mode invite form — completato 2026-02-25
 - File: `e2e/invite-form.spec.ts`

@@ -86,6 +86,7 @@ app/
     ticket/nuova/page.tsx        → Create new ticket form
     ticket/[id]/page.tsx         → Ticket detail: message thread + reply form + status change buttons
     contenuti/page.tsx           → Content hub: 4 URL-based tabs (bacheca/agevolazioni/guide/eventi), per-tab fetch
+    notifiche/page.tsx           → Full notifications page (Suspense wrapper → NotificationPageClient)
   api/
     profile/route.ts             → PATCH own profile fields (nome, cognome, codice_fiscale, data_nascita, luogo_nascita, provincia_nascita, comune, provincia_residenza, telefono, indirizzo, civico_residenza, IBAN, tshirt, partita_iva, ha_figli_a_carico)
     profile/avatar/route.ts      → POST upload profile photo → avatars bucket
@@ -115,7 +116,8 @@ app/
     documents/[id]/route.ts      → GET (detail + signed URL) + DELETE (admin only, CONTRATTO only, hard-deletes storage + DB)
     documents/[id]/sign/route.ts → POST (collab/resp uploads signed PDF; requires confirmed=true in FormData)
     documents/cu-batch/route.ts  → POST (ZIP+CSV batch import, dedup by collaborator+anno, notifications)
-    notifications/route.ts       → GET (list + unread count) + PATCH (mark all read)
+    notifications/route.ts       → GET (paginated list + real unread count; ?page/limit/unread_only) + PATCH (mark all read)
+    notifications/[id]/route.ts  → PATCH (mark single read) + DELETE (dismiss)
     tickets/route.ts             → GET (list, role-filtered + enriched with creator name) + POST (create)
     tickets/[id]/route.ts        → GET (detail + messages + signed attachment URLs + author role labels)
     tickets/[id]/messages/route.ts → POST (reply FormData + optional file, service role, notification on reply)
@@ -147,7 +149,9 @@ components/
     ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference (including 13 CoCoCo-specific vars)
     NotificationSettingsManager.tsx → Admin: toggle grid for in-app + email per event×role (15 rows, optimistic updates)
   Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
-  NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read on open)
+  NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read single on click, mark-all button, dismiss ×, loading/error states, truncation warning, link to /notifiche)
+  notifications/
+    NotificationPageClient.tsx   → Full notifications page: "solo non lette" filter toggle, pagination (20/page), mark-read + dismiss per row
   ProfileForm.tsx                → Profile edit form (avatar, fiscal data, guide collassabili)
   compensation/
     PaymentOverview.tsx          → Server component: payments by year (PAGATO) + pending balance
@@ -247,6 +251,7 @@ e2e/
   notification-settings.spec.ts   → Playwright UAT: notification settings UI S1–S10 (tab notifiche, toggle in-app/email, DB verify, 10 tests)
   documents-features.spec.ts      → Playwright UAT: document features S1/S7/S8/S10/S12/S13/S14 (type badges, collab upload, CONTRATTO uniqueness, DA_FIRMARE, checkbox sign gate, admin delete, 7 tests)
   invite-form.spec.ts              → Playwright UAT: dual-mode invite form S1/S4/S6/S7 (toggle default, disabled gate, quick invite DB verify, full invite CF+community, 4 tests)
+  notifications-enhanced.spec.ts  → Playwright UAT: notification bell advanced features S1–S6 (badge persistence, mark-read single, mark-all, dismiss, ticket link, /notifiche filter, 6 tests)
   fixtures/                        → Real Testbusters .docx templates (COCOCO/OCCASIONALE/PIVA) used as stable e2e fixtures
 
 proxy.ts                         → Auth middleware (active check + password change redirect)
@@ -260,7 +265,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (93 cases) + Playwright e2e (172 tests across 18 spec files)
+npm test           # Run unit tests (103 cases) + Playwright e2e (178 tests across 19 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 
