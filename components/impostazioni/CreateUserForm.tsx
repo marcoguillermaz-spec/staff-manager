@@ -41,18 +41,9 @@ export default function CreateUserForm() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
 
-  // Anagrafica (optional pre-fill for collaboratore and responsabile)
-  const [nome, setNome]               = useState('');
-  const [cognome, setCognome]         = useState('');
-  const [codiceFiscale, setCodiceFiscale] = useState('');
-  const [dataNascita, setDataNascita] = useState('');
-  const [luogoNascita, setLuogoNascita] = useState('');
-  const [provinciaNascita, setProvinciaNascita] = useState('');
-  const [comuneRes, setComuneRes]     = useState('');
-  const [provinciaRes, setPrvinciaRes] = useState('');
-  const [indirizzo, setIndirizzo]     = useState('');
-  const [civico, setCivico]           = useState('');
-  const [telefono, setTelefono]       = useState('');
+  // Nome e cognome (required for collaboratore and responsabile)
+  const [nome, setNome]       = useState('');
+  const [cognome, setCognome] = useState('');
 
   // Tipo rapporto (required for collaboratore and responsabile)
   const [tipoContratto, setTipoContratto] = useState<ContractTemplateType | ''>('');
@@ -107,18 +98,9 @@ export default function CreateUserForm() {
 
     if (needsContract) {
       Object.assign(body, {
-        tipo_contratto:      tipoContratto || undefined,
-        nome:                nome.trim() || undefined,
-        cognome:             cognome.trim() || undefined,
-        codice_fiscale:      codiceFiscale.trim().toUpperCase() || null,
-        data_nascita:        dataNascita || null,
-        luogo_nascita:       luogoNascita.trim() || null,
-        provincia_nascita:   provinciaNascita.trim().toUpperCase() || null,
-        comune:              comuneRes.trim() || null,
-        provincia_residenza: provinciaRes.trim().toUpperCase() || null,
-        indirizzo:           indirizzo.trim() || null,
-        civico_residenza:    civico.trim() || null,
-        telefono:            telefono.trim() || null,
+        tipo_contratto: tipoContratto || undefined,
+        nome:           nome.trim() || undefined,
+        cognome:        cognome.trim() || undefined,
       });
     }
 
@@ -137,9 +119,8 @@ export default function CreateUserForm() {
     setEmail('');
     setRole('collaboratore');
     setSelectedCommunities([]);
-    setNome(''); setCognome(''); setCodiceFiscale(''); setDataNascita('');
-    setLuogoNascita(''); setProvinciaNascita(''); setComuneRes(''); setPrvinciaRes('');
-    setIndirizzo(''); setCivico(''); setTelefono('');
+    setNome('');
+    setCognome('');
     setTipoContratto('');
   };
 
@@ -257,84 +238,22 @@ export default function CreateUserForm() {
         </div>
       )}
 
-      {/* Anagrafica opzionale (pre-fill per l'onboarding) */}
+      {/* Nome e Cognome (required for collaboratore and responsabile) */}
       {needsContract && (
         <div>
-          <p className={sectionTitle}>Dati personali <span className="font-normal text-gray-600 normal-case">(opzionale — pre-compilazione onboarding)</span></p>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Nome</label>
-                <input type="text" placeholder="Mario" value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  disabled={loading} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Cognome</label>
-                <input type="text" placeholder="Rossi" value={cognome}
-                  onChange={(e) => setCognome(e.target.value)}
-                  disabled={loading} className={inputCls} />
-              </div>
+          <p className={sectionTitle}>Dati personali</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Nome <span className="text-red-500">*</span></label>
+              <input type="text" placeholder="Mario" value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required disabled={loading} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Codice fiscale</label>
-              <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
-                onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Data di nascita</label>
-                <input type="date" value={dataNascita}
-                  onChange={(e) => setDataNascita(e.target.value)}
-                  disabled={loading} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Città di nascita</label>
-                <input type="text" placeholder="Roma" value={luogoNascita}
-                  onChange={(e) => setLuogoNascita(e.target.value)}
-                  disabled={loading} className={inputCls} />
-              </div>
-            </div>
-            <div>
-              <label className={labelCls}>Provincia di nascita (sigla)</label>
-              <input type="text" placeholder="RM" value={provinciaNascita}
-                onChange={(e) => setProvinciaNascita(e.target.value.toUpperCase())}
-                disabled={loading} maxLength={2} className={inputCls + ' font-mono uppercase'} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Comune di residenza</label>
-                <input type="text" placeholder="Milano" value={comuneRes}
-                  onChange={(e) => setComuneRes(e.target.value)}
-                  disabled={loading} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Provincia di residenza (sigla)</label>
-                <input type="text" placeholder="MI" value={provinciaRes}
-                  onChange={(e) => setPrvinciaRes(e.target.value.toUpperCase())}
-                  disabled={loading} maxLength={2} className={inputCls + ' font-mono uppercase'} />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <label className={labelCls}>Via/Piazza</label>
-                <input type="text" placeholder="Via Roma" value={indirizzo}
-                  onChange={(e) => setIndirizzo(e.target.value)}
-                  disabled={loading} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Civico</label>
-                <input type="text" placeholder="1" value={civico}
-                  onChange={(e) => setCivico(e.target.value)}
-                  disabled={loading} maxLength={10} className={inputCls} />
-              </div>
-            </div>
-            <div>
-              <label className={labelCls}>Telefono</label>
-              <input type="tel" placeholder="+39 333 0000000" value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                disabled={loading} className={inputCls} />
+              <label className={labelCls}>Cognome <span className="text-red-500">*</span></label>
+              <input type="text" placeholder="Rossi" value={cognome}
+                onChange={(e) => setCognome(e.target.value)}
+                required disabled={loading} className={inputCls} />
             </div>
           </div>
         </div>
@@ -345,7 +264,7 @@ export default function CreateUserForm() {
       )}
 
       <button type="submit"
-        disabled={loading || !email || (needsContract && !tipoContratto)}
+        disabled={loading || !email || (needsContract && (!tipoContratto || !nome.trim() || !cognome.trim()))}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-medium text-white transition disabled:opacity-50 flex items-center justify-center gap-2">
         {loading ? (
           <>
