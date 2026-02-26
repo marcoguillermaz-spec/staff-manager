@@ -21,7 +21,7 @@ Gestisce: anagrafica, compensi, rimborsi, documenti, ticket, contenuti.
 | `responsabile_compensi` | Community assegnate. Pre-approvazione + rifiuto diretto (reject_manager) compensi/rimborsi. Pubblica annunci se can_publish_announcements=true (default). |
 | `responsabile_cittadino` | *(in definizione — accesso TBD)* |
 | `responsabile_servizi_individuali` | *(in definizione — accesso TBD)* |
-| `amministrazione` | Tutto. Approvazione finale, pagamenti, export, upload documenti |
+| `amministrazione` | Tutto. Approvazione finale, pagamenti, export, upload documenti, gestione utenti/ruoli/impostazioni |
 
 Member status: `attivo` | `uscente_con_compenso` (vede richieste in corso, no nuovi doc) | `uscente_senza_compenso` (solo doc storici)
 
@@ -220,6 +220,8 @@ e2e/
   documents-features.spec.ts  → 7 test Playwright UAT (macro-tipo badge, collab upload, unicità CONTRATTO, DA_FIRMARE, checkbox conferma firma, elimina S1/S7/S8/S10/S12/S13/S14)
   notifications-enhanced.spec.ts → 6 test Playwright UAT (badge persistenza, mark-read singola, segna-tutte, dismiss, link ticket, filtro non lette S1–S6)
   invite-form.spec.ts          → 4 test Playwright UAT (toggle default, disabled gate, invito rapido DB verify, invito completo CF+community S1/S4/S6/S7)
+  remove-super-admin.spec.ts   → 4 test Playwright UAT (admin access, form options no Super Admin, login blocked, DB constraint S1-S4)
+  feedback.spec.ts             → 5 test Playwright UAT (submit no screenshot, submit con screenshot, RBAC, admin list, login autofill S1-S5)
 
 playwright.config.ts   vitest.config.ts   proxy.ts   next.config.ts   .env.local.example
 ```
@@ -228,8 +230,10 @@ playwright.config.ts   vitest.config.ts   proxy.ts   next.config.ts   .env.local
 | Ruolo | Voci sidebar |
 |---|---|
 | collaboratore | Dashboard, Profilo, Compensi, Rimborsi, Documenti, Ticket, Contenuti |
-| responsabile | Profilo, Approvazioni, Collaboratori, Documenti, Ticket, Contenuti |
-| amministrazione / super_admin | Coda lavoro, Collaboratori, Export, Documenti, Ticket, Contenuti, Impostazioni |
+| responsabile_compensi | Profilo, Approvazioni, Collaboratori, Documenti, Ticket, Contenuti |
+| responsabile_cittadino | *(da definire)* |
+| responsabile_servizi_individuali | *(da definire)* |
+| amministrazione | Coda lavoro, Collaboratori, Export, Documenti, Ticket, Contenuti, Impostazioni |
 
 ## Known Patterns
 - **canTransition visibility**: chiamata senza `note` → skip requiresNote check (UI visibility). La validazione della nota avviene solo quando `note !== undefined` (path API). Altrimenti il button "Richiedi integrazioni" non viene mai renderizzato.
@@ -440,4 +444,4 @@ Stato dettagliato in [`docs/implementation-checklist.md`](docs/implementation-ch
 
 - **Phase 1** ✅ COMPLETATA: Auth, Invite utenti, Profilo, Compensi, Rimborsi, Coda lavoro, Export
 - **Phase 2** ✅ COMPLETATA: Documenti + CU batch ✅, Notifiche in-app ✅, Ticket ✅, Contenuti ✅
-- **Phase 3** ✅ COMPLETATA: Impostazioni avanzate ✅, Template contratti + Onboarding automatizzato ✅, Dashboard collaboratore ✅, Profilo collaboratore esteso ✅, Onboarding flow ✅, Dashboard responsabile ✅, Dashboard admin ✅, Sezione Collaboratori ✅, Responsabile reject + publish permission ✅, Notifiche email configurabili ✅
+- **Phase 3** ✅ COMPLETATA: Impostazioni avanzate ✅, Template contratti + Onboarding automatizzato ✅, Dashboard collaboratore ✅, Profilo collaboratore esteso ✅, Onboarding flow ✅, Dashboard responsabile ✅, Dashboard admin ✅, Sezione Collaboratori ✅, Responsabile reject + publish permission ✅, Notifiche email configurabili ✅, Rimozione super_admin ✅, Feedback tool + login credentials ✅
