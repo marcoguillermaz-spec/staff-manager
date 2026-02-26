@@ -16,7 +16,9 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 | Role | Access |
 |------|--------|
 | `collaboratore` | Own profile, compensation requests, reimbursements, documents, support tickets |
-| `responsabile` | Approve compensations/reimbursements for assigned communities; own profile, documents, and support tickets |
+| `responsabile_compensi` | Approve compensations/reimbursements for assigned communities; own profile, documents, and support tickets |
+| `responsabile_cittadino` | *(in definition — access TBD)* |
+| `responsabile_servizi_individuali` | *(in definition — access TBD)* |
 | `amministrazione` | Full approval queue, payments, user management, exports, settings |
 
 ## Compensation Flow (State Machine)
@@ -32,9 +34,9 @@ BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | submit | BOZZA | INVIATO | collaboratore |
 | withdraw | INVIATO | BOZZA | collaboratore |
 | resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
-| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
-| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
-| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile |
+| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile_compensi |
+| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile_compensi |
+| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile_compensi |
 | approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
 | reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
 | mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
@@ -52,9 +54,9 @@ INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | Action | From | To | Role |
 |--------|------|----|------|
 | resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
-| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
-| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile |
-| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile |
+| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile_compensi |
+| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile_compensi |
+| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile_compensi |
 | approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
 | reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
 | mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
@@ -227,6 +229,7 @@ supabase/migrations/
   014_document_macro_type.sql    → macro_type stored generated column + unique partial index (one CONTRATTO per collaborator)
   015_remove_super_admin.sql     → Remove super_admin role: update CHECK constraint, migrate existing users to amministrazione, recreate all RLS policies
   016_feedback.sql               → feedback table + RLS (insert for authenticated, select/delete for amministrazione) + private `feedback` bucket (5 MB, images)
+  017_roles_rename.sql           → Rename `responsabile` → `responsabile_compensi`; add `responsabile_cittadino` + `responsabile_servizi_individuali`; update CHECK constraint, can_manage_community(), all RLS policies; rename test accounts
 
 __tests__/
   compensation-transitions.test.ts → State machine unit tests for compensations (20 cases)
@@ -235,6 +238,8 @@ __tests__/
   cu-batch-parser.test.ts          → Unit tests for CU batch CSV parser + dedup logic (11 cases)
   notification-utils.test.ts       → Unit tests for notification payload builders (12 cases)
   ticket-notification.test.ts      → Unit tests for buildTicketReplyNotification (6 cases)
+  api/
+    create-user-schema.test.ts     → Unit tests for create-user Zod schema validation (9 cases)
 
 e2e/
   rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)
@@ -271,7 +276,7 @@ next.config.ts
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # Run unit tests (97 cases) + Playwright e2e (187 tests across 21 spec files)
+npm test           # Run unit tests (106 cases) + Playwright e2e (187 tests across 21 spec files)
 npm run build      # Production build (TypeScript check included)
 ```
 

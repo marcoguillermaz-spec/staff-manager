@@ -18,7 +18,7 @@
 - Collaboratori vedono in front-end quanto liquidato e quanto ancora da ricevere
 - Slot rimborsi integrato (non form Google separato)
 
-**Utenti.** Collaboratori (non tecnici), Responsabili community, Amministrazione (Finance/HR), Super Admin.
+**Utenti.** Collaboratori (non tecnici), Responsabile Cittadino, Responsabile Compensi, Responsabile Servizi Individuali, Amministrazione (Finance/HR).
 
 **Criteri di accettazione UX:**
 - Collaboratore inserisce un compenso in < 60 secondi (wizard 3 step)
@@ -29,18 +29,19 @@
 
 ## 2. Ruoli e permessi (RBAC)
 
-| Ruolo | Rappresentante | Accesso |
-|---|---|---|
-| `collaboratore` | Gabriel | Solo propri record e documenti |
-| `responsabile` | Nolli / Giorgia | Community assegnate, pre-approvazione obbligatoria |
-| `amministrazione` | Kri / Claudia | Accesso completo, approvazione finale, pagamenti, export |
-| `super_admin` | Nolli | Come amministrazione + gestione utenti/ruoli/impostazioni |
+| Ruolo | Label UI | Visibilità | Note |
+|---|---|---|---|
+| `collaboratore` | Collaboratore | Propri record | As-is |
+| `responsabile_cittadino` | Responsabile Cittadino | Da definire | Permessi da definire |
+| `responsabile_compensi` | Responsabile Compensi | Community assegnate da admin | Ex `responsabile` |
+| `responsabile_servizi_individuali` | Responsabile Servizi Individuali | Da definire | Permessi da definire |
+| `amministrazione` | Admin | Tutte le community | As-is |
 
 **Regole chiave:**
 - RLS reale su ogni tabella — nessun accesso a record altrui via URL
 - Collaboratore vede solo i propri record; IBAN e documenti visibili solo a collaboratore proprietario + admin
-- Responsabile vede solo le community assegnate e fa pre-approvazione obbligatoria
-- Timeline stato senza nominativi: mostrare solo "Responsabile" / "Amministrazione"
+- Responsabile Compensi vede solo le community assegnate e fa pre-approvazione obbligatoria
+- Timeline stato senza nominativi: mostrare solo il label del ruolo (es. "Responsabile Compensi" / "Amministrazione")
 - La community è autonoma nel creare/caricare allegati e nel settare i ruoli di ogni persona (non richiedere intervento tecnico per nuovi ruoli)
 
 **Gestione uscenti (member_status):**
@@ -49,6 +50,25 @@
 - `attivo` — accesso completo per ruolo
 
 **Nuovi ingressi:** nella realtà avvengono in modo sporadico durante tutto l'anno (non 1-2 volte come previsto teoricamente). La community deve poter gestire in autonomia: registrazione anagrafica, generazione contratto, assegnazione ruolo.
+
+### Utenze di test
+
+| Email | Tipo | Ruolo | Stato |
+|---|---|---|---|
+| `collaboratore@test.com` | Playwright | collaboratore | as-is |
+| `responsabile_cittadino@test.com` | Playwright | responsabile_cittadino | da creare |
+| `responsabile_compensi@test.com` | Playwright | responsabile_compensi | rinomina da `responsabile@test.com` |
+| `responsabile_servizi_individuali@test.com` | Playwright | responsabile_servizi_individuali | da creare |
+| `admin@test.com` | Playwright | amministrazione | rinomina da `admin-test@example.com` |
+| `collaboratore_test@test.com` | Manuale | collaboratore | as-is |
+| `responsabile_cittadino_test@test.com` | Manuale | responsabile_cittadino | da creare |
+| `responsabile_compensi_test@test.com` | Manuale | responsabile_compensi | rinomina da `responsabile_test@test.com` |
+| `responsabile_servizi_individuali_test@test.com` | Manuale | responsabile_servizi_individuali | da creare |
+| `admin_test@test.com` | Manuale | amministrazione | as-is |
+
+### Punti aperti
+- `responsabile_cittadino`: permessi e visibilità da definire
+- `responsabile_servizi_individuali`: permessi e visibilità da definire
 
 ---
 
@@ -113,11 +133,11 @@ BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
 | submit | BOZZA | INVIATO | collaboratore |
 | withdraw | INVIATO | BOZZA | collaboratore |
 | resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
-| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile |
-| request_integration | INVIATO / INTEGRAZIONI_RICHIESTE | INTEGRAZIONI_RICHIESTE | responsabile / amministrazione |
-| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione / super_admin |
-| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione / super_admin |
-| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione / super_admin |
+| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile_compensi |
+| request_integration | INVIATO / INTEGRAZIONI_RICHIESTE | INTEGRAZIONI_RICHIESTE | responsabile_compensi / amministrazione |
+| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
+| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
+| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
 
 Integrazioni richieste: obbligatorio testo "Cosa manca" (≥ 20 caratteri) + checklist motivi [Allegato mancante, Dati incompleti, Importo non coerente, Periodo non valido, Altro].
 
@@ -170,11 +190,14 @@ Thread messaggi + allegati, stati APERTO / IN_LAVORAZIONE / CHIUSO, notifiche in
 | Documenti | Documenti da firmare + storico |
 | Contenuti | Bacheca + Agevolazioni + Guide/Materiali + Eventi |
 
-### Responsabile (max 7 voci)
+### Responsabile Compensi (max 7 voci)
 Approvazioni (tab Compensi/Rimborsi), Collaboratori (community assegnate), Ticket, Contenuti.
 
-### Amministrazione / Super Admin (max 7 voci)
-Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collaboratori, Export, Documenti, Ticket, Contenuti, Impostazioni (solo super_admin).
+### Responsabile Cittadino / Responsabile Servizi Individuali
+Navigazione da definire al momento della specifica funzionale dei ruoli.
+
+### Amministrazione (max 7 voci)
+Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collaboratori, Export, Documenti, Ticket, Contenuti, Impostazioni.
 
 ---
 

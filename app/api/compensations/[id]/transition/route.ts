@@ -66,7 +66,7 @@ export async function POST(
   // Fetch current compensation (RLS filters access)
   const { data: comp, error: fetchError } = await supabase
     .from('compensations')
-    .select('id, stato, collaborator_id, community_id, importo, data_compenso')
+    .select('id, stato, collaborator_id, community_id, importo_lordo, data_competenza')
     .eq('id', id)
     .single();
 
@@ -157,8 +157,8 @@ export async function POST(
         serviceClient.from('communities').select('name').eq('id', comp.community_id).single(),
       ]);
       const communityName = (commRes.data as { name?: string } | null)?.name ?? '';
-      const dataFormatted = comp.data_compenso
-        ? new Date(comp.data_compenso).toLocaleDateString('it-IT')
+      const dataFormatted = comp.data_competenza
+        ? new Date(comp.data_competenza).toLocaleDateString('it-IT')
         : '';
       for (const resp of responsabili) {
         if (setting.inapp_enabled) {
@@ -171,7 +171,7 @@ export async function POST(
             nomeResponsabile: resp.nome,
             nomeCollaboratore: `${collabInfo?.nome ?? ''} ${collabInfo?.cognome ?? ''}`.trim(),
             tipo: 'Compenso',
-            importo: comp.importo ?? 0,
+            importo: comp.importo_lordo ?? 0,
             community: communityName,
             data: dataFormatted,
           });
@@ -212,13 +212,13 @@ export async function POST(
 
       // Email notification
       if (setting?.email_enabled && collabInfo.email) {
-        const dataFormatted = comp.data_compenso
-          ? new Date(comp.data_compenso).toLocaleDateString('it-IT')
+        const dataFormatted = comp.data_competenza
+          ? new Date(comp.data_competenza).toLocaleDateString('it-IT')
           : '';
         const baseParams = {
           nome: collabInfo.nome,
           tipo: 'Compenso' as const,
-          importo: comp.importo ?? 0,
+          importo: comp.importo_lordo ?? 0,
           data: dataFormatted,
         };
         let emailPayload: { subject: string; html: string } | null = null;
@@ -229,7 +229,7 @@ export async function POST(
         } else if (notifAction === 'reject') {
           emailPayload = emailRifiutato(baseParams);
         } else if (notifAction === 'mark_paid') {
-          emailPayload = emailPagato({ nome: collabInfo.nome, tipo: 'Compenso', importo: comp.importo ?? 0, dataPagamento: dataFormatted });
+          emailPayload = emailPagato({ nome: collabInfo.nome, tipo: 'Compenso', importo: comp.importo_lordo ?? 0, dataPagamento: dataFormatted });
         }
         if (emailPayload) {
           sendEmail(collabInfo.email, emailPayload.subject, emailPayload.html).catch(() => {});

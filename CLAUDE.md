@@ -18,9 +18,10 @@ Gestisce: anagrafica, compensi, rimborsi, documenti, ticket, contenuti.
 | Ruolo | Accesso |
 |---|---|
 | `collaboratore` | Solo propri record. Auto-modifica: email, IBAN, tel, indirizzo, tshirt, partita_iva, ha_figli_a_carico, avatar. uscente_senza_compenso: solo /documenti. |
-| `responsabile` | Community assegnate. Pre-approvazione + rifiuto diretto (reject_manager) compensi/rimborsi. Pubblica annunci se can_publish_announcements=true (default). |
+| `responsabile_compensi` | Community assegnate. Pre-approvazione + rifiuto diretto (reject_manager) compensi/rimborsi. Pubblica annunci se can_publish_announcements=true (default). |
+| `responsabile_cittadino` | *(in definizione — accesso TBD)* |
+| `responsabile_servizi_individuali` | *(in definizione — accesso TBD)* |
 | `amministrazione` | Tutto. Approvazione finale, pagamenti, export, upload documenti |
-| `super_admin` | Come amministrazione + gestione utenti/ruoli/impostazioni |
 
 Member status: `attivo` | `uscente_con_compenso` (vede richieste in corso, no nuovi doc) | `uscente_senza_compenso` (solo doc storici)
 
@@ -64,7 +65,7 @@ app/
   pending/page.tsx           → Utente autenticato ma non ancora attivato
   api/
     auth/clear-force-change/ → POST: azzera must_change_password (service role)
-    admin/create-user/       → POST: crea auth user + profilo (service role), tipo_contratto obbligatorio, onboarding_completed=false, crea collaborators per collaboratore+responsabile
+    admin/create-user/       → POST: crea auth user + profilo (service role), tipo_contratto obbligatorio, onboarding_completed=false, crea collaborators per collaboratore+responsabile_compensi
     admin/communities/       → GET: lista comunità (?all=1 admin: include inattive) + POST: crea
     admin/communities/[id]/  → PATCH: rinomina + toggle is_active
     admin/responsabili/[userId]/communities/ → PUT: sostituisce assegnazioni community responsabile
@@ -262,10 +263,22 @@ playwright.config.ts   vitest.config.ts   proxy.ts   next.config.ts   .env.local
 
 CRITICAL: questi sono vincoli di processo non negoziabili. Valgono per OGNI sviluppo — blocchi funzionali, fix, refactoring, feature minori — anche quando il piano completo è fornito in un singolo prompt. Eseguire sempre una fase alla volta e fermarsi ai gate indicati. Non passare alla fase successiva senza conferma esplicita.
 
+### ⚠️ ISTRUZIONE TEMPORANEA — Playwright e2e SOSPESO
+
+**Non eseguire Fase 4 (Definizione UAT) né Fase 5 (Playwright e2e) durante l'attuale ciclo di revisione requisiti.**
+
+Motivazione: gli scenari e2e esistenti possono fallire per incompatibilità con i nuovi requisiti non ancora completamente implementati. Implementare test parziali ora genererebbe rumore, non valore.
+
+Azione per ogni blocco: saltare Fase 4 e Fase 5 interamente. Procedere direttamente Fase 3b → Fase 5.5 → Fase 6 → Fase 7 → Fase 8.
+
+**La Fase 5 sarà riabilitata con un'istruzione esplicita dell'utente, una volta che tutti i blocchi aggiornati saranno implementati.**
+
+---
+
 ### Pipeline obbligatoria per ogni sviluppo
 
 **Fase 0 — Orientamento sessione** *(solo all'inizio di ogni nuova sessione o ripresa da summary)*
-- Verificare `MEMORY.md` per lezioni/pattern rilevanti per il blocco corrente.
+- Verificare `MEMORY.md`: controllare prima la sezione **Piano attivo** (se presente) per riallinearsi a sessioni in corso, poi la sezione **Lezioni/Pattern** per pattern rilevanti al blocco corrente.
 - Se il contesto è stato compresso (summary): leggere `docs/implementation-checklist.md` per riallinearsi allo stato.
 - Non rileggere file già presenti nel contesto corrente — usare la line reference già acquisita.
 
@@ -287,7 +300,7 @@ CRITICAL: questi sono vincoli di processo non negoziabili. Valgono per OGNI svil
 **Fase 2 — Implementazione**
 - Scrivere il codice. Rispettare le Coding Conventions del progetto.
 - Non aggiungere feature non richieste. Non refactoring non richiesto.
-- **Dopo ogni nuova migration** (`supabase/migrations/NNN_*.sql`): applicare **immediatamente** al DB remoto via Management API (`curl` con `SUPABASE_ACCESS_TOKEN` da `.env.local`) + verificare con query SELECT sulla colonna/struttura creata. Non attendere i test e2e per scoprire migrazioni mancanti.
+- **Dopo ogni nuova migration** (`supabase/migrations/NNN_*.sql`): applicare **immediatamente** al DB remoto via Management API (`curl` con `SUPABASE_ACCESS_TOKEN` da `.env.local`) + verificare con query SELECT sulla colonna/struttura creata. **Non attendere i test e2e per scoprire migrazioni mancanti** — scoprirle in Fase 5 è un errore di processo, non un fallimento atteso.
 - **Sintassi PostgREST join** (`table!relation`, `!inner`): verificare l'esistenza della FK constraint prima di usarla. Se FK assente → query a due step (fetch separati + merge in-memory). Query di verifica: `SELECT conname FROM pg_constraint WHERE conrelid='tablename'::regclass AND contype='f';`
 - **Security checklist** (prima del commit intermedio): per ogni route API nuova/modificata verificare: (1) auth check presente prima di qualsiasi operazione, (2) input validato (Zod o equivalente), (3) nessun dato sensibile esposto nella response, (4) RLS non aggirata implicitamente.
 - Output atteso: file creati/modificati elencati con path.
@@ -380,7 +393,36 @@ SELECT …;
 
 ---
 
+### Pipeline per modifiche strutturali da requisiti
+
+Attivare quando gli Stakeholders introducono variazioni al perimetro funzionale che impattano blocchi già implementati o la struttura del progetto. Questa pipeline **precede** la pipeline standard di sviluppo e ne è il prerequisito.
+
+**Fase R1 — Aggiornamento requisiti**
+- Ricevere la modifica dagli Stakeholders.
+- Confrontare con la sezione pertinente di `docs/requirements.md` attuale.
+- Proporre il testo aggiornato sezione per sezione.
+- *** STOP — attendere approvazione esplicita per ogni sezione prima di scrivere. ***
+
+**Fase R2 — Analisi impatti**
+- Identificare tutti i blocchi già implementati impattati dalla modifica.
+- Per ogni blocco: elencare file coinvolti, logiche da aggiornare, test da rivedere.
+- Verificare `docs/refactoring-backlog.md`: le voci esistenti possono essere deprecate, integrate o aggiornate alla luce della modifica?
+- Output atteso: matrice impatti (blocco → file → tipo modifica) + delta refactoring-backlog.
+
+**Fase R3 — Piano di intervento**
+- Aggiornare `docs/implementation-checklist.md` con il nuovo piano.
+- Aggiornare `docs/refactoring-backlog.md` (depreca voci obsolete, aggiungi criticità emerse).
+- *** STOP — presentare piano completo e attendere conferma esplicita prima di toccare qualsiasi file di codice. ***
+
+**Fase R4 — Esecuzione**
+- Leggere `docs/implementation-checklist.md` — il piano per ogni blocco è già definito e approvato, pronto all'uso.
+- Procedere blocco per blocco seguendo la pipeline standard (Fasi 0–8).
+- Aggiornare `MEMORY.md` sezione Piano attivo ad ogni step completato.
+
+---
+
 ### Regole trasversali
+- **Permessi tool (nota operativa)**: Claude Code non persiste le approvazioni "don't ask again" tra sessioni diverse. Per questa ragione, l'utente ha autorizzato esplicitamente l'esecuzione autonoma di tutti i comandi (Bash, curl DB, npx, tsc, vitest, playwright, git) **tranne** i gate STOP espliciti della pipeline. Procedere senza chiedere conferma per qualsiasi comando tecnico necessario all'esecuzione della pipeline.
 - **Playwright UAT**: `npx playwright test e2e/` — usa selettori CSS classe (es. `span.text-green-300`) per badge di stato. Mai `getByText()` per valori di stato (cattura partial match dalla Timeline raw DB).
 - **Anche se il piano è già scritto**: eseguire comunque fase per fase con i gate. Il piano pre-scritto sostituisce solo la Fase 1, non comprime le fasi successive.
 - **Gate bloccanti**: le istruzioni "STOP" sono hard stop. Non interpretarli come suggerimenti.

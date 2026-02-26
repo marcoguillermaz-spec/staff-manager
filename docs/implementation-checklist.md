@@ -6,7 +6,15 @@
 
 ---
 
-## Blocco 1 — Revisione ruoli e utenze di test
+## Log
+
+| Data | Blocco | Stato | Test | Note |
+|---|---|---|---|---|
+| 2026-02-26 | Blocco 1 — Revisione ruoli e utenze di test | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso temporaneamente) | `017_roles_rename.sql` applicata. Bug fix `importo`/`data_compenso` in transition route. |
+
+---
+
+## Blocco 1 — Revisione ruoli e utenze di test ✅
 
 > Requisito: `docs/requirements.md` §2 — Ruoli e permessi, Utenze di test
 > Dipendenze: nessuna
@@ -78,7 +86,7 @@ Unit test da aggiornare:
 
 | Simbolo | Significato |
 |---|---|
-| ✅ | Completato: build ✅, unit test ✅, Playwright ✅, checklist firmata, CLAUDE.md aggiornato |
+| ✅ | Completato: build ✅, unit test ✅, Playwright ⏸ sospeso (istruzione temporanea), checklist firmata, CLAUDE.md aggiornato |
 | 🔄 | In corso (blocco attivo) |
 | 🔲 | Non iniziato |
 | ⏸ | Sospeso / bloccato da dipendenza |

@@ -16,37 +16,38 @@
 --       separately via Supabase Management API / create-user endpoint.
 -- ============================================================
 
--- ── 1. Migrate existing responsabile users ───────────────────
+-- ── 1. Drop CHECK constraint FIRST (before data migration) ───
+ALTER TABLE user_profiles DROP CONSTRAINT IF EXISTS user_profiles_role_check;
+
+-- ── 2. Migrate existing responsabile users ────────────────────
 UPDATE user_profiles
 SET role = 'responsabile_compensi'
 WHERE role = 'responsabile';
 
--- ── 2. Update notification_settings recipient_role ───────────
+-- ── 3. Update notification_settings recipient_role ───────────
 UPDATE notification_settings
 SET recipient_role = 'responsabile_compensi'
 WHERE recipient_role = 'responsabile';
 
--- ── 3. Rename test accounts in auth.users + auth.identities ──
+-- ── 4. Rename test accounts in auth.users + auth.identities ──
 UPDATE auth.users
 SET email = 'admin@test.com'
 WHERE email = 'admin-test@example.com';
 
+-- auth.identities.email is a generated column — update identity_data only
 UPDATE auth.identities
-SET email = 'admin@test.com',
-    identity_data = jsonb_set(identity_data, '{email}', '"admin@test.com"')
-WHERE email = 'admin-test@example.com';
+SET identity_data = jsonb_set(identity_data, '{email}', '"admin@test.com"')
+WHERE identity_data->>'email' = 'admin-test@example.com';
 
 UPDATE auth.users
 SET email = 'responsabile_compensi@test.com'
 WHERE email = 'responsabile@test.com';
 
 UPDATE auth.identities
-SET email = 'responsabile_compensi@test.com',
-    identity_data = jsonb_set(identity_data, '{email}', '"responsabile_compensi@test.com"')
-WHERE email = 'responsabile@test.com';
+SET identity_data = jsonb_set(identity_data, '{email}', '"responsabile_compensi@test.com"')
+WHERE identity_data->>'email' = 'responsabile@test.com';
 
--- ── 4. Update role CHECK constraint ──────────────────────────
-ALTER TABLE user_profiles DROP CONSTRAINT IF EXISTS user_profiles_role_check;
+-- ── 5. Add new CHECK constraint (after data migration) ────────
 ALTER TABLE user_profiles
   ADD CONSTRAINT user_profiles_role_check
   CHECK (role IN (
@@ -57,7 +58,7 @@ ALTER TABLE user_profiles
     'amministrazione'
   ));
 
--- ── 5. Recreate can_manage_community (responsabile_compensi) ─
+-- ── 6. Recreate can_manage_community (responsabile_compensi) ─
 CREATE OR REPLACE FUNCTION can_manage_community(p_community_id uuid)
 RETURNS boolean LANGUAGE sql SECURITY DEFINER STABLE AS $$
   SELECT EXISTS (
@@ -77,7 +78,7 @@ RETURNS boolean LANGUAGE sql SECURITY DEFINER STABLE AS $$
   )
 $$;
 
--- ── 6. Recreate RLS policies that reference 'responsabile' ───
+-- ── 7. Recreate RLS policies that reference 'responsabile' ───
 
 -- user_profiles
 DROP POLICY IF EXISTS "user_profiles_responsabile_read" ON user_profiles;

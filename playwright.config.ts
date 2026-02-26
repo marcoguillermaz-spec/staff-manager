@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1, // serial — tests share DB state
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3001',
     headless: true,
     screenshot: 'only-on-failure',
     video: 'off',

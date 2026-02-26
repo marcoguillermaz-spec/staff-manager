@@ -97,7 +97,7 @@ test.describe.serial('Responsabile actions UAT', () => {
     // Resolve responsabile user_id
     const respProfile = await dbFirst<{ user_id: string }>(
       'user_profiles',
-      'role=eq.responsabile&is_active=eq.true&select=user_id',
+      'role=eq.responsabile_compensi&is_active=eq.true&select=user_id',
     );
     respUserId = respProfile?.user_id ?? '';
 
