@@ -180,15 +180,24 @@ Thread messaggi + allegati, stati APERTO / IN_LAVORAZIONE / CHIUSO, notifiche in
 
 ## 5. Pagine e navigazione
 
-### Collaboratore (max 6 voci)
-| Voce | Contenuto |
-|---|---|
-| Dashboard | 3 card (Compensi, Rimborsi, Documenti da firmare) + azioni rapide + "Cosa mi manca" |
-| Profilo | Dati anagrafici modificabili, IBAN, figli a carico |
-| Compensi | Lista proprie richieste + wizard creazione |
-| Rimborsi | Lista proprie richieste + form creazione |
-| Documenti | Documenti da firmare + storico |
-| Contenuti | Bacheca + Agevolazioni + Guide/Materiali + Eventi |
+### Collaboratore (8 voci)
+| Voce | Route | Contenuto |
+|---|---|---|
+| Home | `/` | Dashboard: card metriche, azioni rapide, feed |
+| Profilo e Documenti | `/profilo` | Tab **Profilo** (dati anagrafici, IBAN, figli a carico) + Tab **Documenti** (DocumentList storico firmato) |
+| Compensi e Rimborsi | `/compensi` | PaymentOverview + lista compensi (tutti gli stati) + lista rimborsi + pulsante "Apri ticket" (TicketQuickModal) |
+| Corsi | `#` | Coming soon — voce visibile, non cliccabile |
+| Schoolbusters | `#` | Coming soon — voce visibile, non cliccabile |
+| Eventi | `/eventi` | Lista eventi community (read-only, ordinati per data ASC) |
+| Comunicazioni e Risorse | `/comunicazioni` | Tab **Comunicazioni** (bacheca annunci, read-only) + Tab **Risorse** (guide e materiali, read-only) |
+| Opportunità e Sconti | `/opportunita` | Lista benefit e agevolazioni (read-only) |
+
+**Regole navigazione collaboratore:**
+- Il collaboratore **non crea** compensi — `/compensi/nuova` reindirizza a `/compensi`
+- I rimborsi sono visibili in `/compensi`; `/rimborsi` reindirizza a `/compensi`
+- I documenti sono accessibili solo da `/profilo?tab=documenti`; `/documenti` reindirizza lì
+- I ticket si aprono tramite modale da `/compensi`, non da una pagina dedicata
+- `uscente_senza_compenso`: accesso solo a `/profilo?tab=documenti`
 
 ### Responsabile Compensi (max 7 voci)
 Approvazioni (tab Compensi/Rimborsi), Collaboratori (community assegnate), Ticket, Contenuti.
