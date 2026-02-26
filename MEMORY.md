@@ -1,53 +1,52 @@
 # MEMORY — Staff Manager
 
-> Leggere in Fase 0 di ogni nuova sessione o ripresa da summary.
-> Due sezioni: **Piano attivo** (stato corrente della sessione in corso) e **Lezioni/Pattern** (conoscenza accumulata).
+> Read in Phase 0 of every new session or after a context summary.
+> Two sections: **Active plan** (current in-progress state) and **Lessons/Patterns** (accumulated knowledge).
 
 ---
 
-## Piano attivo — Revisione requisiti strutturali (branch: feat/requirements-check)
+## Active plan — Structural requirements revision
 
-### Contesto
-Gli Stakeholders hanno chiarito e re-ingegnerizzato alcuni componenti di base del progetto.
-È in corso una revisione strutturale dei requisiti che richiederà l'aggiornamento di blocchi funzionali già implementati.
-Lavoriamo su due worktree paralleli: `feat/requirements-check` (questo) e `main` (altro tab).
+### Context
+Stakeholders clarified and re-engineered some core project components. A structural requirements
+revision is in progress: `docs/requirements.md` is being updated section by section, followed by
+implementation of each approved block. Working on `main`.
 
-### Obiettivo
-Ripartire da un set di requisiti solido e aggiornato, mantenendo il più possibile del lavoro esistente e intervenendo su dipendenze, logiche e struttura.
+### Steps — progress
 
-### Steps — stato avanzamento
+| Step | Description | Status |
+|------|-------------|--------|
+| C | Guided review of `docs/requirements.md`: section-by-section comparison, user approval per change | 🔄 in progress — Block 1 done, remaining blocks to define |
+| D | Rebuild `docs/implementation-checklist.md` based on updated `requirements.md` | 🔄 partial — Block 1 ✅, remaining blocks to plan |
 
-| Step | Descrizione | Stato |
-|------|-------------|-------|
-| A | Aggiornare `CLAUDE.md`: aggiungere sezione "Modifiche strutturali da requisiti" con il processo guidato | ✅ fatto |
-| B | Reset `docs/implementation-checklist.md`: azzerare e predisporre struttura vuota | ✅ fatto |
-| C | Revisione guidata `docs/requirements.md`: confronto sezione per sezione tra requisiti esistenti e nuovi (approvazione utente per ogni modifica) | 🔄 in corso — Blocco 1 completato, altri blocchi da definire |
-| C1 | Implementazione Blocco 1 (roles rename + new roles + credentials) | ✅ chiuso — tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸, commit + push ✅ |
-| D | Nuova `docs/implementation-checklist.md`: ricostruire la checklist basandosi sul `requirements.md` aggiornato | 🔄 parziale — Blocco 1 ✅, altri blocchi da pianificare |
-| E | Completamento `CLAUDE.md`: aggiungere review di `refactoring-backlog.md` in Fase 1 + eventuali aggiustamenti pipeline emersi da C+D | ⬜ da fare |
-
-> **Regola**: non passare allo step successivo senza conferma esplicita. Steps C e D dipendono dall'ordine — senza requirements.md aggiornato non si ricostruisce la checklist.
-
-### Processo per modifiche strutturali da requisiti (da formalizzare in Step A)
-1. Aggiornare `docs/requirements.md` con il nuovo requisito (approvazione utente)
-2. Analizzare impatti sui blocchi già implementati
-3. Aggiornare `docs/implementation-checklist.md` e `docs/refactoring-backlog.md`
-4. **STOP** — presentare piano di intervento e attendere conferma esplicita
-5. Eseguire seguendo la pipeline standard di `CLAUDE.md`
+> **Rule**: do not advance to the next step without explicit confirmation. C and D depend on
+> order — the checklist cannot be rebuilt before `requirements.md` is updated.
 
 ---
 
-## Lezioni / Pattern
+## Lessons / Patterns
 
-### Worktree setup (Blocco 1 — 2026-02-26)
-- **Turbopack rifiuta symlink node_modules**: in un worktree, non usare `ln -s` per condividere `node_modules`. Eseguire `npm install` direttamente nel worktree.
-- **Dev server su porta separata**: il worktree deve girare su porta diversa (`PORT=3001`). Aggiornare `playwright.config.ts` `baseURL` di conseguenza.
-- **`.env.local` non condiviso**: ogni worktree ha la propria `.env.local`. Copiare da `main` al setup iniziale (`cp ../staff-manager/.env.local .env.local`).
+### Worktree setup (Block 1 — 2026-02-26)
+- **Turbopack rejects symlinked node_modules**: in a worktree, do not use `ln -s` to share
+  `node_modules`. Run `npm install` directly in the worktree.
+- **Dev server on a separate port**: the worktree must run on a different port (`PORT=3001`).
+  Update `playwright.config.ts` `baseURL` accordingly. Revert to 3000 before merging to main.
+- **`.env.local` not shared**: each worktree has its own `.env.local`. Copy from main at
+  initial setup (`cp ../staff-manager/.env.local .env.local`).
 
-### Migration pitfalls (Blocco 1 — 2026-02-26)
-- **CHECK constraint prima del data migration**: `ALTER TABLE DROP CONSTRAINT` PRIMA di `UPDATE` sul campo vincolato. Fare l'UPDATE con il vecchio valore violato PRIMA di aggiornare il constraint causa errore.
-- **auth.identities.email è colonna generata**: non aggiornare `email` direttamente su `auth.identities`. Aggiornare solo `identity_data = jsonb_set(identity_data, '{email}', '"nuovo@email"')` con `WHERE identity_data->>'email' = 'vecchio@email'`.
-- **Migration non applicata = errore di processo**: scoprire in Fase 5 che la migration non è applicata è un errore. Ogni migration va applicata subito dopo la scrittura (Fase 2), con verifica SELECT.
+### Migration pitfalls (Block 1 — 2026-02-26)
+- **DROP CONSTRAINT before data migration**: run `ALTER TABLE DROP CONSTRAINT` BEFORE `UPDATE`
+  on the constrained column. Updating a value that violates the old constraint before dropping
+  it causes an error.
+- **`auth.identities.email` is a generated column**: do not update `email` directly on
+  `auth.identities`. Update only `identity_data = jsonb_set(identity_data, '{email}', '"new@email"')`
+  with `WHERE identity_data->>'email' = 'old@email'`.
+- **Unapplied migration = process error**: discovering in Phase 5 that a migration was not
+  applied is a process violation. Every migration must be applied immediately after writing
+  (Phase 2), verified with SELECT, and logged in `docs/migrations-log.md`.
 
-### Supabase SELECT su colonne inesistenti (Blocco 1 — 2026-02-26)
-- TypeScript non valida i nomi di colonna nel `.select()` di Supabase (non usa tipi DB generati). Selezionare una colonna inesistente (es. `importo` invece di `importo_lordo`) causa `fetchError` a runtime → 404 silenzioso. Verificare i nomi colonna effettivi con `information_schema.columns` quando si aggiunge un nuovo `.select()`.
+### Supabase SELECT on non-existent columns (Block 1 — 2026-02-26)
+- TypeScript does not validate column names in Supabase `.select()` (it does not use generated
+  DB types). Selecting a non-existent column (e.g. `importo` instead of `importo_lordo`) causes
+  a silent `fetchError` at runtime → 404. Always verify actual column names via
+  `information_schema.columns` before adding a new `.select()`.
