@@ -75,25 +75,12 @@ export default function CompensationList({
           ))}
         </div>
 
-        {role === 'collaboratore' && (
-          <Link
-            href="/compensi/nuova"
-            className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-medium text-white transition"
-          >
-            Nuova richiesta
-          </Link>
-        )}
       </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
         <div className="rounded-xl bg-gray-900 border border-gray-800 p-8 text-center">
           <p className="text-sm text-gray-500">Nessun compenso trovato.</p>
-          {role === 'collaboratore' && (
-            <Link href="/compensi/nuova" className="mt-3 inline-block text-sm text-blue-400 hover:text-blue-300">
-              Crea la prima richiesta →
-            </Link>
-          )}
         </div>
       ) : (
         <div className="rounded-xl bg-gray-900 border border-gray-800 overflow-hidden">

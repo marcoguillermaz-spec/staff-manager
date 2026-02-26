@@ -39,6 +39,20 @@ export default function Sidebar({ navItems, userEmail, userName, avatarUrl }: Si
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
         {navItems.map((item) => {
+          if (item.comingSoon) {
+            return (
+              <span
+                key={item.label}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 cursor-not-allowed select-none"
+              >
+                <span className="text-base leading-none">{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
+                <span className="text-[10px] font-medium rounded-full bg-gray-800 px-1.5 py-0.5 text-gray-600">
+                  Presto
+                </span>
+              </span>
+            );
+          }
           const isActive = pathname === item.href ||
             (item.href !== '/' && pathname.startsWith(item.href));
           return (

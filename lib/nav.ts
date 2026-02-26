@@ -4,17 +4,19 @@ export interface NavItem {
   label: string;
   href: string;
   icon: string;
+  comingSoon?: boolean;
 }
 
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   collaboratore: [
-    { label: 'Dashboard',   href: '/',            icon: '🏠' },
-    { label: 'Profilo',     href: '/profilo',     icon: '👤' },
-    { label: 'Compensi',    href: '/compensi',    icon: '💶' },
-    { label: 'Rimborsi',    href: '/rimborsi',    icon: '🧾' },
-    { label: 'Documenti',   href: '/documenti',   icon: '📄' },
-    { label: 'Ticket',      href: '/ticket',      icon: '🎫' },
-    { label: 'Contenuti',   href: '/contenuti',   icon: '📋' }, // bacheca + benefit + guide + eventi
+    { label: 'Home',                    href: '/',              icon: '🏠' },
+    { label: 'Profilo e Documenti',     href: '/profilo',       icon: '👤' },
+    { label: 'Compensi e Rimborsi',     href: '/compensi',      icon: '💶' },
+    { label: 'Corsi',                   href: '#',              icon: '🎓', comingSoon: true },
+    { label: 'Schoolbusters',           href: '#',              icon: '🏫', comingSoon: true },
+    { label: 'Eventi',                  href: '/eventi',        icon: '🗓' },
+    { label: 'Comunicazioni e Risorse', href: '/comunicazioni', icon: '📢' },
+    { label: 'Opportunità e Sconti',    href: '/opportunita',   icon: '🎁' },
   ],
 
   responsabile_compensi: [

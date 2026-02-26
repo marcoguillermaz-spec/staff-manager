@@ -25,6 +25,9 @@ export default async function DocumentiPage({
   if (!profile?.is_active) redirect('/pending');
 
   const role = profile.role as Role;
+
+  // Collaboratori access documents via Profilo e Documenti
+  if (role === 'collaboratore') redirect('/profilo?tab=documenti');
   const isAdmin = ['amministrazione'].includes(role);
   const canUpload = isAdmin || ['collaboratore', 'responsabile_compensi'].includes(role);
 

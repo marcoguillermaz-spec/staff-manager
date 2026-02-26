@@ -16,8 +16,9 @@ export default async function NuovaCompensoPage() {
     .single();
 
   if (!profile?.is_active) redirect('/pending');
+  // Compensation creation is no longer available from the collaboratore UI
+  if (profile.role === 'collaboratore') redirect('/compensi');
   if (profile.role !== 'collaboratore') redirect('/');
-  if (profile.member_status === 'uscente_senza_compenso') redirect('/compensi');
 
   return (
     <div className="p-6 max-w-2xl">

@@ -111,7 +111,7 @@ function DocCard({ count }: { count: number }) {
           <p className="text-sm text-amber-300/80">
             {count === 1 ? 'Hai 1 documento' : `Hai ${count} documenti`} in attesa di firma.
           </p>
-          <Link href="/documenti" className="text-xs text-blue-400 hover:text-blue-300 transition">
+          <Link href="/profilo?tab=documenti" className="text-xs text-blue-400 hover:text-blue-300 transition">
             Vai ai documenti →
           </Link>
         </>
@@ -1079,12 +1079,6 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-medium text-gray-200">Azioni rapide</h2>
         </div>
         <div className="p-5 flex flex-wrap gap-3">
-          <Link
-            href="/compensi/nuova"
-            className="rounded-lg bg-blue-700 hover:bg-blue-600 px-4 py-2 text-sm font-medium text-white transition"
-          >
-            + Nuovo compenso
-          </Link>
           <Link
             href="/rimborsi/nuova"
             className="rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 px-4 py-2 text-sm font-medium text-gray-200 transition"

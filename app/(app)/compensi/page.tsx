@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import CompensationList from '@/components/compensation/CompensationList';
 import PaymentOverview from '@/components/compensation/PaymentOverview';
+import ExpenseList from '@/components/expense/ExpenseList';
+import TicketQuickModal from '@/components/ticket/TicketQuickModal';
 import type { Role } from '@/lib/types';
 
 type YearBreakdown = { year: number; total: number };
@@ -52,9 +54,14 @@ export default async function CompensiPage() {
 
   if (!profile?.is_active) redirect('/pending');
   if (profile.role !== 'collaboratore') redirect('/');
-  if (profile.member_status === 'uscente_senza_compenso') redirect('/documenti');
+  if (profile.member_status === 'uscente_senza_compenso') redirect('/profilo?tab=documenti');
 
-  const [{ data: compensations }, { data: allCompens }, { data: allExpenses }] = await Promise.all([
+  const [
+    { data: compensations },
+    { data: allCompens },
+    { data: allExpenses },
+    { data: expenses },
+  ] = await Promise.all([
     supabase
       .from('compensations')
       .select('*, communities(name)')
@@ -65,6 +72,10 @@ export default async function CompensiPage() {
     supabase
       .from('expense_reimbursements')
       .select('importo, stato, paid_at'),
+    supabase
+      .from('expense_reimbursements')
+      .select('*')
+      .order('created_at', { ascending: false }),
   ]);
 
   const { paidByYear: compensPaidByYear, pending: compensPending } =
@@ -74,11 +85,14 @@ export default async function CompensiPage() {
 
   return (
     <div className="p-6 max-w-5xl">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-100">I miei compensi</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Gestisci le tue richieste di compenso.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-100">Compensi e Rimborsi</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Visualizza i tuoi compensi e rimborsi, e gestisci le richieste di supporto.
+          </p>
+        </div>
+        <TicketQuickModal />
       </div>
 
       <PaymentOverview
@@ -88,10 +102,25 @@ export default async function CompensiPage() {
         expensePending={expensePending}
       />
 
-      <CompensationList
-        compensations={compensations ?? []}
-        role={profile.role as Role}
-      />
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          Compensi
+        </h2>
+        <CompensationList
+          compensations={compensations ?? []}
+          role={profile.role as Role}
+        />
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          Rimborsi
+        </h2>
+        <ExpenseList
+          expenses={expenses ?? []}
+          role={profile.role as Role}
+        />
+      </div>
     </div>
   );
 }
