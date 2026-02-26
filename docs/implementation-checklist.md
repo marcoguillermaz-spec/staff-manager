@@ -11,6 +11,7 @@
 | Data | Blocco | Stato | Test | Note |
 |---|---|---|---|---|
 | 2026-02-26 | Blocco 1 — Revisione ruoli e utenze di test | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso temporaneamente) | `017_roles_rename.sql` applicata. Bug fix `importo`/`data_compenso` in transition route. |
+| 2026-02-26 | Blocco 2 — Ristrutturazione menu collaboratore | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso), smoke test OK | 8 voci nav, unified Compensi e Rimborsi, TicketQuickModal, Profilo e Documenti tabs, 3 nuove pagine (eventi/comunicazioni/opportunita). |
 
 ---
 
@@ -77,6 +78,21 @@ Unit test da aggiornare:
 ### Punti aperti
 - `responsabile_cittadino`: permessi, navigazione e visibilità → da definire in blocco dedicato
 - `responsabile_servizi_individuali`: idem
+
+---
+
+## Blocco 2 — Ristrutturazione menu collaboratore ✅
+
+> Requisito: `docs/requirements.md` §3 — Navigazione collaboratore
+> Dipendenze: Blocco 1
+
+| Sotto-blocco | Stato | Note |
+|---|---|---|
+| 2a — Nav 8 voci + comingSoon flag | ✅ | `lib/nav.ts` + `components/Sidebar.tsx` |
+| 2b — Profilo e Documenti (tab merge) | ✅ | `profilo/page.tsx` + redirect `documenti/page.tsx` |
+| 2c — Compensi e Rimborsi unificati | ✅ | `compensi/page.tsx` rewrite + `TicketQuickModal` |
+| 2d — Rimozione CTA creazione compenso | ✅ | `CompensationList.tsx`, `page.tsx` dashboard, `compensi/nuova/page.tsx` |
+| 2e — Nuove pagine: eventi, comunicazioni, opportunita | ✅ | 3 nuove route, read-only |
 
 ---
 

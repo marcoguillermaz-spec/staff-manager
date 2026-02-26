@@ -45,6 +45,8 @@ Non bloccanti per le funzionalità correnti salvo dove indicato **CRITICO/ALTO**
 | TC2 | Nessun test unit per null values in buildCSV | BASSO |
 | P2 | Index su `collaborators.user_id` non documentato | BASSO |
 | SEC6 | Nessuna rotation policy documentata per RESEND_API_KEY | BASSO |
+| N1 | `compensi/nuova/page.tsx` è codice morto (redirect tutti i ruoli) — da rimuovere con `CompensationWizard` | BASSO |
+| N2 | `contenuti/page.tsx` accessibile ai collaboratori ma non in nav — valutare redirect a /comunicazioni | BASSO |
 
 ---
 

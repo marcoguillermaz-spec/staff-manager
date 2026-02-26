@@ -68,12 +68,12 @@ app/
   (app)/
     page.tsx                     → Dashboard collaboratore (cards, quick actions, cosa mi manca, feed) + responsabile (CommCard per community, cosa devo fare, feed pending) + amministrazione (KPI, community cards, urgenti, feed filtrable, period metrics, blocks drawer)
     layout.tsx                   → Protected layout (auth guard + Sidebar)
-    profilo/page.tsx             → Profile editor (avatar, fiscal data, editable IBAN/phone/address/tshirt)
+    profilo/page.tsx             → Profile editor + tab Documenti for collaboratore (avatar, fiscal data, editable IBAN/phone/address/tshirt | DocumentList)
     impostazioni/page.tsx        → Settings: 5-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload), Notifiche (in-app + email toggles per event)
-    compensi/page.tsx            → Collaboratore: list own compensations
-    compensi/nuova/page.tsx      → Compensation creation wizard (3 steps)
+    compensi/page.tsx            → Collaboratore: unified Compensi e Rimborsi page (PaymentOverview + CompensationList + ExpenseList + TicketQuickModal)
+    compensi/nuova/page.tsx      → Redirects all roles (collaboratore → /compensi; others → /)
     compensi/[id]/page.tsx       → Compensation detail + timeline + actions
-    rimborsi/page.tsx            → Collaboratore: list own reimbursements
+    rimborsi/page.tsx            → Redirect → /compensi (unified page)
     rimborsi/nuova/page.tsx      → Reimbursement creation form (single step)
     rimborsi/[id]/page.tsx       → Reimbursement detail + timeline + actions
     approvazioni/page.tsx        → Responsabile: pending queue (?tab=compensi|rimborsi)
@@ -81,7 +81,10 @@ app/
     collaboratori/[id]/page.tsx  → Collaborator detail: anagrafica + compensi/rimborsi/documenti + inline pre-approva/integrazioni
     coda/page.tsx                → Admin: pre-approved + approved queue (?tab=compensi|rimborsi)
     export/page.tsx              → Admin: export approved records as CSV/XLSX + bulk mark-paid (?tab=occasionali|piva|rimborsi)
-    documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Collaboratore/responsabile: list + upload (?tab=)
+    documenti/page.tsx           → Admin: 3 tabs (list/upload/cu-batch). Responsabile: list + upload. Collaboratore: redirect → /profilo?tab=documenti
+    eventi/page.tsx              → Collaboratore: events list (read-only, ordered by start_datetime ASC)
+    comunicazioni/page.tsx       → Collaboratore: 2 tabs — Comunicazioni (AnnouncementBoard) + Risorse (ResourceList), read-only
+    opportunita/page.tsx         → Collaboratore: benefits list (BenefitList read-only)
     documenti/[id]/page.tsx      → Document detail with signed URL + sign flow (checkbox gate) + delete section for admin+CONTRATTO
     ticket/page.tsx              → Ticket list (collaboratore: own; admin/responsabile: all + Collaboratore column)
     ticket/nuova/page.tsx        → Create new ticket form
@@ -151,7 +154,7 @@ components/
     MemberStatusManager.tsx       → Collaborator list with member_status dropdown + data_ingresso inline edit
     ContractTemplateManager.tsx   → Admin: upload/replace .docx templates per type (OCCASIONALE/COCOCO/PIVA) + placeholders reference (including 13 CoCoCo-specific vars)
     NotificationSettingsManager.tsx → Admin: toggle grid for in-app + email per event×role (15 rows, optimistic updates)
-  Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell)
+  Sidebar.tsx                    → Role-based navigation sidebar (hosts NotificationBell); renders comingSoon items as non-clickable span with "Presto" badge
   NotificationBell.tsx           → Bell icon + unread badge + dropdown (30s polling, mark-read single on click, mark-all button, dismiss ×, loading/error states, truncation warning, link to /notifiche)
   FeedbackButton.tsx             → Fixed bottom-right floating button (all app pages): opens modal form (categoria/pagina/messaggio/screenshot upload), POST to /api/feedback, success toast
   notifications/
@@ -184,6 +187,7 @@ components/
     TicketStatusBadge.tsx        → Pill badge for ticket status (APERTO=green, IN_LAVORAZIONE=yellow, CHIUSO=gray)
     TicketList.tsx               → Ticket table with status/priority filters + Collaboratore column for admin
     TicketForm.tsx               → Create form (fixed category dropdown, oggetto, optional initial message)
+    TicketQuickModal.tsx         → Self-contained modal with trigger button: opens inline ticket form (categoria/oggetto/messaggio), POST /api/tickets, redirect to /ticket/[id]
     TicketThread.tsx             → Server-side message thread with author labels, closed banner, signed URLs
     TicketMessageForm.tsx        → Reply form (textarea + file) + status change buttons (admin/responsabile)
   admin/
@@ -202,7 +206,7 @@ lib/
   supabase/client.ts             → Browser Supabase client
   supabase/server.ts             → Server Supabase client (SSR)
   types.ts                       → Role, status enums, DB row interfaces (Compensation, Expense, HistoryEvent)
-  nav.ts                         → NAV_BY_ROLE config
+  nav.ts                         → NAV_BY_ROLE config; NavItem supports comingSoon flag (collaboratore: 8 voci semantiche)
   compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (9 actions incl. reject_manager)
   expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (7 actions incl. reject_manager)
   export-utils.ts                → Pure functions: buildCSV, buildXLSXWorkbook, ExportItem type
