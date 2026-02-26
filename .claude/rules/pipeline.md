@@ -16,9 +16,16 @@ CRITICAL: these are non-negotiable process constraints. They apply to EVERY deve
 - Read **only the relevant section** of `docs/requirements.md` for the current block — not the entire file.
 - Check `docs/refactoring-backlog.md`: if there are entries that intersect the current block, include them in the work plan or flag them explicitly.
 - Summarize the block's requirements concisely.
+- **Dependency scan** (mandatory when the block touches existing routes, components, or pages — cannot be skipped): before declaring the file list, grep/glob for ALL usages of affected entities. Minimum checks:
+  1. Every route being moved/repurposed/removed → `grep href="/route"` across all `.tsx`/`.ts`
+  2. Every component being modified → find all import consumers
+  3. Every redirect being added → check breadcrumbs and CTAs in pages that link to the old route
+  4. Check `e2e/` for spec files referencing affected routes or selectors
+  - Use a Task agent (Explore) if the scan requires >3 independent queries.
+  - An incomplete dependency scan = incomplete file list = rework discovered in Phase 2. This is a process error.
 - For broad codebase searches (>3 independent Glob/Grep queries): delegate to a Task agent (Explore) to protect the main context.
 - If anything is ambiguous: use AskUserQuestion BEFORE writing code.
-- Expected output: feature summary, list of files to create/modify, open questions.
+- Expected output: feature summary, **complete** file list verified by dependency scan, open questions.
 - *** STOP — present requirements summary and file list. Wait for explicit confirmation before proceeding. ***
 
 **Phase 1.5 — Design review** *(blocks introducing new patterns, DB schema changes, or touching >5 files)*
@@ -147,6 +154,7 @@ Activate when stakeholders introduce changes to the functional scope that impact
 ## Cross-Cutting Rules
 
 - **Tool permissions**: the user has explicitly authorized autonomous execution of all commands (Bash, curl, npx, tsc, vitest, playwright, git) **except** the explicit STOP gates. Proceed without asking for confirmation for any technical command required by the pipeline.
+- **Dependency scan is mandatory**: whenever a block touches existing routes, components, or pages, always grep for all usages before producing the file list (Phase 1). Do not rely on memory or partial exploration. The user must never need to ask for a deeper analysis — it is your responsibility to deliver a complete file list from the start.
 - **Hard gates**: "STOP" instructions are hard stops. Do not treat them as suggestions.
 - **Even if the plan is pre-written**: still execute phase by phase with the gates. A pre-written plan replaces only Phase 1, it does not compress subsequent phases.
 - **Do not re-read files already in context**: use the already-acquired line reference.
