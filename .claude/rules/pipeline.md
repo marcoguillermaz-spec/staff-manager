@@ -7,6 +7,7 @@ CRITICAL: these are non-negotiable process constraints. They apply to EVERY deve
 ## Mandatory Development Pipeline
 
 **Phase 0 — Session orientation** *(only at the start of each new session or after a context summary)*
+- Read `.claude/CLAUDE.local.md` (always, even if previously read — forces system injection of active local overrides). If the file does not exist, continue.
 - Check `MEMORY.md`: read the **Active plan** section (if present) to re-align on in-progress sessions, then **Lessons/Patterns** for patterns relevant to the current block.
 - If context was compressed (summary): read `docs/implementation-checklist.md` to re-align on current state.
 - Do not re-read files already in the current context — use the already-acquired line reference.
