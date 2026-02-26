@@ -3,21 +3,23 @@
 import { useState, useEffect } from 'react';
 import { CONTRACT_TEMPLATE_LABELS, type ContractTemplateType } from '@/lib/types';
 
-type Role = 'collaboratore' | 'responsabile' | 'amministrazione';
+type Role = 'collaboratore' | 'responsabile_cittadino' | 'responsabile_compensi' | 'responsabile_servizi_individuali' | 'amministrazione';
 type Credentials = { email: string; password: string };
 type Community = { id: string; name: string; is_active: boolean };
 type TemplateStatus = { tipo: ContractTemplateType; file_name: string } | null;
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: 'collaboratore',   label: 'Collaboratore' },
-  { value: 'responsabile',    label: 'Responsabile' },
-  { value: 'amministrazione', label: 'Amministrazione' },
+  { value: 'collaboratore',                    label: 'Collaboratore' },
+  { value: 'responsabile_cittadino',           label: 'Responsabile Cittadino' },
+  { value: 'responsabile_compensi',            label: 'Responsabile Compensi' },
+  { value: 'responsabile_servizi_individuali', label: 'Responsabile Servizi Individuali' },
+  { value: 'amministrazione',                  label: 'Amministrazione' },
 ];
 
 const CONTRACT_TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];
 
 // Roles that require tipo_contratto and have anagrafica pre-fill
-const ROLES_WITH_CONTRACT: Role[] = ['collaboratore', 'responsabile'];
+const ROLES_WITH_CONTRACT: Role[] = ['collaboratore', 'responsabile_compensi'];
 
 const inputCls =
   'w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm text-gray-100 ' +
@@ -104,7 +106,7 @@ export default function CreateUserForm() {
     const body: Record<string, unknown> = {
       email,
       role,
-      community_ids: role === 'responsabile' ? selectedCommunities : [],
+      community_ids: role === 'responsabile_compensi' ? selectedCommunities : [],
     };
 
     if (needsContract) {
@@ -240,7 +242,7 @@ export default function CreateUserForm() {
       </div>
 
       {/* Responsabile → community assignment */}
-      {role === 'responsabile' && communities.length > 0 && (
+      {role === 'responsabile_compensi' && communities.length > 0 && (
         <div>
           <p className={sectionTitle}>Comunità gestite</p>
           <div className="space-y-2">

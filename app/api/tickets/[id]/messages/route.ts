@@ -52,7 +52,7 @@ export async function POST(
   // Explicit access check: only creator or admin/responsabile can reply
   const canAccess =
     ticket.creator_user_id === user.id ||
-    ['amministrazione', 'responsabile'].includes(profile.role);
+    ['amministrazione', 'responsabile_compensi'].includes(profile.role);
 
   if (!canAccess) {
     return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
@@ -126,7 +126,7 @@ export async function POST(
     // Email not implemented for ticket replies (no template for ticket_risposta)
   } else {
     // Collaboratore (creator) replied → notify responsabili (ticket_risposta_collab:responsabile)
-    const setting = settings.get('ticket_risposta_collab:responsabile');
+    const setting = settings.get('ticket_risposta_collab:responsabile_compensi');
     if (setting?.inapp_enabled || setting?.email_enabled) {
       const responsabili = await getResponsabiliForUser(user.id, serviceClient);
       for (const resp of responsabili) {

@@ -28,7 +28,7 @@ export async function GET() {
   const { data: profiles, error: pErr } = await serviceClient
     .from('user_profiles')
     .select('user_id')
-    .eq('role', 'responsabile')
+    .eq('role', 'responsabile_compensi')
     .eq('is_active', true)
     .order('created_at', { ascending: true });
 

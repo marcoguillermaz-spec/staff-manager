@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // For admin/responsabile, enrich with creator name from collaborators
-  const isManager = ['amministrazione', 'responsabile'].includes(profile.role);
+  const isManager = ['amministrazione', 'responsabile_compensi'].includes(profile.role);
   if (isManager && tickets && tickets.length > 0) {
     const creatorIds = [...new Set(tickets.map((t) => t.creator_user_id))];
     const serviceClient = createServiceClient(
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       getNotificationSettings(svc),
       getResponsabiliForUser(user.id, svc),
     ]);
-    const setting = settings.get('ticket_creato:responsabile');
+    const setting = settings.get('ticket_creato:responsabile_compensi');
     if ((setting?.inapp_enabled || setting?.email_enabled) && responsabili.length > 0) {
       const dataFormatted = new Date().toLocaleDateString('it-IT');
       // Get collaborator name for email

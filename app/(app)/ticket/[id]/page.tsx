@@ -111,7 +111,7 @@ export default async function TicketDetailPage({
     }),
   );
 
-  const canChangeStatus = ['amministrazione', 'responsabile'].includes(role);
+  const canChangeStatus = ['amministrazione', 'responsabile_compensi'].includes(role);
 
   return (
     <div className="p-6 max-w-3xl">

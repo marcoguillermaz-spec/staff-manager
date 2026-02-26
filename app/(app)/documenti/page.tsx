@@ -26,7 +26,7 @@ export default async function DocumentiPage({
 
   const role = profile.role as Role;
   const isAdmin = ['amministrazione'].includes(role);
-  const canUpload = isAdmin || ['collaboratore', 'responsabile'].includes(role);
+  const canUpload = isAdmin || ['collaboratore', 'responsabile_compensi'].includes(role);
 
   const { tab: rawTab } = await searchParams;
   const tab = isAdmin

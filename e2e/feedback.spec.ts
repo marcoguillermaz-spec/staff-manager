@@ -157,7 +157,7 @@ test.describe.serial('Feedback tool + login credentials', () => {
 
   // ── S3 ──────────────────────────────────────────────────────────────────────
   test('S3 — responsabile redirect da /feedback', async ({ page }) => {
-    await login(page, 'responsabile@test.com', 'Testbusters123');
+    await login(page, 'responsabile_compensi@test.com', 'Testbusters123');
     await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 20_000 });
 
     await page.goto('/feedback');
@@ -169,7 +169,7 @@ test.describe.serial('Feedback tool + login credentials', () => {
 
   // ── S4 ──────────────────────────────────────────────────────────────────────
   test('S4 — admin vede lista con badge categoria e link screenshot', async ({ page }) => {
-    await login(page, 'admin-test@example.com', 'Testbusters123');
+    await login(page, 'admin@test.com', 'Testbusters123');
     await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 20_000 });
 
     await page.goto('/feedback');

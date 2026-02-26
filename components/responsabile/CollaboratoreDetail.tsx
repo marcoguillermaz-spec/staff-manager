@@ -104,7 +104,7 @@ export default function CollaboratoreDetail({
   const [reasons, setReasons] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const canAct = role === 'responsabile' || role === 'amministrazione';
+  const canAct = role === 'responsabile_compensi' || role === 'amministrazione';
 
   // ── Approve ───────────────────────────────────────────────────────────────
   const handleApprove = async (type: 'comp' | 'exp', id: string) => {

@@ -1,6 +1,6 @@
 /**
  * UAT — Rimozione ruolo super_admin
- * S1: admin-test@example.com accede alla dashboard admin
+ * S1: admin@test.com accede alla dashboard admin
  * S2: Form "Crea utente" non mostra più l'opzione "Super Admin"
  * S3: superadmin@test.com non può fare login (utente eliminato)
  * S4: CHECK constraint DB rifiuta INSERT con role='super_admin'
@@ -25,8 +25,8 @@ async function login(page: Page, email: string, password: string) {
 }
 
 // ── S1 ────────────────────────────────────────────────────────────────────────
-test('S1 — admin-test@example.com accede alle pagine admin riservate', async ({ page }) => {
-  await login(page, 'admin-test@example.com', 'Testbusters123');
+test('S1 — admin@test.com accede alle pagine admin riservate', async ({ page }) => {
+  await login(page, 'admin@test.com', 'Testbusters123');
   await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 20_000 });
 
   // Navigate to an admin-only page — if accessible, the role is correct
@@ -48,7 +48,7 @@ test('S1 — admin-test@example.com accede alle pagine admin riservate', async (
 
 // ── S2 ────────────────────────────────────────────────────────────────────────
 test('S2 — form "Crea utente" non mostra l\'opzione Super Admin', async ({ page }) => {
-  await login(page, 'admin-test@example.com', 'Testbusters123');
+  await login(page, 'admin@test.com', 'Testbusters123');
   await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 20_000 });
 
   // Navigate directly to tab utenti

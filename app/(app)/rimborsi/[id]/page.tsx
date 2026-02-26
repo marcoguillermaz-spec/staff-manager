@@ -50,7 +50,7 @@ export default async function ExpenseDetailPage({
   const backHref =
     role === 'collaboratore'
       ? '/rimborsi'
-      : role === 'responsabile'
+      : role === 'responsabile_compensi'
       ? '/approvazioni?tab=rimborsi'
       : '/coda?tab=rimborsi';
 

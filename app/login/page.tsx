@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const TEST_USERS = [
-  { role: 'Collaboratore', email: 'collaboratore_test@test.com' },
-  { role: 'Responsabile',  email: 'responsabile_test@test.com' },
-  { role: 'Admin',         email: 'admin_test@test.com' },
+  { role: 'Collaboratore',                    email: 'collaboratore_test@test.com' },
+  { role: 'Resp. Cittadino',                  email: 'responsabile_cittadino_test@test.com' },
+  { role: 'Resp. Compensi',                   email: 'responsabile_compensi_test@test.com' },
+  { role: 'Resp. Servizi Ind.',               email: 'responsabile_servizi_individuali_test@test.com' },
+  { role: 'Admin',                            email: 'admin_test@test.com' },
 ] as const;
 
 export default function LoginPage() {

@@ -17,9 +17,9 @@ interface TransitionDef {
 
 export const ALLOWED_EXPENSE_TRANSITIONS: Record<ExpenseAction, TransitionDef> = {
   resubmit:            { fromStates: ['INTEGRAZIONI_RICHIESTE'],            allowedRoles: ['collaboratore'],                  requiresNote: false },
-  approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                   requiresNote: false },
-  request_integration: { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile', 'amministrazione'], requiresNote: true  },
-  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile'],                  requiresNote: false },
+  approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi'],                   requiresNote: false },
+  request_integration: { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi', 'amministrazione'], requiresNote: true  },
+  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi'],                  requiresNote: false },
   approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
   reject:              { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
   mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                   allowedRoles: ['amministrazione'],               requiresNote: false },

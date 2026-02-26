@@ -1,5 +1,10 @@
 // ── Roles ──────────────────────────────────────────────────
-export type Role = 'collaboratore' | 'responsabile' | 'amministrazione';
+export type Role =
+  | 'collaboratore'
+  | 'responsabile_cittadino'
+  | 'responsabile_compensi'
+  | 'responsabile_servizi_individuali'
+  | 'amministrazione';
 
 export type MemberStatus = 'attivo' | 'uscente_con_compenso' | 'uscente_senza_compenso';
 
@@ -224,9 +229,11 @@ export type IntegrationReason = typeof INTEGRATION_REASONS[number];
 
 // ── Role labels (anonymous — shown in timeline) ─────────────
 export const ROLE_LABELS: Record<Role, string> = {
-  collaboratore:   'Collaboratore',
-  responsabile:    'Responsabile',
-  amministrazione: 'Amministrazione',
+  collaboratore:                    'Collaboratore',
+  responsabile_cittadino:           'Responsabile Cittadino',
+  responsabile_compensi:            'Responsabile Compensi',
+  responsabile_servizi_individuali: 'Responsabile Servizi Individuali',
+  amministrazione:                  'Amministrazione',
 };
 
 // ── Status display labels ────────────────────────────────────

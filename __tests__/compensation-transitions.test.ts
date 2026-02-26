@@ -18,7 +18,7 @@ describe('canTransition', () => {
   });
 
   it('responsabile NON può fare mark_paid', () => {
-    const result = canTransition('responsabile', 'APPROVATO_ADMIN', 'mark_paid');
+    const result = canTransition('responsabile_compensi', 'APPROVATO_ADMIN', 'mark_paid');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
@@ -29,18 +29,18 @@ describe('canTransition', () => {
   });
 
   it('transizione da stato non valido → errore', () => {
-    const result = canTransition('responsabile', 'BOZZA', 'approve_manager');
+    const result = canTransition('responsabile_compensi', 'BOZZA', 'approve_manager');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/BOZZA/);
   });
 
   it('request_integration richiede note ≥20 char', () => {
-    const tooShort = canTransition('responsabile', 'INVIATO', 'request_integration', 'breve');
+    const tooShort = canTransition('responsabile_compensi', 'INVIATO', 'request_integration', 'breve');
     expect(tooShort.ok).toBe(false);
     expect((tooShort as { ok: false; reason: string }).reason).toMatch(/20/);
 
     const valid = canTransition(
-      'responsabile',
+      'responsabile_compensi',
       'INVIATO',
       'request_integration',
       'Questa è una nota sufficientemente lunga',
@@ -66,7 +66,7 @@ describe('canTransition', () => {
 
   it('responsabile può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
     const result = canTransition(
-      'responsabile',
+      'responsabile_compensi',
       'INTEGRAZIONI_RICHIESTE',
       'request_integration',
       'Questa è una nota sufficientemente lunga',
@@ -111,15 +111,15 @@ describe('applyTransition', () => {
 
 describe('reject_manager', () => {
   it('responsabile può rifiutare da INVIATO', () => {
-    expect(canTransition('responsabile', 'INVIATO', 'reject_manager').ok).toBe(true);
+    expect(canTransition('responsabile_compensi', 'INVIATO', 'reject_manager').ok).toBe(true);
   });
 
   it('responsabile può rifiutare da INTEGRAZIONI_RICHIESTE', () => {
-    expect(canTransition('responsabile', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
+    expect(canTransition('responsabile_compensi', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
   });
 
   it('responsabile NON può rifiutare da PRE_APPROVATO_RESP', () => {
-    expect(canTransition('responsabile', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
+    expect(canTransition('responsabile_compensi', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
   });
 
   it('collaboratore NON può eseguire reject_manager', () => {

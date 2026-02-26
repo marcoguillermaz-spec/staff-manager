@@ -73,7 +73,7 @@ export default async function ImpostazioniPage({
         const { data: profiles } = await serviceClient
           .from('user_profiles')
           .select('user_id, can_publish_announcements')
-          .eq('role', 'responsabile')
+          .eq('role', 'responsabile_compensi')
           .eq('is_active', true)
           .order('created_at', { ascending: true });
 

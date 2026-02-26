@@ -5,7 +5,7 @@
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
  *   - Migration 007_communities_settings.sql applicata (ALTER TABLE communities ADD COLUMN is_active)
- *   - Utenti test: admin-test@example.com, collaboratore@test.com, responsabile@test.com
+ *   - Utenti test: admin@test.com, collaboratore@test.com, responsabile_compensi@test.com
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -46,7 +46,7 @@ async function dbPatch(table: string, params: string, body: Record<string, unkno
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  admin: { email: 'admin-test@example.com', password: 'Testbusters123' },
+  admin: { email: 'admin@test.com', password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {

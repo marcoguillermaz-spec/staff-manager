@@ -22,7 +22,7 @@ export default async function ApprovazioniPage({
     .single();
 
   if (!profile?.is_active) redirect('/pending');
-  if (profile.role !== 'responsabile') redirect('/');
+  if (profile.role !== 'responsabile_compensi') redirect('/');
 
   const { tab } = await searchParams;
   const activeTab = tab === 'rimborsi' ? 'rimborsi' : 'compensi';

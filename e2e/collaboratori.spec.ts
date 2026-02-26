@@ -4,8 +4,8 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - responsabile@test.com (responsabile) — community Testbusters + Peer4Med
- *   - admin-test@example.com (amministrazione)
+ *   - responsabile_compensi@test.com (responsabile) — community Testbusters + Peer4Med
+ *   - admin@test.com (amministrazione)
  *   - collaboratore@test.com (collaboratore)
  *   - Collab canonico 3a55c2da (Collaboratore Test) in Testbusters + Peer4Med
  */
@@ -58,8 +58,8 @@ const COMMUNITY_ID  = '6a5aeb11-d4bc-4575-84ad-9c343ea95bbf'; // Testbusters
 const RESP_COLLAB_ID = '95ebbfdd-c38f-4686-a731-b19afde6bca3';
 
 const CREDS = {
-  responsabile: { email: 'responsabile@test.com', password: 'Testbusters123' },
-  admin:        { email: 'admin-test@example.com', password: 'Testbusters123' },
+  responsabile: { email: 'responsabile_compensi@test.com', password: 'Testbusters123' },
+  admin:        { email: 'admin@test.com', password: 'Testbusters123' },
   collaboratore:{ email: 'collaboratore@test.com', password: 'Testbusters123' },
 };
 

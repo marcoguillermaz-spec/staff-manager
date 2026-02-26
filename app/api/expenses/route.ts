@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     getCollaboratorInfo(col.id, svc),
     getResponsabiliForCollaborator(col.id, svc),
   ]);
-  const setting = settings.get('rimborso_inviato:responsabile');
+  const setting = settings.get('rimborso_inviato:responsabile_compensi');
   if ((setting?.inapp_enabled || setting?.email_enabled) && responsabili.length > 0) {
     const dataFormatted = parsed.data.data_spesa
       ? new Date(parsed.data.data_spesa).toLocaleDateString('it-IT')

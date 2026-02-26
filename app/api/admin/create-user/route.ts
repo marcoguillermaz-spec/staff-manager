@@ -8,7 +8,7 @@ import { emailInvito } from '@/lib/email-templates';
 
 const schema = z.object({
   email: z.string().email(),
-  role: z.enum(['collaboratore', 'responsabile', 'amministrazione']),
+  role: z.enum(['collaboratore', 'responsabile_cittadino', 'responsabile_compensi', 'responsabile_servizi_individuali', 'amministrazione']),
   community_ids: z.array(z.string().uuid()).optional(),
   // Tipo rapporto (obbligatorio per collaboratore e responsabile)
   tipo_contratto: z.enum(['OCCASIONALE', 'COCOCO', 'PIVA']).optional(),
@@ -83,8 +83,8 @@ export async function POST(request: Request) {
     indirizzo, civico_residenza, telefono,
   } = parsed.data;
 
-  // tipo_contratto is required for collaboratore and responsabile
-  if (['collaboratore', 'responsabile'].includes(role) && !tipo_contratto) {
+  // tipo_contratto is required for collaboratore and responsabile_compensi
+  if (['collaboratore', 'responsabile_compensi'].includes(role) && !tipo_contratto) {
     return NextResponse.json({ error: 'Tipo rapporto obbligatorio' }, { status: 400 });
   }
 
@@ -127,16 +127,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Errore creazione profilo' }, { status: 500 });
   }
 
-  // 3. Assign communities for responsabile
-  if (role === 'responsabile' && community_ids?.length) {
+  // 3. Assign communities for responsabile_compensi
+  if (role === 'responsabile_compensi' && community_ids?.length) {
     await admin.from('user_community_access').insert(
       community_ids.map((cid) => ({ user_id: userId, community_id: cid })),
     );
   }
 
-  // 4. Create collaborators record for collaboratore and responsabile
+  // 4. Create collaborators record for collaboratore and responsabile_compensi
   //    (tipo_contratto is stored here; anagrafica fields are pre-fill — completed during onboarding)
-  if (['collaboratore', 'responsabile'].includes(role) && tipo_contratto) {
+  if (['collaboratore', 'responsabile_compensi'].includes(role) && tipo_contratto) {
     await admin.from('collaborators').insert({
       user_id:             userId,
       email,

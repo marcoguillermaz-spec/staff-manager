@@ -35,8 +35,8 @@ async function dbDelete(table: string, params: string) {
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
   collaboratore: { email: 'collaboratore@test.com',       password: 'Testbusters123' },
-  responsabile:  { email: 'responsabile@test.com',       password: 'Testbusters123' },
-  admin:         { email: 'admin-test@example.com',      password: 'Testbusters123' },
+  responsabile:  { email: 'responsabile_compensi@test.com',       password: 'Testbusters123' },
+  admin:         { email: 'admin@test.com',      password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {

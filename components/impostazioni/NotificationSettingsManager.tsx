@@ -31,8 +31,8 @@ const SECTIONS: { title: string; keys: string[] }[] = [
 ];
 
 const ROLE_LABELS: Record<string, string> = {
-  collaboratore: 'Collaboratore',
-  responsabile:  'Responsabile',
+  collaboratore:         'Collaboratore',
+  responsabile_compensi: 'Responsabile Compensi',
 };
 
 function Toggle({

@@ -17,7 +17,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Contenuti',   href: '/contenuti',   icon: '📋' }, // bacheca + benefit + guide + eventi
   ],
 
-  responsabile: [
+  responsabile_compensi: [
     { label: 'Profilo',      href: '/profilo',      icon: '👤' },
     { label: 'Approvazioni', href: '/approvazioni', icon: '✅' },
     { label: 'Collaboratori',href: '/collaboratori',icon: '👥' },
@@ -25,6 +25,10 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Ticket',       href: '/ticket',       icon: '🎫' },
     { label: 'Contenuti',    href: '/contenuti',    icon: '📋' },
   ],
+
+  responsabile_cittadino: [],
+
+  responsabile_servizi_individuali: [],
 
   amministrazione: [
     { label: 'Dashboard',    href: '/',              icon: '🏠' },

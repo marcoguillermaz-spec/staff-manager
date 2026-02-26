@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
   const isAdmin = ['amministrazione'].includes(profile.role);
-  const canUpload = isAdmin || ['collaboratore', 'responsabile'].includes(profile.role);
+  const canUpload = isAdmin || ['collaboratore', 'responsabile_compensi'].includes(profile.role);
   if (!canUpload) return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
 
   const formData = await request.formData();

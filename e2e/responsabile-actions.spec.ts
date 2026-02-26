@@ -4,8 +4,8 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - responsabile@test.com (responsabile, community Testbusters + Peer4Med)
- *   - admin-test@example.com (amministrazione)
+ *   - responsabile_compensi@test.com (responsabile, community Testbusters + Peer4Med)
+ *   - admin@test.com (amministrazione)
  *   - collaboratore@test.com (collaboratore, collab_id canonico)
  *   - Migration 011_responsabile_publish_permission.sql applicata
  */
@@ -61,8 +61,8 @@ async function dbPatch(table: string, filter: string, body: Record<string, unkno
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  responsabile:  { email: 'responsabile@test.com',  password: 'Testbusters123' },
-  admin:         { email: 'admin-test@example.com', password: 'Testbusters123' },
+  responsabile:  { email: 'responsabile_compensi@test.com',  password: 'Testbusters123' },
+  admin:         { email: 'admin@test.com', password: 'Testbusters123' },
   collaboratore: { email: 'collaboratore@test.com', password: 'Testbusters123' },
 };
 

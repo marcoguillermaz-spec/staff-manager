@@ -28,7 +28,7 @@ export default async function CollaboratoreDetailPage({
 
   if (!profile?.is_active) redirect('/pending');
   const role = profile?.role as Role;
-  if (!['responsabile', 'amministrazione'].includes(role)) redirect('/');
+  if (!['responsabile_compensi', 'amministrazione'].includes(role)) redirect('/');
 
   // ── Fetch collaborator ───────────────────────────────────────────────────
   const { data: collab, error: collabErr } = await svc
@@ -40,7 +40,7 @@ export default async function CollaboratoreDetailPage({
   if (collabErr || !collab) notFound();
 
   // ── Access check for responsabile ───────────────────────────────────────
-  if (role === 'responsabile') {
+  if (role === 'responsabile_compensi') {
     const { data: uca } = await svc
       .from('user_community_access')
       .select('community_id')

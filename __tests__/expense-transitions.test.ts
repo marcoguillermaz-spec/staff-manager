@@ -38,18 +38,18 @@ describe('canExpenseTransition', () => {
 
   // ── responsabile ──────────────────────────────────────────────
   it('responsabile può fare approve_manager da INVIATO', () => {
-    const result = canExpenseTransition('responsabile', 'INVIATO', 'approve_manager');
+    const result = canExpenseTransition('responsabile_compensi', 'INVIATO', 'approve_manager');
     expect(result.ok).toBe(true);
   });
 
   it('responsabile può fare approve_manager da INTEGRAZIONI_RICHIESTE', () => {
-    const result = canExpenseTransition('responsabile', 'INTEGRAZIONI_RICHIESTE', 'approve_manager');
+    const result = canExpenseTransition('responsabile_compensi', 'INTEGRAZIONI_RICHIESTE', 'approve_manager');
     expect(result.ok).toBe(true);
   });
 
   it('responsabile può fare request_integration da INVIATO con nota lunga', () => {
     const result = canExpenseTransition(
-      'responsabile',
+      'responsabile_compensi',
       'INVIATO',
       'request_integration',
       'Questa è una nota sufficientemente lunga per passare la validazione',
@@ -58,20 +58,20 @@ describe('canExpenseTransition', () => {
   });
 
   it('responsabile NON può fare request_integration con nota troppo corta', () => {
-    const result = canExpenseTransition('responsabile', 'INVIATO', 'request_integration', 'breve');
+    const result = canExpenseTransition('responsabile_compensi', 'INVIATO', 'request_integration', 'breve');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/20/);
   });
 
   it('responsabile PUÒ fare request_integration senza nota (UI visibility check)', () => {
     // No note = UI visibility check: skip note validation, show the button
-    const result = canExpenseTransition('responsabile', 'INVIATO', 'request_integration');
+    const result = canExpenseTransition('responsabile_compensi', 'INVIATO', 'request_integration');
     expect(result.ok).toBe(true);
   });
 
   it('responsabile può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
     const result = canExpenseTransition(
-      'responsabile',
+      'responsabile_compensi',
       'INTEGRAZIONI_RICHIESTE',
       'request_integration',
       'Questa è una nota sufficientemente lunga per passare la validazione',
@@ -106,13 +106,13 @@ describe('canExpenseTransition', () => {
   });
 
   it('responsabile NON può fare approve_admin', () => {
-    const result = canExpenseTransition('responsabile', 'PRE_APPROVATO_RESP', 'approve_admin');
+    const result = canExpenseTransition('responsabile_compensi', 'PRE_APPROVATO_RESP', 'approve_admin');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
 
   it('responsabile NON può fare mark_paid', () => {
-    const result = canExpenseTransition('responsabile', 'APPROVATO_ADMIN', 'mark_paid');
+    const result = canExpenseTransition('responsabile_compensi', 'APPROVATO_ADMIN', 'mark_paid');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
@@ -135,7 +135,7 @@ describe('canExpenseTransition', () => {
 
   // ── stato non valido ──────────────────────────────────────────
   it('transizione da stato non valido → errore', () => {
-    const result = canExpenseTransition('responsabile', 'PAGATO', 'approve_manager');
+    const result = canExpenseTransition('responsabile_compensi', 'PAGATO', 'approve_manager');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/PAGATO/);
   });
@@ -179,15 +179,15 @@ describe('applyExpenseTransition', () => {
 
 describe('reject_manager expense', () => {
   it('responsabile può rifiutare da INVIATO', () => {
-    expect(canExpenseTransition('responsabile', 'INVIATO', 'reject_manager').ok).toBe(true);
+    expect(canExpenseTransition('responsabile_compensi', 'INVIATO', 'reject_manager').ok).toBe(true);
   });
 
   it('responsabile può rifiutare da INTEGRAZIONI_RICHIESTE', () => {
-    expect(canExpenseTransition('responsabile', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
+    expect(canExpenseTransition('responsabile_compensi', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
   });
 
   it('responsabile NON può rifiutare da PRE_APPROVATO_RESP', () => {
-    expect(canExpenseTransition('responsabile', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
+    expect(canExpenseTransition('responsabile_compensi', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
   });
 
   it('collaboratore NON può eseguire reject_manager', () => {
@@ -215,7 +215,7 @@ describe('ALLOWED_EXPENSE_TRANSITIONS map', () => {
 
   it('mark_paid è consentito solo ad amministrazione', () => {
     expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).toContain('amministrazione');
-    expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).not.toContain('responsabile');
+    expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).not.toContain('responsabile_compensi');
     expect(ALLOWED_EXPENSE_TRANSITIONS.mark_paid.allowedRoles).not.toContain('collaboratore');
   });
 

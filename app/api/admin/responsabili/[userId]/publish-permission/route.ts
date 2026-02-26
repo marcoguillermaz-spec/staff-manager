@@ -40,8 +40,8 @@ export async function PATCH(
     .eq('user_id', userId)
     .single();
 
-  if (!target || target.role !== 'responsabile') {
-    return NextResponse.json({ error: 'Utente non è un responsabile' }, { status: 400 });
+  if (!target || target.role !== 'responsabile_compensi') {
+    return NextResponse.json({ error: 'Utente non è un responsabile compensi' }, { status: 400 });
   }
 
   const { error } = await svc

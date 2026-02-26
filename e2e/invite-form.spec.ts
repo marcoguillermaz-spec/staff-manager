@@ -44,7 +44,7 @@ async function deleteAuthUser(userId: string) {
 // ── Login helper ──────────────────────────────────────────────────────────────
 async function loginAdmin(page: Page) {
   await page.goto('/login');
-  await page.fill('input[type="email"]', 'admin-test@example.com');
+  await page.fill('input[type="email"]', 'admin@test.com');
   await page.fill('input[type="password"]', 'Testbusters123');
   await page.click('button[type="submit"]');
   await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 15_000 });
@@ -199,7 +199,7 @@ test.describe.serial('Invite form dual-mode UAT', () => {
     await page.click('button:has-text("Invito completo")');
 
     // Seleziona ruolo responsabile
-    await page.locator('select').first().selectOption('responsabile');
+    await page.locator('select').first().selectOption('responsabile_compensi');
 
     // Assegna community (prima checkbox disponibile)
     const communityCheckbox = page.locator('input[type="checkbox"]').first();

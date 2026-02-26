@@ -5,7 +5,7 @@
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
  *   - Migration 008_avatars_bucket.sql applicata
- *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin@test.com
  *   - Collaboratore ID noto: 3a55c2da-4906-42d7-81e1-c7c7b399ab4b
  */
 
@@ -52,7 +52,7 @@ const JPEG_1PX = Buffer.from(
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
   collaboratore: { email: 'collaboratore@test.com',  password: 'Testbusters123' },
-  admin:         { email: 'admin-test@example.com', password: 'Testbusters123' },
+  admin:         { email: 'admin@test.com', password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {

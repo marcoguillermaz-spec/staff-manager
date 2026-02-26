@@ -30,7 +30,7 @@ export default async function TicketPage() {
     .order('created_at', { ascending: false });
 
   if (rawTickets && rawTickets.length > 0) {
-    const isManager = ['amministrazione', 'responsabile'].includes(role);
+    const isManager = ['amministrazione', 'responsabile_compensi'].includes(role);
 
     if (isManager) {
       // Enrich with creator name
@@ -62,7 +62,7 @@ export default async function TicketPage() {
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-100">Ticket</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {['amministrazione', 'responsabile'].includes(role)
+          {['amministrazione', 'responsabile_compensi'].includes(role)
             ? 'Gestione ticket aperti dai collaboratori.'
             : 'Le tue richieste di supporto.'}
         </p>

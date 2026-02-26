@@ -5,7 +5,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utente admin: admin-test@example.com (amministrazione)
+ *   - Utente admin: admin@test.com (amministrazione)
  *   - Template OCCASIONALE caricato (gestito in beforeAll)
  */
 
@@ -78,7 +78,7 @@ async function uploadToStorage(bucket: string, storagePath: string, buffer: Buff
 }
 
 // ── Login helpers ─────────────────────────────────────────────────────────────
-const ADMIN_CREDS = { email: 'admin-test@example.com', password: 'Testbusters123' };
+const ADMIN_CREDS = { email: 'admin@test.com', password: 'Testbusters123' };
 
 async function loginAdmin(page: Page) {
   await page.goto('/login');
@@ -402,7 +402,7 @@ test.describe.serial('Onboarding flow UAT', () => {
 
     await page.fill('input[type="email"]', ADMIN_S8_EMAIL);
     // Change role to responsabile
-    await page.locator('select').nth(0).selectOption('responsabile');
+    await page.locator('select').nth(0).selectOption('responsabile_compensi');
     await page.waitForTimeout(300);
     // Select tipo COCOCO
     await page.locator('select').nth(1).selectOption('COCOCO');
@@ -429,7 +429,7 @@ test.describe.serial('Onboarding flow UAT', () => {
       'user_profiles',
       `user_id=eq.${adminS8UserId}&select=onboarding_completed,role`,
     );
-    expect(profile?.role).toBe('responsabile');
+    expect(profile?.role).toBe('responsabile_compensi');
     expect(profile?.onboarding_completed).toBe(false);
   });
 

@@ -41,7 +41,7 @@ export default function TicketList({
 }) {
   const [filterStato, setFilterStato] = useState<TicketStatus | 'ALL'>('ALL');
 
-  const isManager = ['amministrazione', 'responsabile'].includes(role);
+  const isManager = ['amministrazione', 'responsabile_compensi'].includes(role);
 
   const filtered = filterStato === 'ALL'
     ? tickets

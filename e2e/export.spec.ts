@@ -28,7 +28,7 @@ async function dbFirst<T = unknown>(table: string, params = ''): Promise<T | nul
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  admin: { email: 'admin-test@example.com', password: 'Testbusters123' },
+  admin: { email: 'admin@test.com', password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS = 'admin') {

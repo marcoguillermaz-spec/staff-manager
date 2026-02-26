@@ -4,7 +4,7 @@
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
- *   - Utenti test: collaboratore@test.com (collaboratore), admin-test@example.com (amministrazione)
+ *   - Utenti test: collaboratore@test.com (collaboratore), admin@test.com (amministrazione)
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -50,7 +50,7 @@ async function dbDelete(table: string, params: string) {
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
   collaboratore: { email: 'collaboratore@test.com', password: 'Testbusters123' },
-  admin:         { email: 'admin-test@example.com', password: 'Testbusters123' },
+  admin:         { email: 'admin@test.com', password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {

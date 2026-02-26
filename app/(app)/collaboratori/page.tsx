@@ -36,7 +36,7 @@ export default async function CollaboratoriPage({
 
   if (!profile?.is_active) redirect('/pending');
   const role = profile?.role as Role;
-  if (!['responsabile', 'amministrazione'].includes(role)) redirect('/');
+  if (!['responsabile_compensi', 'amministrazione'].includes(role)) redirect('/');
 
   const { filter: filterParam, page: pageParam } = await searchParams;
   const filter = (['all', 'documenti', 'stallo'].includes(filterParam ?? '') ? filterParam : 'all') as Filter;
@@ -45,7 +45,7 @@ export default async function CollaboratoriPage({
   // ── Step 1: collaborator IDs accessible to this user ────────────────────────
   let allCollaboratorIds: string[] = [];
 
-  if (role === 'responsabile') {
+  if (role === 'responsabile_compensi') {
     const { data: uca } = await svc
       .from('user_community_access')
       .select('community_id')
@@ -137,7 +137,7 @@ export default async function CollaboratoriPage({
   }
 
   const subtitle =
-    role === 'responsabile'
+    role === 'responsabile_compensi'
       ? 'Collaboratori nelle community a te assegnate'
       : 'Tutti i collaboratori';
 
@@ -167,7 +167,7 @@ export default async function CollaboratoriPage({
 
       {allCollaboratorIds.length === 0 ? (
         <p className="text-sm text-gray-500 py-8 text-center">
-          {role === 'responsabile'
+          {role === 'responsabile_compensi'
             ? 'Nessuna community assegnata. Contatta un amministratore.'
             : 'Nessun collaboratore presente.'}
         </p>

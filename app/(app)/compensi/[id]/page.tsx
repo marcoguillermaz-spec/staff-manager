@@ -48,7 +48,7 @@ export default async function CompensationDetailPage({
     .order('created_at', { ascending: true });
 
   const role = profile.role as Role;
-  const backHref = role === 'collaboratore' ? '/compensi' : role === 'responsabile' ? '/approvazioni' : '/coda';
+  const backHref = role === 'collaboratore' ? '/compensi' : role === 'responsabile_compensi' ? '/approvazioni' : '/coda';
 
   return (
     <div className="p-6 max-w-2xl">

@@ -221,7 +221,7 @@ export default async function DashboardPage() {
   const role = profile?.role ?? '';
 
   // ── RESPONSABILE DASHBOARD ────────────────────────────────
-  if (role === 'responsabile') {
+  if (role === 'responsabile_compensi') {
     const svc = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,

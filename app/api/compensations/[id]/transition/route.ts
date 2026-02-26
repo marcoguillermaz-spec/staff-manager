@@ -149,7 +149,7 @@ export async function POST(
 
   // ── Notify responsabili on submit / resubmit ────────────────
   if ((action === 'submit' || action === 'resubmit') && comp.community_id) {
-    const setting = settings.get('comp_inviato:responsabile');
+    const setting = settings.get('comp_inviato:responsabile_compensi');
     if (setting?.inapp_enabled || setting?.email_enabled) {
       const [responsabili, collabInfo, commRes] = await Promise.all([
         getResponsabiliForCommunity(comp.community_id, serviceClient),

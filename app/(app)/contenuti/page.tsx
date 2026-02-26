@@ -9,7 +9,7 @@ import type { Role, Announcement, Benefit, Resource, ContentEvent, Community } f
 
 type Tab = 'bacheca' | 'agevolazioni' | 'guide' | 'eventi';
 
-const WRITE_ROLES_ANNOUNCEMENTS: Role[] = ['amministrazione', 'responsabile'];
+const WRITE_ROLES_ANNOUNCEMENTS: Role[] = ['amministrazione', 'responsabile_compensi'];
 const WRITE_ROLES_CONTENT: Role[] = ['amministrazione'];
 
 export default async function ContenutiPage({
@@ -82,7 +82,7 @@ export default async function ContenutiPage({
     : [];
 
   const canWriteAnnouncements = WRITE_ROLES_ANNOUNCEMENTS.includes(role)
-    && (role !== 'responsabile' || profile.can_publish_announcements === true);
+    && (role !== 'responsabile_compensi' || profile.can_publish_announcements === true);
   const canWriteContent = WRITE_ROLES_CONTENT.includes(role);
 
   const tabCls = (t: Tab) =>

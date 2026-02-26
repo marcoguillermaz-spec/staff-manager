@@ -139,7 +139,7 @@ export async function POST(
 
   // ── Notify responsabili on resubmit ─────────────────────────
   if (action === 'resubmit') {
-    const setting = settings.get('rimborso_inviato:responsabile');
+    const setting = settings.get('rimborso_inviato:responsabile_compensi');
     if (setting?.inapp_enabled || setting?.email_enabled) {
       const [responsabili, collabInfo] = await Promise.all([
         getResponsabiliForCollaborator(expense.collaborator_id, serviceClient),

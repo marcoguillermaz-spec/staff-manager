@@ -75,7 +75,7 @@ export async function getResponsabiliForCommunity(
   const { data: profiles } = await svc
     .from('user_profiles')
     .select('user_id')
-    .eq('role', 'responsabile')
+    .eq('role', 'responsabile_compensi')
     .eq('is_active', true)
     .in('user_id', userIds);
 
@@ -126,7 +126,7 @@ export async function getResponsabiliForCollaborator(
   const { data: profiles } = await svc
     .from('user_profiles')
     .select('user_id')
-    .eq('role', 'responsabile')
+    .eq('role', 'responsabile_compensi')
     .eq('is_active', true)
     .in('user_id', userIds);
 

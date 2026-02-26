@@ -5,7 +5,7 @@
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
  *   - Migration 012_notification_settings.sql applicata (15 righe)
- *   - Utente test: admin-test@example.com / Testbusters123
+ *   - Utente test: admin@test.com / Testbusters123
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -41,7 +41,7 @@ async function dbPatch(table: string, params: string, body: Record<string, unkno
 
 // ── Login helper ──────────────────────────────────────────────────────────────
 const CREDS = {
-  admin: { email: 'admin-test@example.com', password: 'Testbusters123' },
+  admin: { email: 'admin@test.com', password: 'Testbusters123' },
 };
 
 async function login(page: Page, role: keyof typeof CREDS) {
