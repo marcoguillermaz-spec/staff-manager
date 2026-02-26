@@ -36,6 +36,7 @@ CRITICAL: these are non-negotiable process constraints. They apply to EVERY deve
 - *** STOP — wait for design confirmation before writing code. ***
 
 **Phase 2 — Implementation**
+- **First action**: update `docs/requirements.md` with the approved plan for the current block (add or update the relevant section with the feature summary and scope as confirmed in Phase 1/1.5). This persists the approved spec before any code is written.
 - Write the code. Follow the project's Coding Conventions.
 - Do not add unrequested features. No unrequested refactoring.
 - **After every new migration** (`supabase/migrations/NNN_*.sql`): apply **immediately** to the remote DB via Management API (`curl` with `SUPABASE_ACCESS_TOKEN` from `.env.local`) + verify with a SELECT query + add a row to `docs/migrations-log.md`. **Do not wait for tests to discover missing migrations** — finding them in later phases is a process error.
