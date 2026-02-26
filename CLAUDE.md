@@ -1,82 +1,82 @@
 # Staff Manager — Project Context
 
 ## Overview
-Gestionale amministrativo interno per collaboratori COMMUNITY di Testbusters e Peer4Med.
-Gestisce: anagrafica, compensi, rimborsi, documenti, ticket, contenuti.
+Internal admin portal for managing collaborators across Testbusters and Peer4Med communities.
+Handles: personal profiles, compensations, reimbursements, documents, support tickets, content.
 
 ## Tech Stack
-- **Framework**: Next.js 16 (App Router, TypeScript, `output: 'standalone'`). Proxy: `proxy.ts` (non `middleware.ts`), export `proxy()`.
-- **Styling**: Tailwind CSS puro — NO shadcn/ui, NO component library. Dark mode only.
-- **Auth**: Supabase Auth — email/password only. Invite-only, no self-service reset.
-- **Database**: Supabase Postgres, RLS reale su ogni tabella. Project: `nyajqcjqmgxctlqighql`
-- **Storage**: Supabase Storage, bucket privato, signed URLs (1h TTL via service role).
-- **Export**: SheetJS (xlsx) + CSV nativo.
-- **Email**: Resend — fire-and-forget, from `noreply@testbusters.it`. 8 template HTML (E1–E8) in `lib/email-templates.ts`. `APP_URL` env controlla i link CTA.
+- **Framework**: Next.js 16 (App Router, TypeScript, `output: 'standalone'`). Auth proxy: `proxy.ts` (NOT `middleware.ts`), exported as `proxy()`.
+- **Styling**: Plain Tailwind CSS — NO shadcn/ui, NO component library. Dark mode only.
+- **Auth**: Supabase Auth — email/password only. Invite-only, no self-service password reset.
+- **Database**: Supabase Postgres, real RLS on every table. Project ID: `nyajqcjqmgxctlqighql`
+- **Storage**: Supabase Storage, private buckets, signed URLs (1h TTL via service role).
+- **Export**: SheetJS (xlsx) + native CSV.
+- **Email**: Resend — fire-and-forget, from `noreply@testbusters.it`. 8 HTML templates (E1–E8) in `lib/email-templates.ts`. `APP_URL` env var controls all CTA links.
 - **Deploy**: Replit. Build: `npm install && npm run build && cp -r .next/static .next/standalone/.next/static`. Run: `HOSTNAME=0.0.0.0 node .next/standalone/server.js`
 
-## Ruoli RBAC
-| Ruolo | Accesso |
+## RBAC Roles
+| Role | Access |
 |---|---|
-| `collaboratore` | Solo propri record. Auto-modifica: email, IBAN, tel, indirizzo, tshirt, partita_iva, ha_figli_a_carico, avatar. `uscente_senza_compenso`: solo /documenti. |
-| `responsabile_compensi` | Community assegnate. Pre-approvazione + rifiuto diretto (reject_manager) compensi/rimborsi. Pubblica annunci se `can_publish_announcements=true` (default). |
-| `responsabile_cittadino` | *(in definizione — accesso TBD)* |
-| `responsabile_servizi_individuali` | *(in definizione — accesso TBD)* |
-| `amministrazione` | Tutto. Approvazione finale, pagamenti, export, upload documenti, gestione utenti/ruoli/impostazioni. |
+| `collaboratore` | Own records only. Self-editable: email, IBAN, phone, address, tshirt, partita_iva, ha_figli_a_carico, avatar. `uscente_senza_compenso`: read-only access to /documenti only. |
+| `responsabile_compensi` | Assigned communities. Pre-approval + direct rejection (reject_manager) of compensations/reimbursements. Can publish announcements if `can_publish_announcements=true` (default). |
+| `responsabile_cittadino` | *(under definition — access TBD)* |
+| `responsabile_servizi_individuali` | *(under definition — access TBD)* |
+| `amministrazione` | Full access. Final approval, payments, export, document upload, user/role/settings management. |
 
-Member status: `attivo` | `uscente_con_compenso` (vede richieste in corso, no nuovi doc) | `uscente_senza_compenso` (solo doc storici)
+Member status: `attivo` | `uscente_con_compenso` (can view ongoing requests, no new docs) | `uscente_senza_compenso` (historical docs only)
 
-## Workflow Compensi
+## Compensation Workflow
 ```
 BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
                 ↘ INTEGRAZIONI_RICHIESTE ↗  ↘ RIFIUTATO
 ```
-- Rimborsi: stesso flusso, no BOZZA. Integrazioni: testo ≥20 char + checklist motivi.
-- Export "Da pagare": Occasionali e P.IVA separati. Anteprima → CSV/xlsx. Segna pagato singolo/massivo.
-- Documenti: Admin carica PDF → DA_FIRMARE → Collaboratore firma → FIRMATO. CU batch: ZIP+CSV, dedup per CF.
+- Reimbursements: same flow, no BOZZA state. Integration requests require text ≥20 chars + reason checklist.
+- Export "Da pagare": Occasionali and P.IVA tabs separated. Preview → CSV/xlsx. Mark paid individually or in bulk.
+- Documents: Admin uploads PDF → DA_FIRMARE → Collaborator signs → FIRMATO. CU batch: ZIP+CSV, dedup by tax code.
 
-## Navigation per ruolo
-| Ruolo | Voci sidebar |
+## Navigation by Role
+| Role | Sidebar items |
 |---|---|
 | `collaboratore` | Dashboard, Profilo, Compensi, Rimborsi, Documenti, Ticket, Contenuti |
 | `responsabile_compensi` | Profilo, Approvazioni, Collaboratori, Documenti, Ticket, Contenuti |
-| `responsabile_cittadino` | *(da definire)* |
-| `responsabile_servizi_individuali` | *(da definire)* |
+| `responsabile_cittadino` | *(to be defined)* |
+| `responsabile_servizi_individuali` | *(to be defined)* |
 | `amministrazione` | Coda lavoro, Collaboratori, Export, Documenti, Ticket, Contenuti, Impostazioni |
 
 ## Known Patterns
-- **canTransition visibility**: chiamata senza `note` → skip requiresNote check (UI visibility). Validazione nota solo quando `note !== undefined` (path API).
-- **Invite flow**: `admin.auth.admin.createUser({ email_confirm: true })` + `must_change_password: true`. Mostrare email+password nell'UI come backup in caso di mancato recapito Resend.
-- **Primo accesso**: proxy controlla `must_change_password` → `/change-password` → `supabase.auth.updateUser` + POST `clear-force-change`.
-- **Proxy redirect + cookies**: usare `createRedirect(url, supabaseResponse)` che copia i cookie Supabase — altrimenti la sessione si perde nel redirect.
-- **RLS infinite recursion**: `collab_communities_own_read` NON deve fare subquery diretta su `collaborators` → usare `get_my_collaborator_id()` (security definer).
-- **RLS helpers**: `get_my_role()`, `is_active_user()`, `can_manage_community(id)`, `get_my_collaborator_id()` — tutti `SECURITY DEFINER`.
-- **Anonimato timeline**: salvare `role_label` (non `user_id`) in `compensation_history` / `expense_history`.
-- **Playwright timing form→DB**: `Promise.all([page.waitForResponse(...), async () => { fill; click }()])` prima di verificare il DB — senza, la verifica corre prima del completamento API.
-- **Ticket service role**: nelle API route ticket usare sempre `serviceClient` per fetch + insert. Access control esplicito nel codice, non delegato a RLS lato SSR.
-- **Supabase SELECT colonne**: TypeScript non valida i nomi colonna nel `.select()`. Colonna inesistente → `fetchError` silenzioso → 404. Verificare nomi reali con `information_schema.columns` prima di usare nuovi campi.
+- **canTransition visibility**: called without `note` → skip requiresNote check (UI visibility only). Note validation only runs when `note !== undefined` (API path). Without this, "Richiedi integrazioni" button never renders.
+- **Invite flow**: `admin.auth.admin.createUser({ email_confirm: true })` + `must_change_password: true`. Always display email+password in the UI as backup in case Resend delivery fails.
+- **First login**: proxy checks `must_change_password` → redirect to `/change-password` → `supabase.auth.updateUser` + POST `clear-force-change`.
+- **Proxy redirect + cookies**: use `createRedirect(url, supabaseResponse)` which copies Supabase cookies — otherwise the session is lost on redirect.
+- **RLS infinite recursion**: `collab_communities_own_read` must NOT make a direct subquery on `collaborators` → use `get_my_collaborator_id()` (security definer).
+- **RLS helpers**: `get_my_role()`, `is_active_user()`, `can_manage_community(id)`, `get_my_collaborator_id()` — all `SECURITY DEFINER`.
+- **Timeline anonymity**: store `role_label` (not `user_id`) in `compensation_history` / `expense_history`.
+- **Playwright form→DB timing**: use `Promise.all([page.waitForResponse(...), async () => { fill; click }()])` before checking DB — without this, DB assertion runs before the API completes, causing false negatives even when DOM already shows the result.
+- **Ticket service role**: always use `serviceClient` (service role) for fetch + insert in ticket API routes. Explicit access control in code — do NOT delegate to SSR-side RLS.
+- **Supabase SELECT columns**: TypeScript does not validate column names in `.select()`. Non-existent column → silent `fetchError` → 404. Always verify real column names via `information_schema.columns` before using new fields.
 
 ## Coding Conventions
-- UI: **italiano**. Codice/commit: **inglese** (conventional commits).
-- Status/enum: `MAIUSCOLO_SNAKE`. ZodError: `.issues` (non `.errors`).
-- Ogni route API: verificare ruolo chiamante prima di qualsiasi operazione.
+- Product UI language: **Italian**. Code/commits: **English** (conventional commits).
+- Status/enum values: `UPPER_SNAKE_CASE`. ZodError: use `.issues` (not `.errors`).
+- Every API route: verify caller role before any operation.
 
 ## Project Structure
-Struttura codebase autodocumentante — usare Glob/Read/Grep per esplorare.
-Per la storia delle migration: `docs/migrations-log.md`.
+Codebase is self-documenting — use Glob/Read/Grep to explore.
+For migration history: see `docs/migrations-log.md`.
 
-## Documenti di riferimento
-- **Specifica prodotto**: [`docs/requirements.md`](docs/requirements.md) — leggere la sezione pertinente in Fase 1.
-- **Stato avanzamento**: [`docs/implementation-checklist.md`](docs/implementation-checklist.md) — leggere prima di ogni blocco, aggiornare in Fase 8.
-- **Backlog tecnico**: [`docs/refactoring-backlog.md`](docs/refactoring-backlog.md) — verificare in Fase 1, aggiornare in Fase 8.
-- **Migration history**: [`docs/migrations-log.md`](docs/migrations-log.md) — aggiornare in Fase 2 dopo ogni migration.
+## Reference Documents
+- **Product spec**: [`docs/requirements.md`](docs/requirements.md) — read the relevant section in Phase 1.
+- **Progress tracker**: [`docs/implementation-checklist.md`](docs/implementation-checklist.md) — read before each block, update in Phase 8.
+- **Tech debt backlog**: [`docs/refactoring-backlog.md`](docs/refactoring-backlog.md) — check in Phase 1, update in Phase 8.
+- **Migration history**: [`docs/migrations-log.md`](docs/migrations-log.md) — update in Phase 2 after every migration.
 
 ## Workflow Requirements
-Processo di sviluppo obbligatorio: vedi [`.claude/rules/pipeline.md`](.claude/rules/pipeline.md).
+Mandatory development process: see [`.claude/rules/pipeline.md`](.claude/rules/pipeline.md).
 
 ## Phase Plan
-Stato dettagliato in [`docs/implementation-checklist.md`](docs/implementation-checklist.md).
+Full status in [`docs/implementation-checklist.md`](docs/implementation-checklist.md).
 
-- **Phase 1** ✅ COMPLETATA: Auth, Invite utenti, Profilo, Compensi, Rimborsi, Coda lavoro, Export
-- **Phase 2** ✅ COMPLETATA: Documenti + CU batch, Notifiche in-app, Ticket, Contenuti
-- **Phase 3** ✅ COMPLETATA: Impostazioni avanzate, Template contratti + Onboarding, Dashboard collaboratore, Profilo esteso, Onboarding flow, Dashboard responsabile, Dashboard admin, Sezione Collaboratori, Responsabile reject + publish permission, Notifiche email configurabili, Rimozione super_admin, Feedback tool
-- **Revisione requisiti** 🔄 IN CORSO: Blocco 1 (roles rename) ✅ — altri blocchi da definire
+- **Phase 1** ✅ DONE: Auth, User invite, Profile, Compensations, Reimbursements, Work queue, Export
+- **Phase 2** ✅ DONE: Documents + CU batch, In-app notifications, Tickets, Content hub
+- **Phase 3** ✅ DONE: Advanced settings, Contract templates + Onboarding, Collaborator dashboard, Extended profile, Onboarding flow, Manager dashboard, Admin dashboard, Collaborators section, Manager reject + publish permission, Configurable email notifications, Remove super_admin, Feedback tool
+- **Requirements revision** 🔄 IN PROGRESS: Block 1 (roles rename) ✅ — remaining blocks to be defined

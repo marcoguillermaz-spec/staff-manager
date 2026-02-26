@@ -1,155 +1,158 @@
 # Workflow Requirements
 
-CRITICAL: questi sono vincoli di processo non negoziabili. Valgono per OGNI sviluppo — blocchi funzionali, fix, refactoring, feature minori — anche quando il piano completo è fornito in un singolo prompt. Eseguire sempre una fase alla volta e fermarsi ai gate indicati. Non passare alla fase successiva senza conferma esplicita.
+CRITICAL: these are non-negotiable process constraints. They apply to EVERY development task — feature blocks, bug fixes, refactoring, minor features — even when the full plan is provided in a single prompt. Always execute one phase at a time and stop at the indicated gates. Do not proceed to the next phase without explicit confirmation.
 
 ---
 
-## Pipeline obbligatoria per ogni sviluppo
+## Mandatory Development Pipeline
 
-**Fase 0 — Orientamento sessione** *(solo all'inizio di ogni nuova sessione o ripresa da summary)*
-- Verificare `MEMORY.md`: controllare la sezione **Piano attivo** (se presente) per riallinearsi a sessioni in corso, poi **Lezioni/Pattern** per pattern rilevanti al blocco corrente.
-- Se il contesto è stato compresso (summary): leggere `docs/implementation-checklist.md` per riallinearsi allo stato.
-- Non rileggere file già presenti nel contesto corrente — usare la line reference già acquisita.
+**Phase 0 — Session orientation** *(only at the start of each new session or after a context summary)*
+- Check `MEMORY.md`: read the **Active plan** section (if present) to re-align on in-progress sessions, then **Lessons/Patterns** for patterns relevant to the current block.
+- If context was compressed (summary): read `docs/implementation-checklist.md` to re-align on current state.
+- Do not re-read files already in the current context — use the already-acquired line reference.
 
-**Fase 1 — Requisiti**
-- Leggere `docs/implementation-checklist.md` per verificare lo stato corrente e le dipendenze del blocco.
-- Leggere **solo la sezione pertinente** di `docs/requirements.md` — non l'intero file.
-- Verificare `docs/refactoring-backlog.md`: se ci sono voci che intersecano il blocco corrente, includerle nel piano di lavoro o segnalarle esplicitamente.
-- Riformulare i requisiti del blocco in modo sintetico.
-- Per ricerche ampie nel codebase (>3 Glob/Grep indipendenti): delegare a un Task agent Explore.
-- Se qualcosa è ambiguo: usare AskUserQuestion PRIMA di scrivere codice.
-- Output atteso: riepilogo funzionalità, elenco file da creare/modificare, eventuali domande aperte.
-- *** STOP — presentare riepilogo requisiti e lista file da toccare. Attendere conferma esplicita. ***
+**Phase 1 — Requirements**
+- Read `docs/implementation-checklist.md` to verify current state and block dependencies.
+- Read **only the relevant section** of `docs/requirements.md` for the current block — not the entire file.
+- Check `docs/refactoring-backlog.md`: if there are entries that intersect the current block, include them in the work plan or flag them explicitly.
+- Summarize the block's requirements concisely.
+- For broad codebase searches (>3 independent Glob/Grep queries): delegate to a Task agent (Explore) to protect the main context.
+- If anything is ambiguous: use AskUserQuestion BEFORE writing code.
+- Expected output: feature summary, list of files to create/modify, open questions.
+- *** STOP — present requirements summary and file list. Wait for explicit confirmation before proceeding. ***
 
-**Fase 1.5 — Design review** *(blocchi con pattern nuovi, modifiche DB, o >5 file)*
-- Presentare schema del design: flusso dati, strutture dati coinvolte, trade-off principali.
-- Indicare eventuali alternative scartate e motivazione.
-- Per blocchi semplici (≤3 file, nessuna migration, nessun nuovo pattern): saltare indicandolo esplicitamente.
-- *** STOP — attendere conferma del design prima di scrivere codice. ***
+**Phase 1.5 — Design review** *(blocks introducing new patterns, DB schema changes, or touching >5 files)*
+- Present a design outline: data flow, data structures involved, main trade-offs.
+- State any discarded alternatives and rationale.
+- For simple blocks (≤3 files, no migration, no new patterns): skip this phase, stating so explicitly.
+- *** STOP — wait for design confirmation before writing code. ***
 
-**Fase 2 — Implementazione**
-- Scrivere il codice. Rispettare le Coding Conventions del progetto.
-- Non aggiungere feature non richieste. Non refactoring non richiesto.
-- **Dopo ogni nuova migration** (`supabase/migrations/NNN_*.sql`): applicare **immediatamente** al DB remoto via Management API (`curl` con `SUPABASE_ACCESS_TOKEN` da `.env.local`) + verificare con query SELECT + aggiungere riga in `docs/migrations-log.md`. **Non attendere i test per scoprire migrazioni mancanti** — scoprirle in fasi successive è un errore di processo.
-- **Sintassi PostgREST join** (`table!relation`, `!inner`): verificare FK prima di usarla. Se FK assente → query a due step. Query di verifica: `SELECT conname FROM pg_constraint WHERE conrelid='tablename'::regclass AND contype='f';`
-- **Security checklist** (prima del commit intermedio): per ogni route API nuova/modificata: (1) auth check prima di qualsiasi operazione, (2) input validato (Zod), (3) nessun dato sensibile nella response, (4) RLS non aggirata implicitamente.
-- Output atteso: file creati/modificati elencati con path.
+**Phase 2 — Implementation**
+- Write the code. Follow the project's Coding Conventions.
+- Do not add unrequested features. No unrequested refactoring.
+- **After every new migration** (`supabase/migrations/NNN_*.sql`): apply **immediately** to the remote DB via Management API (`curl` with `SUPABASE_ACCESS_TOKEN` from `.env.local`) + verify with a SELECT query + add a row to `docs/migrations-log.md`. **Do not wait for tests to discover missing migrations** — finding them in later phases is a process error.
+- **PostgREST join syntax** (`table!relation`, `!inner`): verify FK existence before using it. If FK absent → two-step query (separate fetches + in-memory merge). Verification query: `SELECT conname FROM pg_constraint WHERE conrelid='tablename'::regclass AND contype='f';`
+- **Security checklist** (before intermediate commit): for every new/modified API route verify: (1) auth check before any operation, (2) input validated (Zod), (3) no sensitive data exposed in response, (4) RLS not implicitly bypassed.
+- Expected output: list of created/modified files with paths.
 
-**Fase 3 — Build + unit test**
-- Eseguire `npx tsc --noEmit` e `npm run build`. Devono terminare senza errori.
-- Eseguire `npx vitest run`. Devono passare tutti.
-- Output atteso: solo riga summary (es. `✓ 106/106`). NON l'output completo.
-- Se qualcosa fallisce: incollare solo le righe di errore, correggere e rieseguire. Non proseguire con errori aperti.
-- Dopo build + test verdi: **fare commit intermedio** (`git add … && git commit`).
+**Phase 3 — Build + unit tests**
+- Run `npx tsc --noEmit` and `npm run build`. Must complete without errors.
+- Run `npx vitest run`. All tests must pass.
+- Expected output: summary line only (e.g. `✓ 106/106`). Do NOT paste full output — reduces token consumption.
+- If something fails: paste only the error lines, fix, and re-run. Do not proceed with open errors.
+- After green build + tests: **make an intermediate commit** (`git add … && git commit`).
 
-**Fase 3b — API integration tests** *(solo se il blocco crea o modifica route API)*
-- Scrivere test core in `__tests__/api/<nome-route>.test.ts` con vitest:
-  - Happy path: status code atteso + campi chiave nel response body
-  - Auth: senza token → 401
-  - Authz: ruolo non autorizzato → 403
-  - Validation: payload invalido → 400
-  - Business rules: violazione vincolo applicativo → codice errore corretto
-  - DB state: dopo scrittura, verificare il record con service role
-- Eseguire `npx vitest run __tests__/api/` — tutti verdi.
-- Output: solo riga summary. Non proseguire con errori aperti.
+**Phase 3b — API integration tests** *(only if the block creates or modifies API routes)*
+- Write core tests in `__tests__/api/<route-name>.test.ts` with vitest:
+  - Happy path: expected status code + key fields in response body
+  - Auth: no token → 401
+  - Authz: unauthorized role → 403
+  - Validation: invalid payload or missing required field → 400
+  - Business rules: application constraint violation → correct error code
+  - DB state: after write, verify expected record with service role
+- Focus on core cases — do not exhaust every combination, cover critical paths.
+- Run `npx vitest run __tests__/api/` — all green.
+- Output: summary line only. Do not proceed with open errors.
 
-**Fase 4 — Definizione UAT**
-- Identificare solo gli scenari **core**: happy path, edge case principale, verifica DB post-operazione.
-- Elencare gli scenari Playwright (S1, S2, …) con: azione, input, verifica attesa.
-- *** STOP — presentare lista scenari e attendere conferma esplicita prima di scrivere l'e2e spec. ***
+**Phase 4 — UAT definition**
+- Identify only **core** coverage scenarios: happy path, main edge case, post-operation DB check. Avoid redundant or purely cosmetic UI scenarios.
+- List Playwright scenarios (S1, S2, …) with: action, input data, expected outcome.
+- *** STOP — present scenario list and wait for explicit confirmation before writing the e2e spec. ***
 
-**Fase 5 — Playwright e2e**
-- Scrivere `e2e/<blocco>.spec.ts` in base agli scenari approvati.
-- Eseguire `npx playwright test e2e/<blocco>.spec.ts`.
-- **Prima di scrivere locatori CSS**: leggere il file del componente target (Read tool) e derivare le classi dal JSX reale — mai assumere dalla memoria.
-- Output atteso: solo riga summary (es. `9 passed (45s)`).
-- Se qualcosa fallisce: incollare solo lo scenario fallito con errore, correggere e rieseguire.
-- Selettori: usare classi CSS esplicite (es. `span.text-green-300`), mai `getByText()` per stati.
+**Phase 5 — Playwright e2e**
+- Write `e2e/<block>.spec.ts` based on approved scenarios.
+- Run `npx playwright test e2e/<block>.spec.ts`.
+- **Before writing CSS selectors**: read the target component file (Read tool) and derive classes from real JSX — never assume from memory. Distinguish shared classes (e.g. `px-5 py-4` on both header and rows) from unique ones (e.g. `space-y-2` on rows only).
+- Expected output: summary line only (e.g. `9 passed (45s)`).
+- If something fails: paste only the failing scenario with error, fix, and re-run. Do not proceed with red tests.
+- Selectors: use explicit CSS class selectors (e.g. `span.text-green-300`) — never `getByText()` for status values (captures partial matches from raw DB Timeline entries).
 
-**Fase 5.5 — Smoke test manuale** *(prima della checklist formale)*
-- Eseguire 3-5 passi rapidi nel browser con l'utenza appropriata per verificare il flusso principale.
-- Output: "smoke test OK" oppure elencare il problema e correggerlo prima di procedere.
+**Phase 5.5 — Manual smoke test** *(before the formal checklist)*
+- Run 3-5 quick steps in the browser with the appropriate test account to verify the main flow.
+- Goal: catch obvious issues (blocked UI, wrong redirect, data not saved) before presenting Phase 6.
+- Output: "smoke test OK" or list the problem and fix it before proceeding.
 
-**Fase 6 — Checklist esiti**
-Presentare questa checklist compilata:
+**Phase 6 — Outcome checklist**
+Present this checklist filled with actual results:
 
 ```
-## Checklist blocco — [Nome Blocco]
+## Block checklist — [Block Name]
 
 ### Build & Test
-- [ ] tsc --noEmit: 0 errori
-- [ ] npm run build: successo
-- [ ] Vitest unit: N/N passati
-- [ ] Vitest API: N/N passati *(se Fase 3b eseguita)*
-- [ ] Playwright e2e: N/N passati *(⏸ sospeso se CLAUDE.local.md attivo)*
+- [ ] tsc --noEmit: 0 errors
+- [ ] npm run build: success
+- [ ] Vitest unit: N/N passed
+- [ ] Vitest API: N/N passed *(if Phase 3b executed)*
+- [ ] Playwright e2e: N/N passed *(⏸ suspended if CLAUDE.local.md active)*
 
-### Funzionalità implementate
-- [ ] [feature 1]: [esito]
+### Implemented features
+- [ ] [feature 1]: [outcome]
 
-### Verifica con utenza reale
-1. [passo]
+### Manual verification
+Steps to verify manually with the appropriate test account:
+1. [step]
 
-### Query SQL di verifica
+### SQL verification queries
 SELECT …;
 
-### File creati / modificati
-- path/to/file.ts — descrizione
+### Created / modified files
+- path/to/file.ts — description
 ```
 
-**Fase 7 — Conferma umana**
-- *** STOP — non dichiarare il blocco completo, non aggiornare documenti, non passare al blocco successivo finché l'utente non risponde con conferma esplicita. ***
+**Phase 7 — Human confirmation**
+- *** STOP — do not declare the block complete, do not update any documents, do not move to the next block until the user responds with explicit confirmation. ***
 
-**Fase 8 — Chiusura blocco**
-Solo dopo conferma esplicita:
-1. Aggiornare `docs/implementation-checklist.md`: segnare il blocco ✅, aggiungere riga nel Log.
-2. Aggiornare `CLAUDE.md` **solo se** il blocco introduce pattern non ovvi, modifica la RBAC, o aggiunge una convenzione non esistente. Non aggiornare per semplici aggiunte di file — Claude le inferisce dal codice.
-3. Aggiornare `README.md` (Project Structure + conteggio test).
-4. Aggiornare `MEMORY.md` **solo se** sono emerse lezioni nuove non già documentate.
-   - Se MEMORY.md supera ~150 righe attive: estrarre il topic in un file separato e sostituire con link.
-5. Se sono emerse criticità strutturali: aprire `docs/refactoring-backlog.md`, verificare duplicati, aggiungere voci.
-6. Commit: `docs/implementation-checklist.md` + `README.md` + `docs/refactoring-backlog.md` se modificato + `docs/migrations-log.md` se modificato. `CLAUDE.md` e `MEMORY.md` in commit separato se aggiornati.
-7. Eseguire `git push` immediatamente dopo il commit.
-8. Eseguire `/compact` per liberare il contesto della sessione corrente.
-
----
-
-## Pipeline per modifiche strutturali da requisiti
-
-Attivare quando gli Stakeholders introducono variazioni al perimetro funzionale che impattano blocchi già implementati. Questa pipeline **precede** la pipeline standard ed è il suo prerequisito.
-
-**Fase R1 — Aggiornamento requisiti**
-- Confrontare la modifica con la sezione pertinente di `docs/requirements.md` attuale.
-- Proporre il testo aggiornato sezione per sezione.
-- *** STOP — attendere approvazione esplicita per ogni sezione prima di scrivere. ***
-
-**Fase R2 — Analisi impatti**
-- Identificare tutti i blocchi già implementati impattati dalla modifica.
-- Per ogni blocco: elencare file coinvolti, logiche da aggiornare, test da rivedere.
-- Verificare `docs/refactoring-backlog.md`: voci esistenti da deprecare, integrare o aggiornare?
-- Output atteso: matrice impatti (blocco → file → tipo modifica) + delta refactoring-backlog.
-
-**Fase R3 — Piano di intervento**
-- Aggiornare `docs/implementation-checklist.md` con il nuovo piano.
-- Aggiornare `docs/refactoring-backlog.md` (depreca voci obsolete, aggiungi criticità emerse).
-- *** STOP — presentare piano completo e attendere conferma esplicita prima di toccare qualsiasi file di codice. ***
-
-**Fase R4 — Esecuzione**
-- Leggere `docs/implementation-checklist.md` — il piano per ogni blocco è già definito e approvato.
-- Procedere blocco per blocco seguendo la pipeline standard (Fasi 0–8).
-- Aggiornare `MEMORY.md` sezione Piano attivo ad ogni step completato.
+**Phase 8 — Block closure**
+Only after explicit confirmation:
+1. Update `docs/implementation-checklist.md`: mark block ✅, add a Log row with date, files, test results, relevant notes.
+2. Update `CLAUDE.md` **only if** the block introduces non-obvious patterns, modifies RBAC, or adds a new coding convention. Do not update for simple file additions — Claude infers structure from code.
+3. Update `README.md` (Project Structure + test counts).
+4. Update `MEMORY.md` **only if** new lessons emerged that are not already documented. Avoid duplications.
+   - If MEMORY.md exceeds ~150 active lines: extract the topic into a separate file and replace with a link.
+5. If structural or design issues emerged: open `docs/refactoring-backlog.md`, check for duplicates, add new entries ordered by topic.
+6. Commit: `docs/implementation-checklist.md` + `README.md` + `docs/refactoring-backlog.md` if modified + `docs/migrations-log.md` if modified. Commit `CLAUDE.md` and `MEMORY.md` separately if updated — never mixed into the code commit.
+7. Run `git push` immediately after the commit.
+8. Run `/compact` to free the current session's context.
 
 ---
 
-## Regole trasversali
+## Pipeline for Structural Requirements Changes
 
-- **Permessi tool**: l'utente ha autorizzato l'esecuzione autonoma di tutti i comandi (Bash, curl, npx, tsc, vitest, playwright, git) **tranne** i gate STOP espliciti. Procedere senza chiedere conferma per qualsiasi comando tecnico.
-- **Gate bloccanti**: le istruzioni "STOP" sono hard stop. Non interpretarli come suggerimenti.
-- **Anche se il piano è già scritto**: eseguire comunque fase per fase con i gate. Il piano pre-scritto sostituisce solo la Fase 1, non comprime le fasi successive.
-- **Non rileggere file già in contesto**: riferirsi alla line reference già acquisita.
-- **Explore agent per ricerche ampie**: se una ricerca richiede >3 query Glob/Grep indipendenti, delegare a `Task subagent_type=Explore`.
-- **Output sintetici**: solo riga summary di build/test. Dettaglio solo in caso di errore.
-- **MEMORY.md compatto**: mantenere sotto ~150 righe attive. Oltre: estrarre topic in file separati e linkare.
-- **Migration immediata**: ogni migration va applicata al DB remoto + verificata con SELECT + loggata in `docs/migrations-log.md` subito dopo la scrittura.
-- **FK check prima di join PostgREST**: `SELECT conname FROM pg_constraint WHERE conrelid='tablename'::regclass AND contype='f'`. Se FK assente: query a due step.
-- **Locatori da JSX reale**: prima di ogni locatore e2e, leggere il componente (Read tool). Classi univoche — non assumere dalla memoria.
-- **Playwright UAT**: selettori CSS classe (es. `span.text-green-300`) per badge di stato. Mai `getByText()` per valori di stato.
+Activate when stakeholders introduce changes to the functional scope that impact already-implemented blocks or the project structure. This pipeline **precedes** the standard development pipeline and is its prerequisite.
+
+**Phase R1 — Requirements update**
+- Compare the change with the relevant section of the current `docs/requirements.md`.
+- Propose updated text section by section.
+- *** STOP — wait for explicit approval of each section before writing anything. ***
+
+**Phase R2 — Impact analysis**
+- Identify all already-implemented blocks impacted by the change.
+- For each block: list affected files, logic to update, tests to revise.
+- Check `docs/refactoring-backlog.md`: can existing entries be deprecated, integrated, or updated in light of the change?
+- Expected output: impact matrix (block → file → change type) + refactoring-backlog delta.
+
+**Phase R3 — Intervention plan**
+- Update `docs/implementation-checklist.md` with the new plan.
+- Update `docs/refactoring-backlog.md` (deprecate obsolete entries, add emerging issues).
+- *** STOP — present the full plan and wait for explicit confirmation before touching any code file. ***
+
+**Phase R4 — Execution**
+- Read `docs/implementation-checklist.md` — the plan for each block is already defined and approved, ready to use.
+- Proceed block by block following the standard pipeline (Phases 0–8).
+- Update `MEMORY.md` Active plan section after each completed step.
+
+---
+
+## Cross-Cutting Rules
+
+- **Tool permissions**: the user has explicitly authorized autonomous execution of all commands (Bash, curl, npx, tsc, vitest, playwright, git) **except** the explicit STOP gates. Proceed without asking for confirmation for any technical command required by the pipeline.
+- **Hard gates**: "STOP" instructions are hard stops. Do not treat them as suggestions.
+- **Even if the plan is pre-written**: still execute phase by phase with the gates. A pre-written plan replaces only Phase 1, it does not compress subsequent phases.
+- **Do not re-read files already in context**: use the already-acquired line reference.
+- **Explore agent for broad searches**: if a search requires >3 independent Glob/Grep queries, delegate to `Task subagent_type=Explore` to protect the main context from verbosity.
+- **Concise output**: always report only the build/test summary line. Paste details only on error.
+- **Keep MEMORY.md compact**: stay under ~150 active lines. Beyond that: extract topics into separate files and link.
+- **Immediate migration**: every `supabase/migrations/*.sql` must be applied to the remote DB immediately after writing (Management API + SELECT verification + `docs/migrations-log.md` entry). Never leave a written migration unapplied before tests.
+- **FK check before PostgREST joins**: `SELECT conname FROM pg_constraint WHERE conrelid='tablename'::regclass AND contype='f'`. If FK absent: two-step query.
+- **Locators from real JSX**: before writing every e2e locator, read the component (Read tool). Identify unique classes for each target element — never assume from memory.
+- **Playwright UAT**: CSS class selectors (e.g. `span.text-green-300`) for status badges. Never `getByText()` for status values.
