@@ -14,6 +14,7 @@
 | 2026-02-26 | Blocco 2 — Ristrutturazione menu collaboratore | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso), smoke test OK | 8 voci nav, unified Compensi e Rimborsi, TicketQuickModal, Profilo e Documenti tabs, 3 nuove pagine (eventi/comunicazioni/opportunita). |
 | 2026-02-27 | Blocco 3 — Correzioni sezione profilo + consolidamento OCCASIONALE | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso) | Rename `ha_figli_a_carico` → `sono_un_figlio_a_carico`, add `importo_lordo_massimale` + progress bar + guide modale, rimozione P.IVA e COCOCO, consolidamento OCCASIONALE. Migrations 018-020. |
 | 2026-02-27 | Blocco 4 — Username generation + validazioni CF/IBAN | ✅ | tsc ✅, build ✅, vitest 129/129 ✅, e2e ⏸ (sospeso) | Migration 021 (username TEXT UNIQUE). `lib/username.ts`. Username auto-generato in create-user, inline edit in CollaboratoreDetail, readonly badge in ProfileForm e OnboardingWizard. CF normalization (alphanumeric+uppercase) in tutti i form. Zod: CF `/^[A-Z0-9]{16}$/` in profile+onboarding, IBAN regex in onboarding. |
+| 2026-02-27 | Blocco 5 — Editing profilo responsabile_compensi + security fix + contratto profilo | ✅ | tsc ✅, build ✅, vitest 141/141 ✅, e2e ⏸ (sospeso) | Fix community check su PATCH username. Nuovo `PATCH /api/admin/collaboratori/[id]/profile` (no IBAN). Form edit in CollaboratoreDetail. `docs/profile-editing-contract.md`. Username `collaboratore_test` generato per utente canonico. |
 
 ---
 
@@ -108,6 +109,21 @@ Unit test da aggiornare:
 | 3a — Rename `ha_figli_a_carico` → `sono_un_figlio_a_carico` | ✅ | Migration 018, 46 occorrenze in 16 file |
 | 3b — Campo `importo_lordo_massimale` + progress bar | ✅ | Migration 019, ProfileForm + PaymentOverview |
 | 3c — Consolidamento OCCASIONALE (rimozione COCOCO/PIVA) | ✅ | Migration 020, rimozione P.IVA, aggiornamento e2e |
+
+---
+
+## Blocco 5 — Editing profilo responsabile_compensi + security fix + contratto profilo ✅
+
+> Requisito: `docs/requirements.md` §5 — Modifica profilo responsabile_compensi
+> Dipendenze: Blocco 4
+
+| Sotto-blocco | Stato | Note |
+|---|---|---|
+| 5a — Security fix community check username | ✅ | `PATCH /api/admin/collaboratori/[id]` ora verifica community per responsabile |
+| 5b — Nuovo endpoint PATCH profile | ✅ | `app/api/admin/collaboratori/[id]/profile/route.ts`, no IBAN, community-scoped |
+| 5c — CollaboratoreDetail edit mode | ✅ | Form toggle con tutti i campi + username + CF normalization |
+| 5d — Profile editing contract | ✅ | `docs/profile-editing-contract.md` + riferimento in CLAUDE.md |
+| 5e — Username test user | ✅ | `collaboratore_test` assegnato a id `3a55c2da` |
 
 ---
 
