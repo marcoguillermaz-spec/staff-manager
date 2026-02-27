@@ -15,6 +15,7 @@
 | 2026-02-27 | Blocco 3 — Correzioni sezione profilo + consolidamento OCCASIONALE | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso) | Rename `ha_figli_a_carico` → `sono_un_figlio_a_carico`, add `importo_lordo_massimale` + progress bar + guide modale, rimozione P.IVA e COCOCO, consolidamento OCCASIONALE. Migrations 018-020. |
 | 2026-02-27 | Blocco 4 — Username generation + validazioni CF/IBAN | ✅ | tsc ✅, build ✅, vitest 129/129 ✅, e2e ⏸ (sospeso) | Migration 021 (username TEXT UNIQUE). `lib/username.ts`. Username auto-generato in create-user, inline edit in CollaboratoreDetail, readonly badge in ProfileForm e OnboardingWizard. CF normalization (alphanumeric+uppercase) in tutti i form. Zod: CF `/^[A-Z0-9]{16}$/` in profile+onboarding, IBAN regex in onboarding. |
 | 2026-02-27 | Blocco 5 — Editing profilo responsabile_compensi + security fix + contratto profilo | ✅ | tsc ✅, build ✅, vitest 141/141 ✅, e2e ⏸ (sospeso) | Fix community check su PATCH username. Nuovo `PATCH /api/admin/collaboratori/[id]/profile` (no IBAN). Form edit in CollaboratoreDetail. `docs/profile-editing-contract.md`. Username `collaboratore_test` generato per utente canonico. |
+| 2026-02-27 | Blocco 6 — Wizard rimborso 3-step + aggiornamento categorie | ✅ | tsc ✅, build ✅, vitest 153/153 ✅, e2e ⏸ (sospeso), smoke test OK | Migration 022 (descrizione nullable). ExpenseForm refactored wizard 3-step (Dati→Allegati→Riepilogo+Conferma). EXPENSE_CATEGORIES: Trasporti/Materiali/Cancelleria. TICKET_CATEGORIES: Generale/Compensi/Documenti/Accesso/Altro. |
 
 ---
 
@@ -138,6 +139,20 @@ Unit test da aggiornare:
 | 4b — create-user API + PATCH endpoint | ✅ | Auto-generation con suffix loop; explicit → 409; PATCH `/api/admin/collaboratori/[id]` |
 | 4c — UI: badge + inline edit + form preview | ✅ | CollaboratoreDetail, ProfileForm, CreateUserForm (quick+full), OnboardingWizard |
 | 4d — Validazioni server-side | ✅ | CF regex in profile+onboarding; IBAN regex in onboarding |
+
+---
+
+## Blocco 6 — Wizard rimborso 3-step + aggiornamento categorie ✅
+
+> Requisito: `docs/requirements.md` §12 — Richiesta rimborso spese e ticket da compensi (Block 6)
+> Dipendenze: Blocco 2, Blocco 3
+
+| Sotto-blocco | Stato | Note |
+|---|---|---|
+| 6a — Migration 022 (descrizione nullable) | ✅ | `ALTER TABLE expense_reimbursements ALTER COLUMN descrizione DROP NOT NULL` |
+| 6b — ExpenseForm wizard 3-step | ✅ | Step 1 (dati), Step 2 (allegati), Step 3 (riepilogo+conferma). Submit unico in Step 3. |
+| 6c — EXPENSE_CATEGORIES aggiornate | ✅ | Trasporti, Vitto, Alloggio, Materiali, Cancelleria, Altro. API Zod aggiornato. |
+| 6d — TICKET_CATEGORIES aggiornate | ✅ | Generale, Compensi, Documenti, Accesso, Altro. TicketQuickModal e TicketForm auto-aggiornati. |
 
 ---
 
