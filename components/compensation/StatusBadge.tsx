@@ -2,7 +2,6 @@ import type { CompensationStatus, ExpenseStatus } from '@/lib/types';
 import { COMPENSATION_STATUS_LABELS, EXPENSE_STATUS_LABELS } from '@/lib/types';
 
 const STATUS_COLORS: Record<CompensationStatus, string> = {
-  BOZZA:     'bg-gray-700 text-gray-300',
   IN_ATTESA: 'bg-blue-900/50 text-blue-300',
   APPROVATO: 'bg-green-900/50 text-green-300',
   RIFIUTATO: 'bg-red-900/50 text-red-300',

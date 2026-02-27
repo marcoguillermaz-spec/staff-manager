@@ -84,20 +84,27 @@ Collaborator(id, user_id, nome, cognome, codice_fiscale, partita_iva?, data_nasc
              importo_lordo_massimale decimal?, tipo_contratto[OCCASIONALE], created_at)
 CollaboratorCommunity(id, collaborator_id, community_id)
 
-Compensation(id, collaborator_id, community_id, tipo[OCCASIONALE|PIVA],
+Compensation(id, collaborator_id, community_id,
              descrizione, periodo_riferimento, data_competenza,
-             importo_lordo, ritenuta_acconto?, importo_netto?,
-             numero_fattura?, data_fattura?, imponibile?, iva_percentuale?, totale_fattura?,
-             stato, manager_approved_by/at, admin_approved_by/at,
-             integration_note, integration_reasons[],
-             paid_at, paid_by, payment_reference?, note_interne?, created_at)
+             importo_lordo, ritenuta_acconto, importo_netto,
+             stato[BOZZA|IN_ATTESA|APPROVATO|RIFIUTATO|LIQUIDATO],
+             approved_by?, approved_at?,
+             rejection_note?,
+             liquidated_at?, liquidated_by?, payment_reference?, note_interne?, created_at)
+             -- Block 7: tipo rimosso (solo OCCASIONALE); campi PIVA rimossi (numero_fattura,
+             -- data_fattura, imponibile, iva_percentuale, totale_fattura); integration_note/reasons
+             -- rimossi; manager/admin_approved_* → approved_by/at; paid_* → liquidated_*
 CompensationAttachment(id, compensation_id, file_url, file_name, created_at)
 CompensationHistory(id, compensation_id, stato_precedente, stato_nuovo,
                     changed_by, role_label, note?, created_at)
 
 ExpenseReimbursement(id, collaborator_id, categoria, descrizione, data_spesa, importo,
-                     stato, manager_approved_by/at, admin_approved_by/at,
-                     integration_note, paid_at, paid_by, payment_reference?, created_at)
+                     stato[IN_ATTESA|APPROVATO|RIFIUTATO|LIQUIDATO],
+                     approved_by?, approved_at?,
+                     rejection_note?,
+                     liquidated_at?, liquidated_by?, payment_reference?, created_at)
+                     -- Block 7: integration_note rimosso; manager/admin_approved_* → approved_by/at;
+                     -- paid_* → liquidated_*
 ExpenseAttachment(id, reimbursement_id, file_url, file_name, created_at)
 ExpenseHistory(id, reimbursement_id, stato_precedente, stato_nuovo,
                changed_by, role_label, note?, created_at)
@@ -125,26 +132,37 @@ Event(id, community_id nullable, titolo, descrizione, start_datetime?, end_datet
 ### 4.1 Compensi
 
 ```
-BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
-                ↘ INTEGRAZIONI_RICHIESTE ↗  ↘ RIFIUTATO
+IN_ATTESA → APPROVATO → LIQUIDATO
+          ↘ RIFIUTATO (rejection_note obbligatoria)
+Da RIFIUTATO: il collaboratore può riaprire → torna a IN_ATTESA
 ```
 
 | Azione | Da stato | A stato | Ruolo |
 |---|---|---|---|
-| submit | BOZZA | INVIATO | collaboratore |
-| withdraw | INVIATO | BOZZA | collaboratore |
-| resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
-| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile_compensi |
-| request_integration | INVIATO / INTEGRAZIONI_RICHIESTE | INTEGRAZIONI_RICHIESTE | responsabile_compensi / amministrazione |
-| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
-| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
-| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
+| crea | — | IN_ATTESA | responsabile_compensi / amministrazione |
+| reopen | RIFIUTATO | IN_ATTESA | collaboratore |
+| approve | IN_ATTESA | APPROVATO | responsabile_compensi / amministrazione |
+| approve_all | IN_ATTESA (tutti community) | APPROVATO | responsabile_compensi |
+| reject | IN_ATTESA | RIFIUTATO | responsabile_compensi / amministrazione |
+| mark_liquidated | APPROVATO | LIQUIDATO | responsabile_compensi / amministrazione |
 
-Integrazioni richieste: obbligatorio testo "Cosa manca" (≥ 20 caratteri) + checklist motivi [Allegato mancante, Dati incompleti, Importo non coerente, Periodo non valido, Altro].
+Rifiuto: `rejection_note` testo libero obbligatoria. Visibile al collaboratore nel dettaglio.
+Approvazione responsabile = definitiva (nessuna doppia conferma admin).
+
+**Caricamento compensi** (responsabile_compensi / amministrazione):
+- Modalità singola: wizard 3-step (seleziona collaboratore → dati compenso → riepilogo) — nasce IN_ATTESA
+- Modalità batch: import da file XLS/CSV (futuro blocco dedicato — placeholder UI)
+- Campo `corso_appartenenza` (opzionale): libero testo, identifica il corso di riferimento
+- Community del compenso: intersezione community del responsabile ∩ community del collaboratore (se unica: auto; se multipla: dropdown in Step 2)
 
 ### 4.2 Rimborsi
 
-Flusso identico ai compensi, senza stato BOZZA (creati direttamente come INVIATO). Allegati ricevute. Export dedicato "Da pagare".
+```
+IN_ATTESA → APPROVATO → LIQUIDATO
+         ↘ RIFIUTATO (rejection_note obbligatoria)
+```
+
+Stessa action table dei compensi senza submit/withdraw/reopen (creati direttamente IN_ATTESA — niente BOZZA). Allegati ricevute. Export dedicato "Da pagare".
 
 ### 4.3 Documenti
 
@@ -170,11 +188,10 @@ Thread messaggi + allegati, stati APERTO / IN_LAVORAZIONE / CHIUSO, notifiche in
 
 ### 4.5 Export
 
-**Compensi "Da pagare"** (stato = APPROVATO_ADMIN):
-- Occasionali: Nome, Cognome, CF, Community, Periodo, Causale, Data competenza, Lordo, Ritenuta, Netto, IBAN
-- P.IVA: Nome/Cognome, P.IVA, Community, N. fattura, Data fattura, Imponibile, IVA%, Totale, IBAN, Note
+**Compensi "Da pagare"** (stato = APPROVATO):
+- Nome, Cognome, CF, Community, Periodo, Causale, Data competenza, Lordo, Ritenuta, Netto, IBAN
 
-**Rimborsi "Da pagare"** (stato = APPROVATO_ADMIN):
+**Rimborsi "Da pagare"** (stato = APPROVATO):
 - Nome, Cognome, CF, Community, Categoria, Data spesa, Importo, IBAN, Note
 
 ---
@@ -214,8 +231,9 @@ Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collabor
 ## 6. Requisiti UX (vincolanti)
 
 - **Anonimato**: collaboratore non vede nome/email di chi approva. Timeline mostra solo "Responsabile" / "Amministrazione"
-- **Integrazioni**: testo ≥ 20 caratteri + checklist motivi obbligatoria. Il collaboratore vede banner + elenco puntato + bottone unico "Carica integrazione"
-- **Pagamenti**: admin può "Segna pagato" singolo (da dettaglio) e massivo (multi-selezione). `paid_at` automatico. `payment_reference` opzionale ma consigliato
+- **Rifiuto**: `rejection_note` testo libero obbligatoria. Il collaboratore vede la nota nel dettaglio e può riaprire il compenso (→ BOZZA) per modificarlo e reinviarlo
+- **Liquidazione**: responsabile_compensi e admin possono "Segna liquidato" singolo (da dettaglio) e massivo. `liquidated_at` automatico. `payment_reference` opzionale ma consigliato
+- **Approva tutte**: responsabile può approvare in blocco tutti i compensi/rimborsi IN_ATTESA della community
 - **Filtro default**: "Solo cose che richiedono la mia azione" attivo di default per Responsabile e Admin
 - **Wizard**: max 3 step per creare richieste (Dati → Allegati → Riepilogo e invio)
 - **Timeline**: sempre visibile nel dettaglio richiesta
@@ -234,7 +252,6 @@ Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collabor
 ## 8. Notifiche (in-app, minimo)
 
 ### 8.1 Trigger eventi
-- Integrazioni richieste (cambio stato)
 - Documento da firmare assegnato
 - Documento firmato ricevuto (notifica ad admin)
 - Risposta ticket
@@ -279,9 +296,9 @@ Coda lavoro (tab: Da approvare / Documenti da firmare / Ticket aperti), Collabor
 Pagina principale del collaboratore. Attualmente placeholder "In costruzione".
 
 ### Card di riepilogo (3 card grandi)
-Ogni card mostra: conteggio richieste attive + importo totale in euro + conteggio richieste in attesa di pagamento (APPROVATO_ADMIN) + relativo importo.
+Ogni card mostra: conteggio richieste attive + importo totale in euro + conteggio richieste in attesa liquidazione (APPROVATO) + relativo importo.
 
-- **Compensi**: richieste attive (stato ≠ PAGATO, ≠ RIFIUTATO) + di cui in attesa pagamento
+- **Compensi**: richieste attive (stato ≠ LIQUIDATO, ≠ RIFIUTATO) + di cui in attesa liquidazione (APPROVATO)
 - **Rimborsi**: stessa logica compensi, conteggi e importi separati
 - **Documenti da firmare**: solo conteggio documenti in stato DA_FIRMARE
 
@@ -292,7 +309,7 @@ Ogni card mostra: conteggio richieste attive + importo totale in euro + conteggi
 
 ### "Cosa mi manca"
 Sezione che segnala azioni richieste al collaboratore. Trigger:
-- Richieste in stato INTEGRAZIONI_RICHIESTE → "Hai X richiesta/e che richiedono integrazione"
+- Richieste in stato RIFIUTATO → "Hai X richiesta/e rifiutata/e da riaprire"
 - Documenti in stato DA_FIRMARE → "Hai X documento/i da firmare"
 - Ticket aperti senza risposta del collaboratore (ultimo messaggio non è dell'utente corrente)
 - Profilo incompleto: campi obbligatori mancanti (IBAN, codice fiscale) → "Completa il tuo profilo"
@@ -337,17 +354,16 @@ Tipo contratto unificato a solo `OCCASIONALE` (migration 020 — rimosse COCOCO/
 
 ### Panoramica pagamenti — pagina Compensi
 Sezione "I miei pagamenti" posizionata in testa alla pagina `/compensi`, con due card:
-- **Compensi ricevuti**: breakdown per anno — totale PAGATO per anno corrente e anni precedenti
+- **Compensi ricevuti**: breakdown per anno — totale LIQUIDATO per anno corrente e anni precedenti
 - **Rimborsi ricevuti**: stesso breakdown per anno
 
-Importi "in attesa" (INVIATO + INTEGRAZIONI_RICHIESTE + PRE_APPROVATO_RESP + APPROVATO_ADMIN) mostrati separatamente sotto le card come riga riepilogativa.
+Importi "in attesa" (IN_ATTESA + APPROVATO) mostrati separatamente sotto le card come riga riepilogativa.
 Calcolato dinamicamente — nessun campo persisted.
 
 ### Massimale lordo annuo (`importo_lordo_massimale`)
 - Campo collaborator-editable nel profilo; valore max 5000€; nullable (= nessun massimale impostato).
-- Se impostato: progress bar nella pagina Compensi che mostra `somma importo_lordo compensi PAGATO anno corrente / massimale`.
+- Se impostato: progress bar nella pagina Compensi che mostra `somma importo_lordo compensi LIQUIDATO anno corrente / massimale`.
   - Progress bar non mostrata se `importo_lordo_massimale IS NULL`.
-  - ⚠️ Lo stato `PAGATO` sarà rivisto nel blocco compensation workflow — aggiornare la logica di calcolo contestualmente.
 - La legislazione italiana prevede due soglie standard di riferimento:
   - Prestazioni occasionali: 5000€/anno
   - Figlio fiscalmente a carico: ~2840€/anno (varia; vedi guida `detrazioni-figli`)
@@ -357,7 +373,7 @@ Calcolato dinamicamente — nessun campo persisted.
 - Unico tipo contratto supportato: `OCCASIONALE` (Block 3 — rimossi COCOCO e PIVA).
 - Il campo `tipo_contratto` su `collaborators` non è più editabile dall'utente; hardcodato a `OCCASIONALE` alla creazione.
 - Template contratto: solo template di tipo OCCASIONALE gestito da admin in Impostazioni.
-- Il `tipo` sui record `compensations` (OCCASIONALE/PIVA) rimane distinto e invariato — riguarda la modalità di pagamento, non il template contratto. Da rivedere nel blocco compensation workflow.
+- Il campo `tipo` sui record `compensations` è stato rimosso in Block 7 (PIVA eliminato — solo OCCASIONALE supportato).
 
 ### Username collaboratore (Block 4)
 - Colonna `username TEXT UNIQUE` su `collaborators` (nullable per i record pre-esistenti).

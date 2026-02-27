@@ -7,7 +7,7 @@ import type { AdminDashboardData } from '@/components/admin/types';
 
 // ── Constants ──────────────────────────────────────────────
 const ACTIVE_STATES = new Set([
-  'BOZZA', 'IN_ATTESA', 'APPROVATO',
+  'IN_ATTESA', 'APPROVATO',
 ]);
 
 const ACTION_LABELS: Record<string, string> = {
@@ -298,7 +298,7 @@ export default async function DashboardPage() {
       noCollabs ? resolve<SComp>([]) : svc.from('compensations')
         .select('id, collaborator_id, community_id')
         .in('collaborator_id', allCollabIds)
-        .neq('stato', 'LIQUIDATO').neq('stato', 'RIFIUTATO').neq('stato', 'BOZZA'),
+        .neq('stato', 'LIQUIDATO').neq('stato', 'RIFIUTATO'),
       noCollabs ? resolve<SExp>([]) : svc.from('expense_reimbursements')
         .select('id, collaborator_id')
         .in('collaborator_id', allCollabIds)

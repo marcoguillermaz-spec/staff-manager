@@ -9,7 +9,6 @@ import type { Role, CompensationStatus } from '@/lib/types';
 import {
   buildCompensationNotification,
   COMPENSATION_NOTIFIED_ACTIONS,
-  buildCompensationSubmitNotification,
 } from '@/lib/notification-utils';
 import type { NotificationPayload } from '@/lib/notification-utils';
 import {
@@ -22,13 +21,10 @@ import {
   emailApprovato,
   emailRifiutato,
   emailPagato,
-  emailNuovoInviato,
 } from '@/lib/email-templates';
 
 const transitionSchema = z.object({
   action: z.enum([
-    'submit',
-    'withdraw',
     'reopen',
     'approve',
     'reject',
@@ -103,7 +99,7 @@ export async function POST(
   }
 
   // Use service role to bypass RLS for transitions the collaboratore RLS doesn't cover
-  // (withdraw: IN_ATTESA→BOZZA, reopen: RIFIUTATO→BOZZA)
+  // (reopen: RIFIUTATO→IN_ATTESA)
   const serviceClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -136,40 +132,6 @@ export async function POST(
 
   // Load notification settings
   const settings = await getNotificationSettings(serviceClient);
-
-  // ── Notify responsabili on submit ────────────────────────────
-  if (action === 'submit' && comp.community_id) {
-    const setting = settings.get('comp_inviato:responsabile_compensi');
-    if (setting?.inapp_enabled || setting?.email_enabled) {
-      const [responsabili, collabInfo, commRes] = await Promise.all([
-        getResponsabiliForCommunity(comp.community_id, serviceClient),
-        getCollaboratorInfo(comp.collaborator_id, serviceClient),
-        serviceClient.from('communities').select('name').eq('id', comp.community_id).single(),
-      ]);
-      const communityName = (commRes.data as { name?: string } | null)?.name ?? '';
-      const dataFormatted = comp.data_competenza
-        ? new Date(comp.data_competenza).toLocaleDateString('it-IT')
-        : '';
-      for (const resp of responsabili) {
-        if (setting.inapp_enabled) {
-          await serviceClient
-            .from('notifications')
-            .insert(buildCompensationSubmitNotification(resp.user_id, id));
-        }
-        if (setting.email_enabled && resp.email) {
-          const { subject, html } = emailNuovoInviato({
-            nomeResponsabile: resp.nome,
-            nomeCollaboratore: `${collabInfo?.nome ?? ''} ${collabInfo?.cognome ?? ''}`.trim(),
-            tipo: 'Compenso',
-            importo: comp.importo_lordo ?? 0,
-            community: communityName,
-            data: dataFormatted,
-          });
-          sendEmail(resp.email, subject, html).catch(() => {});
-        }
-      }
-    }
-  }
 
   // ── Notify collaboratore on manager/admin actions ─────────────
   if ((COMPENSATION_NOTIFIED_ACTIONS as string[]).includes(action)) {

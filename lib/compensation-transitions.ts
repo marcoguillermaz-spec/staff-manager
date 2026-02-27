@@ -1,8 +1,6 @@
 import type { Role, CompensationStatus } from './types';
 
 export type CompensationAction =
-  | 'submit'
-  | 'withdraw'
   | 'reopen'
   | 'approve'
   | 'reject'
@@ -15,8 +13,6 @@ interface TransitionDef {
 }
 
 export const ALLOWED_TRANSITIONS: Record<CompensationAction, TransitionDef> = {
-  submit:          { fromStates: ['BOZZA'],     allowedRoles: ['collaboratore'],                              requiresNote: false },
-  withdraw:        { fromStates: ['IN_ATTESA'], allowedRoles: ['collaboratore'],                              requiresNote: false },
   reopen:          { fromStates: ['RIFIUTATO'], allowedRoles: ['collaboratore'],                              requiresNote: false },
   approve:         { fromStates: ['IN_ATTESA'], allowedRoles: ['responsabile_compensi', 'amministrazione'],   requiresNote: false },
   reject:          { fromStates: ['IN_ATTESA'], allowedRoles: ['responsabile_compensi', 'amministrazione'],   requiresNote: true  },
@@ -24,9 +20,7 @@ export const ALLOWED_TRANSITIONS: Record<CompensationAction, TransitionDef> = {
 };
 
 export const ACTION_TO_STATE: Record<CompensationAction, CompensationStatus> = {
-  submit:          'IN_ATTESA',
-  withdraw:        'BOZZA',
-  reopen:          'BOZZA',
+  reopen:          'IN_ATTESA',
   approve:         'APPROVATO',
   reject:          'RIFIUTATO',
   mark_liquidated: 'LIQUIDATO',

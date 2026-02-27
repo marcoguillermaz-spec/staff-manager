@@ -1,4 +1,4 @@
-import type { Compensation, CompensationAttachment } from '@/lib/types';
+import type { Compensation } from '@/lib/types';
 import StatusBadge from './StatusBadge';
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -22,10 +22,8 @@ function formatCurrency(n: number | null) {
 
 export default function CompensationDetail({
   compensation,
-  attachments,
 }: {
   compensation: Compensation & { communities?: { name: string } | null };
-  attachments: CompensationAttachment[];
 }) {
   const c = compensation;
 
@@ -76,29 +74,6 @@ export default function CompensationDetail({
         </div>
       )}
 
-      {/* Attachments */}
-      {attachments.length > 0 && (
-        <div className="rounded-xl bg-gray-900 border border-gray-800 px-4 py-3">
-          <p className="text-xs font-medium text-gray-400 mb-2">Allegati</p>
-          <ul className="space-y-1.5">
-            {attachments.map((att) => (
-              <li key={att.id}>
-                <a
-                  href={att.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition"
-                >
-                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
-                  {att.file_name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

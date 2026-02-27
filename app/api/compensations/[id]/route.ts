@@ -22,12 +22,6 @@ export async function GET(
     return NextResponse.json({ error: 'Compenso non trovato' }, { status: 404 });
   }
 
-  const { data: attachments } = await supabase
-    .from('compensation_attachments')
-    .select('*')
-    .eq('compensation_id', id)
-    .order('created_at', { ascending: true });
-
   const { data: history } = await supabase
     .from('compensation_history')
     .select('*')
@@ -36,7 +30,6 @@ export async function GET(
 
   return NextResponse.json({
     compensation,
-    attachments: attachments ?? [],
     history: history ?? [],
   });
 }

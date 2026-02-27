@@ -9,7 +9,6 @@ import StatusBadge from './StatusBadge';
 type CompensationRow = Compensation & { communities?: { name: string } | null };
 
 const ALL_STATI: CompensationStatus[] = [
-  'BOZZA',
   'IN_ATTESA',
   'APPROVATO',
   'RIFIUTATO',

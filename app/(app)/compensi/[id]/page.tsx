@@ -35,12 +35,6 @@ export default async function CompensationDetailPage({
 
   if (error || !compensation) notFound();
 
-  const { data: attachments } = await supabase
-    .from('compensation_attachments')
-    .select('*')
-    .eq('compensation_id', id)
-    .order('created_at', { ascending: true });
-
   const { data: history } = await supabase
     .from('compensation_history')
     .select('*')
@@ -63,7 +57,6 @@ export default async function CompensationDetailPage({
       <div className="space-y-6">
         <CompensationDetail
           compensation={compensation}
-          attachments={attachments ?? []}
         />
 
         <ActionPanel

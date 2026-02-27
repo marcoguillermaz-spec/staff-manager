@@ -57,12 +57,6 @@ export default function ActionPanel({ compensationId, stato, role }: ActionPanel
     onClick: () => void;
   }> = [];
 
-  if (canTransition(role, stato, 'submit').ok) {
-    actions.push({ action: 'submit', label: 'Invia', variant: 'primary', onClick: () => perform('submit') });
-  }
-  if (canTransition(role, stato, 'withdraw').ok) {
-    actions.push({ action: 'withdraw', label: 'Ritira in bozza', variant: 'secondary', onClick: () => perform('withdraw') });
-  }
   if (canTransition(role, stato, 'reopen').ok) {
     actions.push({ action: 'reopen', label: 'Riapri', variant: 'secondary', onClick: () => perform('reopen') });
   }

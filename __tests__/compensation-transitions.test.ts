@@ -6,14 +6,6 @@ import {
 } from '../lib/compensation-transitions';
 
 describe('canTransition — collaboratore', () => {
-  it('può fare submit da BOZZA', () => {
-    expect(canTransition('collaboratore', 'BOZZA', 'submit').ok).toBe(true);
-  });
-
-  it('può fare withdraw da IN_ATTESA', () => {
-    expect(canTransition('collaboratore', 'IN_ATTESA', 'withdraw').ok).toBe(true);
-  });
-
   it('può fare reopen da RIFIUTATO', () => {
     expect(canTransition('collaboratore', 'RIFIUTATO', 'reopen').ok).toBe(true);
   });
@@ -61,10 +53,10 @@ describe('canTransition — responsabile_compensi', () => {
     expect(canTransition('responsabile_compensi', 'APPROVATO', 'mark_liquidated').ok).toBe(true);
   });
 
-  it('NON può fare approve da BOZZA', () => {
-    const result = canTransition('responsabile_compensi', 'BOZZA', 'approve');
+  it('NON può fare approve da RIFIUTATO', () => {
+    const result = canTransition('responsabile_compensi', 'RIFIUTATO', 'approve');
     expect(result.ok).toBe(false);
-    expect((result as { ok: false; reason: string }).reason).toMatch(/BOZZA/);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/RIFIUTATO/);
   });
 });
 
@@ -89,24 +81,16 @@ describe('canTransition — stato non valido', () => {
     expect((result as { ok: false; reason: string }).reason).toMatch(/LIQUIDATO/);
   });
 
-  it('submit da IN_ATTESA → errore stato', () => {
-    const result = canTransition('collaboratore', 'IN_ATTESA', 'submit');
+  it('approve da IN_ATTESA dopo reopen → non possibile per collaboratore', () => {
+    const result = canTransition('collaboratore', 'IN_ATTESA', 'approve');
     expect(result.ok).toBe(false);
-    expect((result as { ok: false; reason: string }).reason).toMatch(/IN_ATTESA/);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
 });
 
 describe('applyTransition', () => {
-  it('submit → IN_ATTESA', () => {
-    expect(applyTransition('submit')).toBe('IN_ATTESA');
-  });
-
-  it('withdraw → BOZZA', () => {
-    expect(applyTransition('withdraw')).toBe('BOZZA');
-  });
-
-  it('reopen → BOZZA', () => {
-    expect(applyTransition('reopen')).toBe('BOZZA');
+  it('reopen → IN_ATTESA', () => {
+    expect(applyTransition('reopen')).toBe('IN_ATTESA');
   });
 
   it('approve → APPROVATO', () => {
@@ -123,17 +107,17 @@ describe('applyTransition', () => {
 });
 
 describe('ALLOWED_TRANSITIONS map', () => {
-  it('contains exactly 6 defined actions', () => {
+  it('contains exactly 4 defined actions', () => {
     const actions = Object.keys(ALLOWED_TRANSITIONS);
-    expect(actions).toHaveLength(6);
+    expect(actions).toHaveLength(4);
   });
 
   it('reject.requiresNote è true', () => {
     expect(ALLOWED_TRANSITIONS.reject.requiresNote).toBe(true);
   });
 
-  it('submit.requiresNote è false', () => {
-    expect(ALLOWED_TRANSITIONS.submit.requiresNote).toBe(false);
+  it('reopen parte da RIFIUTATO e va a IN_ATTESA', () => {
+    expect(ALLOWED_TRANSITIONS.reopen.fromStates).toContain('RIFIUTATO');
   });
 
   it('nessuna azione parte da LIQUIDATO (terminale)', () => {

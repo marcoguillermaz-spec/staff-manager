@@ -10,7 +10,6 @@ export type MemberStatus = 'attivo' | 'uscente_con_compenso' | 'uscente_senza_co
 
 // ── Compensation ────────────────────────────────────────────
 export type CompensationStatus =
-  | 'BOZZA'
   | 'IN_ATTESA'
   | 'APPROVATO'
   | 'RIFIUTATO'
@@ -209,7 +208,6 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 // ── Status display labels ────────────────────────────────────
 export const COMPENSATION_STATUS_LABELS: Record<CompensationStatus, string> = {
-  BOZZA:     'Bozza',
   IN_ATTESA: 'In attesa',
   APPROVATO: 'Approvato',
   RIFIUTATO: 'Rifiutato',
@@ -292,13 +290,6 @@ export interface Compensation {
   updated_at: string;
 }
 
-export interface CompensationAttachment {
-  id: string;
-  compensation_id: string;
-  file_url: string;
-  file_name: string;
-  created_at: string;
-}
 
 export interface CompensationHistory {
   id: string;
