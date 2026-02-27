@@ -33,7 +33,7 @@ export default async function CollaboratoreDetailPage({
   // ── Fetch collaborator ───────────────────────────────────────────────────
   const { data: collab, error: collabErr } = await svc
     .from('collaborators')
-    .select('id, user_id, nome, cognome, codice_fiscale, telefono, email, tipo_contratto, data_ingresso, luogo_nascita, comune, indirizzo')
+    .select('id, user_id, nome, cognome, codice_fiscale, telefono, email, tipo_contratto, data_ingresso, luogo_nascita, comune, indirizzo, username')
     .eq('id', id)
     .maybeSingle();
 
@@ -159,6 +159,7 @@ export default async function CollaboratoreDetailPage({
         luogo_nascita: collab.luogo_nascita,
         comune: collab.comune,
         indirizzo: collab.indirizzo,
+        username: collab.username ?? null,
       }}
       memberStatus={memberStatus}
       communityNames={communityNames}

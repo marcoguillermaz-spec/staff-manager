@@ -266,6 +266,7 @@ export interface Community {
 export interface Collaborator {
   id: string;
   user_id: string;
+  username: string | null;
   nome: string | null;
   cognome: string | null;
   tipo_contratto: ContractTemplateType | null;

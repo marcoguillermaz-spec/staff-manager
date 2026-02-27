@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ContractTemplateType } from '@/lib/types';
+import { generateUsername } from '@/lib/username';
 
 type PrefillData = {
   nome: string | null;
   cognome: string | null;
+  username: string | null;
   codice_fiscale: string | null;
   data_nascita: string | null;
   luogo_nascita: string | null;
@@ -60,6 +62,9 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
   const [tshirt, setTshirt]                   = useState(prefill?.tshirt_size ?? '');
   const [sonoFiglio, setSonoFiglio]           = useState(prefill?.sono_un_figlio_a_carico ?? false);
 
+  // Username preview (readonly — shows pre-set or computed from nome+cognome)
+  const previewUsername = prefill?.username ?? generateUsername(nome, cognome);
+
   // Step tracking
   const [step, setStep]           = useState<1 | 2>(1);
   const [loading, setLoading]     = useState(false);
@@ -93,7 +98,7 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
         indirizzo:           indirizzo.trim(),
         civico_residenza:    civico.trim(),
         telefono:            telefono.trim(),
-        iban:                iban.trim(),
+        iban:                iban.trim().toUpperCase().replace(/\s/g, ''),
         tshirt_size:         tshirt,
         sono_un_figlio_a_carico: sonoFiglio,
       }),
@@ -278,10 +283,19 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
                   required className={inputCls} />
               </div>
             </div>
+            {previewUsername && (
+              <div>
+                <label className={labelCls}>Username</label>
+                <div className="w-full rounded-lg bg-gray-850 border border-gray-800 px-3 py-2.5 text-sm text-gray-400 font-mono select-all">
+                  @{previewUsername}
+                </div>
+                <p className="text-[10px] text-gray-600 mt-1">Il tuo username sarà assegnato automaticamente e non è modificabile.</p>
+              </div>
+            )}
             <div>
               <label className={labelCls}>Codice fiscale <span className="text-red-500">*</span></label>
               <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
-                onChange={(e) => setCF(e.target.value.toUpperCase())}
+                onChange={(e) => setCF(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                 required maxLength={16} className={inputCls + ' font-mono'} />
             </div>
             <div className="grid grid-cols-2 gap-3">

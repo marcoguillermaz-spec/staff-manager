@@ -7,6 +7,7 @@ type Collaborator = {
   nome: string;
   cognome: string;
   email: string;
+  username: string | null;
   codice_fiscale: string | null;
   data_nascita: string | null;
   luogo_nascita: string | null;
@@ -208,6 +209,11 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
             )}
           </div>
           <div className="flex-1">
+            {collaborator.username && (
+              <span className="inline-block mb-2 text-xs font-mono bg-indigo-900/30 text-indigo-300 border border-indigo-700/40 px-2.5 py-1 rounded-full">
+                @{collaborator.username}
+              </span>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -219,7 +225,7 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
               type="button"
               disabled={avatarLoading}
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-2 text-xs text-gray-300 transition disabled:opacity-50"
+              className="rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-2 text-xs text-gray-300 transition disabled:opacity-50 block"
             >
               {avatarLoading ? 'Caricamento…' : avatarUrl ? 'Cambia foto' : 'Carica foto'}
             </button>
@@ -262,7 +268,7 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
           <div>
             <label className={labelCls}>Codice fiscale</label>
             <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
-              onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+              onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
               disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
           </div>
           <div className="grid grid-cols-2 gap-4">

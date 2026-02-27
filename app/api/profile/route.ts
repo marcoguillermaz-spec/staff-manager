@@ -16,7 +16,7 @@ const patchSchema = z.object({
   email:               z.string().email().optional(),
   nome:                z.string().min(1).max(100).optional(),
   cognome:             z.string().min(1).max(100).optional(),
-  codice_fiscale:      z.string().max(16).nullable().optional(),
+  codice_fiscale:      z.string().regex(/^[A-Z0-9]{16}$/, 'Codice fiscale non valido (16 caratteri alfanumerici)').nullable().optional(),
   data_nascita:        z.string().nullable().optional(),
   luogo_nascita:       z.string().max(100).nullable().optional(),
   provincia_nascita:   z.string().max(10).nullable().optional(),

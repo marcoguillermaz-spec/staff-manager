@@ -8,7 +8,7 @@ import { CONTRACT_TEMPLATE_DOCUMENT_TYPE, type ContractTemplateType } from '@/li
 const schema = z.object({
   nome:                z.string().min(1).max(100),
   cognome:             z.string().min(1).max(100),
-  codice_fiscale:      z.string().min(1).max(16),
+  codice_fiscale:      z.string().regex(/^[A-Z0-9]{16}$/, 'Codice fiscale non valido (16 caratteri alfanumerici)'),
   data_nascita:        z.string().min(1),          // ISO date
   luogo_nascita:       z.string().min(1).max(100),
   provincia_nascita:   z.string().min(1).max(10),
@@ -17,7 +17,7 @@ const schema = z.object({
   indirizzo:           z.string().min(1).max(200),
   civico_residenza:    z.string().min(1).max(20),
   telefono:            z.string().min(1).max(20),
-  iban:                z.string().min(1).max(34),
+  iban:                z.string().regex(/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/, 'IBAN non valido'),
   tshirt_size:         z.string().min(1),
   sono_un_figlio_a_carico:   z.boolean(),
 });

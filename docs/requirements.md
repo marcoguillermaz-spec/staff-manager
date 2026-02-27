@@ -358,3 +358,17 @@ Calcolato dinamicamente — nessun campo persisted.
 - Il campo `tipo_contratto` su `collaborators` non è più editabile dall'utente; hardcodato a `OCCASIONALE` alla creazione.
 - Template contratto: solo template di tipo OCCASIONALE gestito da admin in Impostazioni.
 - Il `tipo` sui record `compensations` (OCCASIONALE/PIVA) rimane distinto e invariato — riguarda la modalità di pagamento, non il template contratto. Da rivedere nel blocco compensation workflow.
+
+### Username collaboratore (Block 4)
+- Colonna `username TEXT UNIQUE` su `collaborators` (nullable per i record pre-esistenti).
+- **Generazione**: auto-calcolato da `{nome}_{cognome}` (lowercase, accenti rimossi, non-alfanumerici → `_`).
+- **Creazione utente (CreateUserForm)**: campo username calcolato live da nome+cognome, editabile dall'admin prima del submit. Se admin fornisce un username esplicito → server valida unicità → 409 se già in uso. Se non fornito → auto-genera con suffisso numerico (`_2`, `_3`) in modo trasparente.
+- **Onboarding wizard**: mostra username (da prefill DB) come preview readonly nella sezione Identità; se prefill.username è null, calcolato live da nome+cognome digitati.
+- **Profilo collaboratore (ProfileForm)**: badge colorato readonly affianco all'avatar.
+- **Vista admin (CollaboratoreDetail)**: mostra username + modifica inline → `PATCH /api/admin/collaboratori/[id]` (solo admin/responsabile_compensi). Validazione unicità server-side → 409 se già in uso.
+
+### Validazioni e normalizzazioni campi (Block 4)
+- **Codice fiscale**: solo alfanumerico + uppercase durante input (nei form); regex formato completo in Zod API: `/^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$/`.
+- **IBAN**: uppercase + rimozione spazi (già esistente); regex Zod: `/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/`.
+- **Telefono**: formato permissivo — cifre, `+`, `-`, spazi, parentesi; min 7 cifre.
+- **Provincia**: 2 lettere uppercase; regex `/^[A-Z]{2}$/`.

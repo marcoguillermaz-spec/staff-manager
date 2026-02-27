@@ -61,6 +61,7 @@ interface CollaboratoreDetailProps {
     luogo_nascita: string | null;
     comune: string | null;
     indirizzo: string | null;
+    username: string | null;
   };
   memberStatus: string | null;
   communityNames: string[];
@@ -103,6 +104,30 @@ export default function CollaboratoreDetail({
   const [note, setNote] = useState('');
   const [reasons, setReasons] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Username inline edit ─────────────────────────────────────────────────
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameEdit, setUsernameEdit] = useState(collab.username ?? '');
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  const handleSaveUsername = async () => {
+    setUsernameSaving(true);
+    setUsernameError(null);
+    const res = await fetch(`/api/admin/collaboratori/${collab.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: usernameEdit.trim() }),
+    });
+    setUsernameSaving(false);
+    if (res.ok) {
+      setEditingUsername(false);
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setUsernameError(data.error ?? 'Errore durante il salvataggio');
+    }
+  };
 
   const canAct = role === 'responsabile_compensi' || role === 'amministrazione';
 
@@ -199,6 +224,52 @@ export default function CollaboratoreDetail({
                 {MEMBER_STATUS_LABELS[memberStatus] ?? memberStatus}
               </span>
             )}
+            {/* Username badge + inline edit */}
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              {!editingUsername ? (
+                <>
+                  {collab.username ? (
+                    <span className="text-xs font-mono bg-indigo-900/30 text-indigo-300 border border-indigo-700/40 px-2 py-0.5 rounded-full">
+                      @{collab.username}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-600 italic">Username non impostato</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setUsernameEdit(collab.username ?? ''); setEditingUsername(true); setUsernameError(null); }}
+                    className="text-xs text-gray-500 hover:text-gray-300 transition"
+                  >
+                    Modifica
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    value={usernameEdit}
+                    onChange={(e) => setUsernameEdit(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    maxLength={50}
+                    placeholder="username"
+                    className="rounded-lg bg-gray-800 border border-gray-700 px-2 py-1 text-xs font-mono text-gray-100 w-40 focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    onClick={handleSaveUsername}
+                    disabled={usernameSaving || usernameEdit.trim().length < 3}
+                    className="px-2.5 py-1 rounded text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50"
+                  >
+                    {usernameSaving ? '…' : 'Salva'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingUsername(false); setUsernameError(null); }}
+                    className="px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-200 transition"
+                  >
+                    Annulla
+                  </button>
+                  {usernameError && <span className="text-xs text-red-400">{usernameError}</span>}
+                </div>
+              )}
+            </div>
           </div>
           {communityNames.length > 0 && (
             <div className="flex gap-1.5 flex-wrap justify-end">

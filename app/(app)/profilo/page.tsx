@@ -27,7 +27,7 @@ export default async function ProfiloPage({
     supabase
       .from('collaborators')
       .select(`
-        nome, cognome, email, codice_fiscale,
+        nome, cognome, email, username, codice_fiscale,
         data_nascita, luogo_nascita, provincia_nascita,
         comune, provincia_residenza, data_ingresso,
         telefono, indirizzo, civico_residenza, iban, tshirt_size,

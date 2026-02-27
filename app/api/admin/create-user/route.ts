@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { sendEmail } from '@/lib/email';
 import { emailInvito } from '@/lib/email-templates';
+import { generateUsername, generateUniqueUsername } from '@/lib/username';
 
 const schema = z.object({
   email: z.string().email(),
@@ -13,6 +14,7 @@ const schema = z.object({
   // Tipo rapporto: always OCCASIONALE
   tipo_contratto: z.literal('OCCASIONALE').optional(),
   // Anagrafica (opzionale — pre-fill per l'onboarding)
+  username:            z.string().min(3).max(50).regex(/^[a-z0-9_]+$/, 'Solo lettere minuscole, numeri e _').optional(),
   nome:                z.string().min(1).max(100).optional(),
   cognome:             z.string().min(1).max(100).optional(),
   codice_fiscale:      z.string().max(16).nullable().optional(),
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
 
   const {
     email, role, community_ids, tipo_contratto,
+    username: usernameInput,
     nome, cognome, codice_fiscale, data_nascita,
     luogo_nascita, provincia_nascita,
     comune, provincia_residenza,
@@ -137,12 +140,36 @@ export async function POST(request: Request) {
   // 4. Create collaborators record for collaboratore and responsabile_compensi
   //    (tipo_contratto is stored here; anagrafica fields are pre-fill — completed during onboarding)
   if (['collaboratore', 'responsabile_compensi'].includes(role) && tipo_contratto) {
+    const nomeTrimmed    = nome?.trim() || null;
+    const cognomeTrimmed = cognome?.trim() || null;
+
+    // Resolve username: explicit (validate uniqueness) or auto-generate
+    let resolvedUsername: string | null = null;
+    if (usernameInput) {
+      // Admin provided a specific username — strict uniqueness check
+      const { data: existing } = await admin
+        .from('collaborators')
+        .select('id')
+        .eq('username', usernameInput)
+        .maybeSingle();
+      if (existing) {
+        await admin.auth.admin.deleteUser(userId);
+        return NextResponse.json({ error: 'Username già in uso' }, { status: 409 });
+      }
+      resolvedUsername = usernameInput;
+    } else if (nomeTrimmed && cognomeTrimmed) {
+      // Auto-generate with uniqueness suffix
+      const base = generateUsername(nomeTrimmed, cognomeTrimmed);
+      resolvedUsername = base ? await generateUniqueUsername(base, admin) : null;
+    }
+
     await admin.from('collaborators').insert({
       user_id:             userId,
       email,
       tipo_contratto,
-      nome:                nome?.trim() || null,
-      cognome:             cognome?.trim() || null,
+      username:            resolvedUsername,
+      nome:                nomeTrimmed,
+      cognome:             cognomeTrimmed,
       codice_fiscale:      codice_fiscale ?? null,
       data_nascita:        data_nascita ?? null,
       luogo_nascita:       luogo_nascita ?? null,

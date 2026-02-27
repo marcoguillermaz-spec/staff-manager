@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CONTRACT_TEMPLATE_LABELS, type ContractTemplateType } from '@/lib/types';
+import { generateUsername } from '@/lib/username';
 
 type Role = 'collaboratore' | 'responsabile_cittadino' | 'responsabile_compensi' | 'responsabile_servizi_individuali' | 'amministrazione';
 type Credentials = { email: string; password: string };
@@ -44,6 +45,8 @@ export default function CreateUserForm() {
   // Anagrafica (optional pre-fill for collaboratore and responsabile)
   const [nome, setNome]               = useState('');
   const [cognome, setCognome]         = useState('');
+  const [username, setUsername]             = useState('');
+  const [usernameManuallySet, setUsernameManuallySet] = useState(false);
   const [codiceFiscale, setCodiceFiscale] = useState('');
   const [dataNascita, setDataNascita] = useState('');
   const [luogoNascita, setLuogoNascita] = useState('');
@@ -95,6 +98,13 @@ export default function CreateUserForm() {
 
   const needsContract = ROLES_WITH_CONTRACT.includes(role);
 
+  // Auto-compute username from nome+cognome (unless manually edited)
+  useEffect(() => {
+    if (!usernameManuallySet && needsContract) {
+      setUsername(generateUsername(nome, cognome));
+    }
+  }, [nome, cognome, usernameManuallySet, needsContract]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -112,6 +122,7 @@ export default function CreateUserForm() {
         tipo_contratto:      'OCCASIONALE',
         nome:                nome.trim() || undefined,
         cognome:             cognome.trim() || undefined,
+        username:            username.trim() || undefined,
         codice_fiscale:      codiceFiscale.trim().toUpperCase() || null,
         data_nascita:        dataNascita || null,
         luogo_nascita:       luogoNascita.trim() || null,
@@ -139,7 +150,8 @@ export default function CreateUserForm() {
     setEmail('');
     setRole('collaboratore');
     setSelectedCommunities([]);
-    setNome(''); setCognome(''); setCodiceFiscale(''); setDataNascita('');
+    setNome(''); setCognome(''); setUsername(''); setUsernameManuallySet(false);
+    setCodiceFiscale(''); setDataNascita('');
     setLuogoNascita(''); setProvinciaNascita(''); setComuneRes(''); setPrvinciaRes('');
     setIndirizzo(''); setCivico(''); setTelefono('');
   };
@@ -276,18 +288,36 @@ export default function CreateUserForm() {
       {needsContract && mode === 'quick' && (
         <div>
           <p className={sectionTitle}>Dati personali</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Nome <span className="text-red-500">*</span></label>
-              <input type="text" placeholder="Mario" value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required disabled={loading} className={inputCls} />
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Nome <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Mario" value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  required disabled={loading} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Cognome <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Rossi" value={cognome}
+                  onChange={(e) => setCognome(e.target.value)}
+                  required disabled={loading} className={inputCls} />
+              </div>
             </div>
             <div>
-              <label className={labelCls}>Cognome <span className="text-red-500">*</span></label>
-              <input type="text" placeholder="Rossi" value={cognome}
-                onChange={(e) => setCognome(e.target.value)}
-                required disabled={loading} className={inputCls} />
+              <label className={labelCls}>Username</label>
+              <input
+                type="text"
+                placeholder="mario_rossi"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  setUsernameManuallySet(true);
+                }}
+                disabled={loading}
+                maxLength={50}
+                className={inputCls + ' font-mono'}
+              />
+              <p className="text-[10px] text-gray-600 mt-1">Generato automaticamente da nome e cognome. Puoi modificarlo.</p>
             </div>
           </div>
         </div>
@@ -313,9 +343,25 @@ export default function CreateUserForm() {
               </div>
             </div>
             <div>
+              <label className={labelCls}>Username</label>
+              <input
+                type="text"
+                placeholder="mario_rossi"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  setUsernameManuallySet(true);
+                }}
+                disabled={loading}
+                maxLength={50}
+                className={inputCls + ' font-mono'}
+              />
+              <p className="text-[10px] text-gray-600 mt-1">Generato automaticamente da nome e cognome. Puoi modificarlo.</p>
+            </div>
+            <div>
               <label className={labelCls}>Codice fiscale</label>
               <input type="text" placeholder="RSSMRA80A01H501U" value={codiceFiscale}
-                onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                 disabled={loading} maxLength={16} className={inputCls + ' font-mono'} />
             </div>
             <div className="grid grid-cols-2 gap-3">
