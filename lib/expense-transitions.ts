@@ -1,13 +1,9 @@
 import type { Role, ExpenseStatus } from './types';
 
 export type ExpenseAction =
-  | 'resubmit'
-  | 'approve_manager'
-  | 'request_integration'
-  | 'reject_manager'
-  | 'approve_admin'
+  | 'approve'
   | 'reject'
-  | 'mark_paid';
+  | 'mark_liquidated';
 
 interface TransitionDef {
   fromStates: ExpenseStatus[];
@@ -16,23 +12,15 @@ interface TransitionDef {
 }
 
 export const ALLOWED_EXPENSE_TRANSITIONS: Record<ExpenseAction, TransitionDef> = {
-  resubmit:            { fromStates: ['INTEGRAZIONI_RICHIESTE'],            allowedRoles: ['collaboratore'],                  requiresNote: false },
-  approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi'],                   requiresNote: false },
-  request_integration: { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi', 'amministrazione'], requiresNote: true  },
-  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi'],                  requiresNote: false },
-  approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
-  reject:              { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
-  mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                   allowedRoles: ['amministrazione'],               requiresNote: false },
+  approve:         { fromStates: ['IN_ATTESA'], allowedRoles: ['responsabile_compensi', 'amministrazione'], requiresNote: false },
+  reject:          { fromStates: ['IN_ATTESA'], allowedRoles: ['responsabile_compensi', 'amministrazione'], requiresNote: true  },
+  mark_liquidated: { fromStates: ['APPROVATO'], allowedRoles: ['responsabile_compensi', 'amministrazione'], requiresNote: false },
 };
 
 export const EXPENSE_ACTION_TO_STATE: Record<ExpenseAction, ExpenseStatus> = {
-  resubmit:            'INVIATO',
-  approve_manager:     'PRE_APPROVATO_RESP',
-  request_integration: 'INTEGRAZIONI_RICHIESTE',
-  reject_manager:      'RIFIUTATO',
-  approve_admin:       'APPROVATO_ADMIN',
-  reject:              'RIFIUTATO',
-  mark_paid:           'PAGATO',
+  approve:         'APPROVATO',
+  reject:          'RIFIUTATO',
+  mark_liquidated: 'LIQUIDATO',
 };
 
 export type TransitionResult =
@@ -42,7 +30,7 @@ export type TransitionResult =
 /**
  * Pure function — zero side effects, no Supabase.
  * Checks if the given role can perform `action` on an expense in state `stato`.
- * If `requiresNote` is true, validates that note is present and ≥ 20 chars.
+ * If `requiresNote` is true (reject action), validates that note is non-empty.
  */
 export function canExpenseTransition(
   role: Role,
@@ -62,10 +50,10 @@ export function canExpenseTransition(
   }
 
   // Note validation: only run when note is provided (used by API routes).
-  // When note is undefined (UI visibility checks), skip — the modal enforces the minimum.
+  // When note is undefined (UI visibility checks), skip — the modal enforces the requirement.
   if (def.requiresNote && note !== undefined) {
-    if (note.trim().length < 20) {
-      return { ok: false, reason: 'La nota deve essere di almeno 20 caratteri' };
+    if (note.trim().length === 0) {
+      return { ok: false, reason: 'La motivazione del rifiuto è obbligatoria' };
     }
   }
 

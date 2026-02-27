@@ -9,25 +9,19 @@ export type Role =
 export type MemberStatus = 'attivo' | 'uscente_con_compenso' | 'uscente_senza_compenso';
 
 // ── Compensation ────────────────────────────────────────────
-export type CompensationType = 'OCCASIONALE' | 'PIVA';
-
 export type CompensationStatus =
   | 'BOZZA'
-  | 'INVIATO'
-  | 'INTEGRAZIONI_RICHIESTE'
-  | 'PRE_APPROVATO_RESP'
-  | 'APPROVATO_ADMIN'
+  | 'IN_ATTESA'
+  | 'APPROVATO'
   | 'RIFIUTATO'
-  | 'PAGATO';
+  | 'LIQUIDATO';
 
 // ── Expense ─────────────────────────────────────────────────
 export type ExpenseStatus =
-  | 'INVIATO'
-  | 'INTEGRAZIONI_RICHIESTE'
-  | 'PRE_APPROVATO_RESP'
-  | 'APPROVATO_ADMIN'
+  | 'IN_ATTESA'
+  | 'APPROVATO'
   | 'RIFIUTATO'
-  | 'PAGATO';
+  | 'LIQUIDATO';
 
 export const EXPENSE_CATEGORIES = [
   'Trasporti',
@@ -204,17 +198,6 @@ export interface ContentEvent {
   created_at: string;
 }
 
-// ── Integration reasons checklist ───────────────────────────
-export const INTEGRATION_REASONS = [
-  'Allegato mancante',
-  'Dati incompleti',
-  'Importo non coerente',
-  'Periodo non valido',
-  'Altro',
-] as const;
-
-export type IntegrationReason = typeof INTEGRATION_REASONS[number];
-
 // ── Role labels (anonymous — shown in timeline) ─────────────
 export const ROLE_LABELS: Record<Role, string> = {
   collaboratore:                    'Collaboratore',
@@ -226,22 +209,18 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 // ── Status display labels ────────────────────────────────────
 export const COMPENSATION_STATUS_LABELS: Record<CompensationStatus, string> = {
-  BOZZA:                 'Bozza',
-  INVIATO:               'Inviato',
-  INTEGRAZIONI_RICHIESTE:'Integrazioni richieste',
-  PRE_APPROVATO_RESP:    'Pre-approvato',
-  APPROVATO_ADMIN:       'Approvato',
-  RIFIUTATO:             'Rifiutato',
-  PAGATO:                'Pagato',
+  BOZZA:     'Bozza',
+  IN_ATTESA: 'In attesa',
+  APPROVATO: 'Approvato',
+  RIFIUTATO: 'Rifiutato',
+  LIQUIDATO: 'Liquidato',
 };
 
 export const EXPENSE_STATUS_LABELS: Record<ExpenseStatus, string> = {
-  INVIATO:               'Inviato',
-  INTEGRAZIONI_RICHIESTE:'Integrazioni richieste',
-  PRE_APPROVATO_RESP:    'Pre-approvato',
-  APPROVATO_ADMIN:       'Approvato',
-  RIFIUTATO:             'Rifiutato',
-  PAGATO:                'Pagato',
+  IN_ATTESA: 'In attesa',
+  APPROVATO: 'Approvato',
+  RIFIUTATO: 'Rifiutato',
+  LIQUIDATO: 'Liquidato',
 };
 
 // ── Supabase DB row types (minimal, extend as needed) ────────
@@ -295,30 +274,18 @@ export interface Compensation {
   id: string;
   collaborator_id: string;
   community_id: string;
-  tipo: CompensationType;
   descrizione: string;
   periodo_riferimento: string | null;
   data_competenza: string | null;
-  // Occasionale
   importo_lordo: number | null;
   ritenuta_acconto: number | null;
   importo_netto: number | null;
-  // P.IVA
-  numero_fattura: string | null;
-  data_fattura: string | null;
-  imponibile: number | null;
-  iva_percentuale: number | null;
-  totale_fattura: number | null;
-  // State machine
   stato: CompensationStatus;
-  manager_approved_by: string | null;
-  manager_approved_at: string | null;
-  admin_approved_by: string | null;
-  admin_approved_at: string | null;
-  integration_note: string | null;
-  integration_reasons: string[] | null;
-  paid_at: string | null;
-  paid_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_note: string | null;
+  liquidated_at: string | null;
+  liquidated_by: string | null;
   payment_reference: string | null;
   note_interne: string | null;
   created_at: string;
@@ -376,13 +343,11 @@ export interface Expense {
   importo: number;
   descrizione: string;
   stato: ExpenseStatus;
-  manager_approved_by: string | null;
-  manager_approved_at: string | null;
-  admin_approved_by: string | null;
-  admin_approved_at: string | null;
-  integration_note: string | null;
-  paid_at: string | null;
-  paid_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_note: string | null;
+  liquidated_at: string | null;
+  liquidated_by: string | null;
   payment_reference: string | null;
   created_at: string;
   updated_at: string;

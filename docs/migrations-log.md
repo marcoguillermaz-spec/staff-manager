@@ -27,3 +27,4 @@
 | 020 | `020_contract_type_occasionale.sql` | 2026-02-27 | DELETE CONTRATTO_COCOCO/PIVA documents; migrate collaborators COCOCO/PIVA → OCCASIONALE; restrict CHECK constraints on collaborators.tipo_contratto, contract_templates.tipo, documents.tipo to OCCASIONALE only |
 | 021 | `021_username.sql` | 2026-02-27 | ADD COLUMN username TEXT UNIQUE to collaborators |
 | 022 | `022_expense_descrizione_nullable.sql` | 2026-02-27 | ALTER TABLE expense_reimbursements ALTER COLUMN descrizione DROP NOT NULL |
+| 023 | `023_workflow_refactor.sql` | 2026-02-27 | Workflow refactor: rename stati (INVIATO→IN_ATTESA, PRE_APPROVATO_RESP→APPROVATO, APPROVATO_ADMIN→APPROVATO, PAGATO→LIQUIDATO, INTEGRAZIONI_RICHIESTE→IN_ATTESA); remove tipo/PIVA fields/integration fields/manager+admin_approved_*/paid_*; add approved_by/at, rejection_note, liquidated_by/at; normalize compensation_history and expense_history state names |

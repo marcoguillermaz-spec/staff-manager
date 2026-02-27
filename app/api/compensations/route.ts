@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { ROLE_LABELS } from '@/lib/types';
 import type { Role } from '@/lib/types';
 
-const occasionaleSchema = z.object({
-  tipo: z.literal('OCCASIONALE'),
+const createSchema = z.object({
   community_id: z.string().uuid(),
   periodo_riferimento: z.string().optional(),
   data_competenza: z.string().optional(),
@@ -13,24 +12,8 @@ const occasionaleSchema = z.object({
   importo_lordo: z.number().positive('Importo lordo deve essere positivo'),
   ritenuta_acconto: z.number().min(0),
   importo_netto: z.number().positive(),
-  stato: z.enum(['BOZZA', 'INVIATO']).default('BOZZA'),
+  stato: z.enum(['BOZZA', 'IN_ATTESA']).default('BOZZA'),
 });
-
-const pivaSchema = z.object({
-  tipo: z.literal('PIVA'),
-  community_id: z.string().uuid(),
-  periodo_riferimento: z.string().optional(),
-  data_competenza: z.string().optional(),
-  descrizione: z.string().min(1, 'Descrizione obbligatoria'),
-  numero_fattura: z.string().optional(),
-  data_fattura: z.string().optional(),
-  imponibile: z.number().positive('Imponibile deve essere positivo'),
-  iva_percentuale: z.number().min(0).max(100).default(22),
-  totale_fattura: z.number().positive(),
-  stato: z.enum(['BOZZA', 'INVIATO']).default('BOZZA'),
-});
-
-const createSchema = z.discriminatedUnion('tipo', [occasionaleSchema, pivaSchema]);
 
 export async function GET(request: Request) {
   const supabase = await createClient();

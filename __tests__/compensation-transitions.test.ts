@@ -5,143 +5,140 @@ import {
   ALLOWED_TRANSITIONS,
 } from '../lib/compensation-transitions';
 
-describe('canTransition', () => {
-  it('collaboratore può fare submit da BOZZA', () => {
-    const result = canTransition('collaboratore', 'BOZZA', 'submit');
-    expect(result.ok).toBe(true);
+describe('canTransition — collaboratore', () => {
+  it('può fare submit da BOZZA', () => {
+    expect(canTransition('collaboratore', 'BOZZA', 'submit').ok).toBe(true);
   });
 
-  it('collaboratore NON può fare approve_manager', () => {
-    const result = canTransition('collaboratore', 'INVIATO', 'approve_manager');
+  it('può fare withdraw da IN_ATTESA', () => {
+    expect(canTransition('collaboratore', 'IN_ATTESA', 'withdraw').ok).toBe(true);
+  });
+
+  it('può fare reopen da RIFIUTATO', () => {
+    expect(canTransition('collaboratore', 'RIFIUTATO', 'reopen').ok).toBe(true);
+  });
+
+  it('NON può fare approve', () => {
+    const result = canTransition('collaboratore', 'IN_ATTESA', 'approve');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
 
-  it('responsabile NON può fare mark_paid', () => {
-    const result = canTransition('responsabile_compensi', 'APPROVATO_ADMIN', 'mark_paid');
+  it('NON può fare reject', () => {
+    const result = canTransition('collaboratore', 'IN_ATTESA', 'reject', 'motivo');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
 
-  it('admin può fare approve_admin da PRE_APPROVATO_RESP', () => {
-    const result = canTransition('amministrazione', 'PRE_APPROVATO_RESP', 'approve_admin');
-    expect(result.ok).toBe(true);
-  });
-
-  it('transizione da stato non valido → errore', () => {
-    const result = canTransition('responsabile_compensi', 'BOZZA', 'approve_manager');
-    expect(result.ok).toBe(false);
-    expect((result as { ok: false; reason: string }).reason).toMatch(/BOZZA/);
-  });
-
-  it('request_integration richiede note ≥20 char', () => {
-    const tooShort = canTransition('responsabile_compensi', 'INVIATO', 'request_integration', 'breve');
-    expect(tooShort.ok).toBe(false);
-    expect((tooShort as { ok: false; reason: string }).reason).toMatch(/20/);
-
-    const valid = canTransition(
-      'responsabile_compensi',
-      'INVIATO',
-      'request_integration',
-      'Questa è una nota sufficientemente lunga',
-    );
-    expect(valid.ok).toBe(true);
-  });
-
-  it('collaboratore può fare withdraw da INVIATO', () => {
-    const result = canTransition('collaboratore', 'INVIATO', 'withdraw');
-    expect(result.ok).toBe(true);
-  });
-
-  it('amministrazione può fare request_integration da INVIATO con nota valida', () => {
-    const result = canTransition(
-      'amministrazione',
-      'INVIATO',
-      'request_integration',
-      'Questa è una nota sufficientemente lunga',
-    );
-    expect(result.ok).toBe(true);
-  });
-
-
-  it('responsabile può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
-    const result = canTransition(
-      'responsabile_compensi',
-      'INTEGRAZIONI_RICHIESTE',
-      'request_integration',
-      'Questa è una nota sufficientemente lunga',
-    );
-    expect(result.ok).toBe(true);
-  });
-
-  it('amministrazione può fare request_integration da INTEGRAZIONI_RICHIESTE con nota valida', () => {
-    const result = canTransition(
-      'amministrazione',
-      'INTEGRAZIONI_RICHIESTE',
-      'request_integration',
-      'Questa è una nota sufficientemente lunga',
-    );
-    expect(result.ok).toBe(true);
-  });
-
-  it('collaboratore NON può fare request_integration', () => {
-    const result = canTransition('collaboratore', 'INVIATO', 'request_integration');
+  it('NON può fare mark_liquidated', () => {
+    const result = canTransition('collaboratore', 'APPROVATO', 'mark_liquidated');
     expect(result.ok).toBe(false);
     expect((result as { ok: false; reason: string }).reason).toMatch(/ruolo/i);
   });
 });
 
-describe('applyTransition', () => {
-  it('submit → INVIATO', () => {
-    expect(applyTransition('submit')).toBe('INVIATO');
+describe('canTransition — responsabile_compensi', () => {
+  it('può fare approve da IN_ATTESA', () => {
+    expect(canTransition('responsabile_compensi', 'IN_ATTESA', 'approve').ok).toBe(true);
   });
 
-  it('mark_paid → PAGATO', () => {
-    expect(applyTransition('mark_paid')).toBe('PAGATO');
+  it('può fare reject da IN_ATTESA con nota non vuota', () => {
+    expect(canTransition('responsabile_compensi', 'IN_ATTESA', 'reject', 'Motivazione rifiuto').ok).toBe(true);
+  });
+
+  it('NON può fare reject con nota vuota', () => {
+    const result = canTransition('responsabile_compensi', 'IN_ATTESA', 'reject', '');
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/obbligator/i);
+  });
+
+  it('può fare reject senza nota (UI visibility check — nota undefined)', () => {
+    // No note = UI visibility check: skip note validation
+    expect(canTransition('responsabile_compensi', 'IN_ATTESA', 'reject').ok).toBe(true);
+  });
+
+  it('può fare mark_liquidated da APPROVATO', () => {
+    expect(canTransition('responsabile_compensi', 'APPROVATO', 'mark_liquidated').ok).toBe(true);
+  });
+
+  it('NON può fare approve da BOZZA', () => {
+    const result = canTransition('responsabile_compensi', 'BOZZA', 'approve');
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/BOZZA/);
+  });
+});
+
+describe('canTransition — amministrazione', () => {
+  it('può fare approve da IN_ATTESA', () => {
+    expect(canTransition('amministrazione', 'IN_ATTESA', 'approve').ok).toBe(true);
+  });
+
+  it('può fare reject da IN_ATTESA con nota', () => {
+    expect(canTransition('amministrazione', 'IN_ATTESA', 'reject', 'Nota di rifiuto').ok).toBe(true);
+  });
+
+  it('può fare mark_liquidated da APPROVATO', () => {
+    expect(canTransition('amministrazione', 'APPROVATO', 'mark_liquidated').ok).toBe(true);
+  });
+});
+
+describe('canTransition — stato non valido', () => {
+  it('approve da LIQUIDATO → errore stato', () => {
+    const result = canTransition('responsabile_compensi', 'LIQUIDATO', 'approve');
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/LIQUIDATO/);
+  });
+
+  it('submit da IN_ATTESA → errore stato', () => {
+    const result = canTransition('collaboratore', 'IN_ATTESA', 'submit');
+    expect(result.ok).toBe(false);
+    expect((result as { ok: false; reason: string }).reason).toMatch(/IN_ATTESA/);
+  });
+});
+
+describe('applyTransition', () => {
+  it('submit → IN_ATTESA', () => {
+    expect(applyTransition('submit')).toBe('IN_ATTESA');
+  });
+
+  it('withdraw → BOZZA', () => {
+    expect(applyTransition('withdraw')).toBe('BOZZA');
+  });
+
+  it('reopen → BOZZA', () => {
+    expect(applyTransition('reopen')).toBe('BOZZA');
+  });
+
+  it('approve → APPROVATO', () => {
+    expect(applyTransition('approve')).toBe('APPROVATO');
   });
 
   it('reject → RIFIUTATO', () => {
     expect(applyTransition('reject')).toBe('RIFIUTATO');
   });
 
-  it('reject_manager → RIFIUTATO', () => {
-    expect(applyTransition('reject_manager')).toBe('RIFIUTATO');
-  });
-});
-
-describe('reject_manager', () => {
-  it('responsabile può rifiutare da INVIATO', () => {
-    expect(canTransition('responsabile_compensi', 'INVIATO', 'reject_manager').ok).toBe(true);
-  });
-
-  it('responsabile può rifiutare da INTEGRAZIONI_RICHIESTE', () => {
-    expect(canTransition('responsabile_compensi', 'INTEGRAZIONI_RICHIESTE', 'reject_manager').ok).toBe(true);
-  });
-
-  it('responsabile NON può rifiutare da PRE_APPROVATO_RESP', () => {
-    expect(canTransition('responsabile_compensi', 'PRE_APPROVATO_RESP', 'reject_manager').ok).toBe(false);
-  });
-
-  it('collaboratore NON può eseguire reject_manager', () => {
-    expect(canTransition('collaboratore', 'INVIATO', 'reject_manager').ok).toBe(false);
-  });
-
-  it('admin NON può eseguire reject_manager', () => {
-    expect(canTransition('amministrazione', 'INVIATO', 'reject_manager').ok).toBe(false);
+  it('mark_liquidated → LIQUIDATO', () => {
+    expect(applyTransition('mark_liquidated')).toBe('LIQUIDATO');
   });
 });
 
 describe('ALLOWED_TRANSITIONS map', () => {
-  it('contains all 9 defined actions', () => {
+  it('contains exactly 6 defined actions', () => {
     const actions = Object.keys(ALLOWED_TRANSITIONS);
-    expect(actions).toHaveLength(9);
+    expect(actions).toHaveLength(6);
   });
 
-  it('request_integration requiresNote è true', () => {
-    expect(ALLOWED_TRANSITIONS.request_integration.requiresNote).toBe(true);
+  it('reject.requiresNote è true', () => {
+    expect(ALLOWED_TRANSITIONS.reject.requiresNote).toBe(true);
   });
 
-  it('submit requiresNote è false', () => {
+  it('submit.requiresNote è false', () => {
     expect(ALLOWED_TRANSITIONS.submit.requiresNote).toBe(false);
+  });
+
+  it('nessuna azione parte da LIQUIDATO (terminale)', () => {
+    for (const def of Object.values(ALLOWED_TRANSITIONS)) {
+      expect(def.fromStates).not.toContain('LIQUIDATO');
+    }
   });
 });

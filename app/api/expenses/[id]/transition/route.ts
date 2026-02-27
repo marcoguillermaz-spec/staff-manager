@@ -9,32 +9,24 @@ import type { Role, ExpenseStatus } from '@/lib/types';
 import {
   buildExpenseNotification,
   EXPENSE_NOTIFIED_ACTIONS,
-  buildExpenseSubmitNotification,
 } from '@/lib/notification-utils';
 import type { NotificationPayload } from '@/lib/notification-utils';
 import {
   getNotificationSettings,
   getCollaboratorInfo,
-  getResponsabiliForCollaborator,
 } from '@/lib/notification-helpers';
 import { sendEmail } from '@/lib/email';
 import {
-  emailIntegrazioni,
   emailApprovato,
   emailRifiutato,
   emailPagato,
-  emailNuovoInviato,
 } from '@/lib/email-templates';
 
 const transitionSchema = z.object({
   action: z.enum([
-    'resubmit',
-    'approve_manager',
-    'request_integration',
-    'reject_manager',
-    'approve_admin',
+    'approve',
     'reject',
-    'mark_paid',
+    'mark_liquidated',
   ]),
   note: z.string().optional(),
   payment_reference: z.string().optional(),
@@ -88,20 +80,16 @@ export async function POST(
 
   const updatePayload: Record<string, unknown> = { stato: newStato };
 
-  if (action === 'approve_manager') {
-    updatePayload.manager_approved_by = user.id;
-    updatePayload.manager_approved_at = new Date().toISOString();
+  if (action === 'approve') {
+    updatePayload.approved_by = user.id;
+    updatePayload.approved_at = new Date().toISOString();
   }
-  if (action === 'request_integration') {
-    updatePayload.integration_note = note ?? null;
+  if (action === 'reject') {
+    updatePayload.rejection_note = note ?? null;
   }
-  if (action === 'approve_admin') {
-    updatePayload.admin_approved_by = user.id;
-    updatePayload.admin_approved_at = new Date().toISOString();
-  }
-  if (action === 'mark_paid') {
-    updatePayload.paid_at = new Date().toISOString();
-    updatePayload.paid_by = user.id;
+  if (action === 'mark_liquidated') {
+    updatePayload.liquidated_at = new Date().toISOString();
+    updatePayload.liquidated_by = user.id;
     updatePayload.payment_reference = payment_reference ?? null;
   }
 
@@ -137,58 +125,24 @@ export async function POST(
   // Load notification settings
   const settings = await getNotificationSettings(serviceClient);
 
-  // ── Notify responsabili on resubmit ─────────────────────────
-  if (action === 'resubmit') {
-    const setting = settings.get('rimborso_inviato:responsabile_compensi');
-    if (setting?.inapp_enabled || setting?.email_enabled) {
-      const [responsabili, collabInfo] = await Promise.all([
-        getResponsabiliForCollaborator(expense.collaborator_id, serviceClient),
-        getCollaboratorInfo(expense.collaborator_id, serviceClient),
-      ]);
-      const dataFormatted = expense.data_spesa
-        ? new Date(expense.data_spesa).toLocaleDateString('it-IT')
-        : '';
-      for (const resp of responsabili) {
-        if (setting.inapp_enabled) {
-          await serviceClient
-            .from('notifications')
-            .insert(buildExpenseSubmitNotification(resp.user_id, id));
-        }
-        if (setting.email_enabled && resp.email) {
-          const { subject, html } = emailNuovoInviato({
-            nomeResponsabile: resp.nome,
-            nomeCollaboratore: `${collabInfo?.nome ?? ''} ${collabInfo?.cognome ?? ''}`.trim(),
-            tipo: 'Rimborso',
-            importo: expense.importo ?? 0,
-            community: '',
-            data: dataFormatted,
-          });
-          sendEmail(resp.email, subject, html).catch(() => {});
-        }
-      }
-    }
-  }
-
-  // ── Notify collaboratore on admin/manager actions ────────────
-  const notifAction = action === 'reject_manager' ? 'reject' : action;
-  if ((EXPENSE_NOTIFIED_ACTIONS as string[]).includes(notifAction)) {
+  // ── Notify collaboratore on manager/admin actions ────────────
+  if ((EXPENSE_NOTIFIED_ACTIONS as string[]).includes(action)) {
     const collabInfo = await getCollaboratorInfo(expense.collaborator_id, serviceClient);
 
     if (collabInfo?.user_id) {
       const notif: NotificationPayload = buildExpenseNotification(
-        notifAction as 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid',
+        action as 'approve' | 'reject' | 'mark_liquidated',
         collabInfo.user_id,
         id,
         note,
       );
 
       const eventKeyMap: Record<string, string> = {
-        request_integration: 'rimborso_integrazioni',
-        approve_admin: 'rimborso_approvato',
-        reject: 'rimborso_rifiutato',
-        mark_paid: 'rimborso_pagato',
+        approve:         'rimborso_approvato',
+        reject:          'rimborso_rifiutato',
+        mark_liquidated: 'rimborso_pagato',
       };
-      const eventKey = eventKeyMap[notifAction];
+      const eventKey = eventKeyMap[action];
       const setting = eventKey ? settings.get(`${eventKey}:collaboratore`) : undefined;
 
       if (!setting || setting.inapp_enabled) {
@@ -207,13 +161,11 @@ export async function POST(
           data: dataFormatted,
         };
         let emailPayload: { subject: string; html: string } | null = null;
-        if (notifAction === 'request_integration') {
-          emailPayload = emailIntegrazioni({ ...baseParams, nota: note });
-        } else if (notifAction === 'approve_admin') {
+        if (action === 'approve') {
           emailPayload = emailApprovato(baseParams);
-        } else if (notifAction === 'reject') {
+        } else if (action === 'reject') {
           emailPayload = emailRifiutato(baseParams);
-        } else if (notifAction === 'mark_paid') {
+        } else if (action === 'mark_liquidated') {
           emailPayload = emailPagato({ nome: collabInfo.nome, tipo: 'Rimborso', importo: expense.importo ?? 0, dataPagamento: dataFormatted });
         }
         if (emailPayload) {

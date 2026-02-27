@@ -52,19 +52,19 @@ export default function ExpenseDetail({
         <Row label="Descrizione" value={e.descrizione} />
       </div>
 
-      {/* Integration note */}
-      {e.integration_note && (
-        <div className="rounded-xl bg-yellow-900/20 border border-yellow-700/40 px-4 py-3">
-          <p className="text-xs font-medium text-yellow-400 mb-1">Note per integrazione</p>
-          <p className="text-sm text-yellow-200">{e.integration_note}</p>
+      {/* Rejection note */}
+      {e.rejection_note && (
+        <div className="rounded-xl bg-red-900/20 border border-red-700/40 px-4 py-3">
+          <p className="text-xs font-medium text-red-400 mb-1">Motivo rifiuto</p>
+          <p className="text-sm text-red-200">{e.rejection_note}</p>
         </div>
       )}
 
       {/* Payment info */}
-      {e.paid_at && (
+      {e.liquidated_at && (
         <div className="rounded-xl bg-emerald-900/20 border border-emerald-700/40 px-4 py-3">
           <p className="text-xs font-medium text-emerald-400 mb-1">Pagamento</p>
-          <Row label="Data pagamento" value={formatDate(e.paid_at)} />
+          <Row label="Data liquidazione" value={formatDate(e.liquidated_at)} />
           {e.payment_reference && <Row label="Riferimento" value={e.payment_reference} />}
         </div>
       )}

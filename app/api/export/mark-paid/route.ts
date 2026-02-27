@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     .single();
 
   if (!profile?.is_active) return NextResponse.json({ error: 'Utente non attivo' }, { status: 403 });
-  if (!['amministrazione'].includes(profile.role)) {
+  if (!['amministrazione', 'responsabile_compensi'].includes(profile.role)) {
     return NextResponse.json({ error: 'Accesso non autorizzato' }, { status: 403 });
   }
 
@@ -48,13 +48,13 @@ export async function POST(request: Request) {
     const { data: updated, error: updateError } = await serviceClient
       .from('compensations')
       .update({
-        stato: 'PAGATO',
-        paid_at: now,
-        paid_by: user.id,
+        stato: 'LIQUIDATO',
+        liquidated_at: now,
+        liquidated_by: user.id,
         payment_reference,
       })
       .in('id', ids)
-      .eq('stato', 'APPROVATO_ADMIN')
+      .eq('stato', 'APPROVATO')
       .select('id, stato');
 
     if (updateError) {
@@ -66,8 +66,8 @@ export async function POST(request: Request) {
     if (updatedIds.length > 0) {
       const historyRows = updatedIds.map((id: string) => ({
         compensation_id: id,
-        stato_precedente: 'APPROVATO_ADMIN',
-        stato_nuovo: 'PAGATO',
+        stato_precedente: 'APPROVATO',
+        stato_nuovo: 'LIQUIDATO',
         changed_by: user.id,
         role_label: ROLE_LABELS[role],
         note: `Pagamento registrato — riferimento: ${payment_reference}`,
@@ -89,13 +89,13 @@ export async function POST(request: Request) {
   const { data: updated, error: updateError } = await serviceClient
     .from('expense_reimbursements')
     .update({
-      stato: 'PAGATO',
-      paid_at: now,
-      paid_by: user.id,
+      stato: 'LIQUIDATO',
+      liquidated_at: now,
+      liquidated_by: user.id,
       payment_reference,
     })
     .in('id', ids)
-    .eq('stato', 'APPROVATO_ADMIN')
+    .eq('stato', 'APPROVATO')
     .select('id, stato');
 
   if (updateError) {
@@ -107,8 +107,8 @@ export async function POST(request: Request) {
   if (updatedIds.length > 0) {
     const historyRows = updatedIds.map((id: string) => ({
       reimbursement_id: id,
-      stato_precedente: 'APPROVATO_ADMIN',
-      stato_nuovo: 'PAGATO',
+      stato_precedente: 'APPROVATO',
+      stato_nuovo: 'LIQUIDATO',
       changed_by: user.id,
       role_label: ROLE_LABELS[role],
       note: `Pagamento registrato — riferimento: ${payment_reference}`,

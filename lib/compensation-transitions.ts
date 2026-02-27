@@ -3,13 +3,10 @@ import type { Role, CompensationStatus } from './types';
 export type CompensationAction =
   | 'submit'
   | 'withdraw'
-  | 'resubmit'
-  | 'approve_manager'
-  | 'request_integration'
-  | 'reject_manager'
-  | 'approve_admin'
+  | 'reopen'
+  | 'approve'
   | 'reject'
-  | 'mark_paid';
+  | 'mark_liquidated';
 
 interface TransitionDef {
   fromStates: CompensationStatus[];
@@ -18,27 +15,21 @@ interface TransitionDef {
 }
 
 export const ALLOWED_TRANSITIONS: Record<CompensationAction, TransitionDef> = {
-  submit:              { fromStates: ['BOZZA'],                            allowedRoles: ['collaboratore'],                  requiresNote: false },
-  withdraw:            { fromStates: ['INVIATO'],                          allowedRoles: ['collaboratore'],                  requiresNote: false },
-  resubmit:            { fromStates: ['INTEGRAZIONI_RICHIESTE'],           allowedRoles: ['collaboratore'],                  requiresNote: false },
-  approve_manager:     { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'],allowedRoles: ['responsabile_compensi'],                   requiresNote: false },
-  request_integration: { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi', 'amministrazione'], requiresNote: true  },
-  reject_manager:      { fromStates: ['INVIATO', 'INTEGRAZIONI_RICHIESTE'], allowedRoles: ['responsabile_compensi'],                  requiresNote: false },
-  approve_admin:       { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
-  reject:              { fromStates: ['PRE_APPROVATO_RESP'],                allowedRoles: ['amministrazione'],               requiresNote: false },
-  mark_paid:           { fromStates: ['APPROVATO_ADMIN'],                   allowedRoles: ['amministrazione'],               requiresNote: false },
+  submit:          { fromStates: ['BOZZA'],     allowedRoles: ['collaboratore'],                              requiresNote: false },
+  withdraw:        { fromStates: ['IN_ATTESA'], allowedRoles: ['collaboratore'],                              requiresNote: false },
+  reopen:          { fromStates: ['RIFIUTATO'], allowedRoles: ['collaboratore'],                              requiresNote: false },
+  approve:         { fromStates: ['IN_ATTESA'], allowedRoles: ['responsabile_compensi', 'amministrazione'],   requiresNote: false },
+  reject:          { fromStates: ['IN_ATTESA'], allowedRoles: ['responsabile_compensi', 'amministrazione'],   requiresNote: true  },
+  mark_liquidated: { fromStates: ['APPROVATO'], allowedRoles: ['responsabile_compensi', 'amministrazione'],   requiresNote: false },
 };
 
 export const ACTION_TO_STATE: Record<CompensationAction, CompensationStatus> = {
-  submit:              'INVIATO',
-  withdraw:            'BOZZA',
-  resubmit:            'INVIATO',
-  approve_manager:     'PRE_APPROVATO_RESP',
-  request_integration: 'INTEGRAZIONI_RICHIESTE',
-  reject_manager:      'RIFIUTATO',
-  approve_admin:       'APPROVATO_ADMIN',
-  reject:              'RIFIUTATO',
-  mark_paid:           'PAGATO',
+  submit:          'IN_ATTESA',
+  withdraw:        'BOZZA',
+  reopen:          'BOZZA',
+  approve:         'APPROVATO',
+  reject:          'RIFIUTATO',
+  mark_liquidated: 'LIQUIDATO',
 };
 
 export type TransitionResult =
@@ -48,7 +39,7 @@ export type TransitionResult =
 /**
  * Pure function — zero side effects, no Supabase.
  * Checks if the given role can perform `action` on a compensation in state `stato`.
- * If `requiresNote` is true, validates that note is present and ≥ 20 chars.
+ * If `requiresNote` is true (reject action), validates that note is non-empty.
  */
 export function canTransition(
   role: Role,
@@ -68,10 +59,10 @@ export function canTransition(
   }
 
   // Note validation: only run when note is provided (used by API routes).
-  // When note is undefined (UI visibility checks), skip — the modal enforces the minimum.
+  // When note is undefined (UI visibility checks), skip — the modal enforces the requirement.
   if (def.requiresNote && note !== undefined) {
-    if (note.trim().length < 20) {
-      return { ok: false, reason: 'La nota deve essere di almeno 20 caratteri' };
+    if (note.trim().length === 0) {
+      return { ok: false, reason: 'La motivazione del rifiuto è obbligatoria' };
     }
   }
 

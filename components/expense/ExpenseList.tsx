@@ -7,12 +7,10 @@ import { EXPENSE_STATUS_LABELS } from '@/lib/types';
 import StatusBadge from '@/components/compensation/StatusBadge';
 
 const ALL_STATI: ExpenseStatus[] = [
-  'INVIATO',
-  'INTEGRAZIONI_RICHIESTE',
-  'PRE_APPROVATO_RESP',
-  'APPROVATO_ADMIN',
+  'IN_ATTESA',
+  'APPROVATO',
   'RIFIUTATO',
-  'PAGATO',
+  'LIQUIDATO',
 ];
 
 function formatDate(iso: string) {

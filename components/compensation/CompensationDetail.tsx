@@ -44,7 +44,6 @@ export default function CompensationDetail({
 
       {/* General fields */}
       <div className="rounded-xl bg-gray-900 border border-gray-800 px-4">
-        <Row label="Tipo" value={c.tipo} />
         <Row label="Community" value={c.communities?.name} />
         <Row label="Periodo" value={c.periodo_riferimento} />
         <Row label="Data competenza" value={formatDate(c.data_competenza)} />
@@ -52,46 +51,27 @@ export default function CompensationDetail({
       </div>
 
       {/* Financial fields */}
-      {c.tipo === 'OCCASIONALE' ? (
-        <div className="rounded-xl bg-gray-900 border border-gray-800 px-4">
-          <Row label="Importo lordo" value={formatCurrency(c.importo_lordo)} />
-          <Row label="Ritenuta acconto (20%)" value={formatCurrency(c.ritenuta_acconto)} />
-          <Row label="Importo netto" value={
-            <span className="font-medium text-green-400">{formatCurrency(c.importo_netto)}</span>
-          } />
-        </div>
-      ) : (
-        <div className="rounded-xl bg-gray-900 border border-gray-800 px-4">
-          <Row label="N. Fattura" value={c.numero_fattura} />
-          <Row label="Data fattura" value={formatDate(c.data_fattura)} />
-          <Row label="Imponibile" value={formatCurrency(c.imponibile)} />
-          <Row label="IVA" value={c.iva_percentuale != null ? `${c.iva_percentuale}%` : null} />
-          <Row label="Totale fattura" value={
-            <span className="font-medium text-green-400">{formatCurrency(c.totale_fattura)}</span>
-          } />
-        </div>
-      )}
+      <div className="rounded-xl bg-gray-900 border border-gray-800 px-4">
+        <Row label="Importo lordo" value={formatCurrency(c.importo_lordo)} />
+        <Row label="Ritenuta acconto (20%)" value={formatCurrency(c.ritenuta_acconto)} />
+        <Row label="Importo netto" value={
+          <span className="font-medium text-green-400">{formatCurrency(c.importo_netto)}</span>
+        } />
+      </div>
 
-      {/* Integration note (if present) */}
-      {c.integration_note && (
-        <div className="rounded-xl bg-yellow-900/20 border border-yellow-700/40 px-4 py-3">
-          <p className="text-xs font-medium text-yellow-400 mb-1">Note per integrazione</p>
-          <p className="text-sm text-yellow-200">{c.integration_note}</p>
-          {c.integration_reasons && c.integration_reasons.length > 0 && (
-            <ul className="mt-2 space-y-0.5">
-              {c.integration_reasons.map((r) => (
-                <li key={r} className="text-xs text-yellow-300">· {r}</li>
-              ))}
-            </ul>
-          )}
+      {/* Rejection note */}
+      {c.rejection_note && (
+        <div className="rounded-xl bg-red-900/20 border border-red-700/40 px-4 py-3">
+          <p className="text-xs font-medium text-red-400 mb-1">Motivo rifiuto</p>
+          <p className="text-sm text-red-200">{c.rejection_note}</p>
         </div>
       )}
 
       {/* Payment info */}
-      {c.paid_at && (
+      {c.liquidated_at && (
         <div className="rounded-xl bg-emerald-900/20 border border-emerald-700/40 px-4 py-3">
           <p className="text-xs font-medium text-emerald-400 mb-1">Pagamento</p>
-          <Row label="Data pagamento" value={formatDate(c.paid_at)} />
+          <Row label="Data liquidazione" value={formatDate(c.liquidated_at)} />
           {c.payment_reference && <Row label="Riferimento" value={c.payment_reference} />}
         </div>
       )}

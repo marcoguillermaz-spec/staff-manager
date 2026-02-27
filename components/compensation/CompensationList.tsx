@@ -10,12 +10,10 @@ type CompensationRow = Compensation & { communities?: { name: string } | null };
 
 const ALL_STATI: CompensationStatus[] = [
   'BOZZA',
-  'INVIATO',
-  'INTEGRAZIONI_RICHIESTE',
-  'PRE_APPROVATO_RESP',
-  'APPROVATO_ADMIN',
+  'IN_ATTESA',
+  'APPROVATO',
   'RIFIUTATO',
-  'PAGATO',
+  'LIQUIDATO',
 ];
 
 function formatDate(iso: string) {
@@ -27,7 +25,7 @@ function formatDate(iso: string) {
 }
 
 function formatCurrency(c: CompensationRow) {
-  const amount = c.tipo === 'OCCASIONALE' ? c.importo_netto : c.totale_fattura;
+  const amount = c.importo_netto ?? c.importo_lordo;
   if (amount === null || amount === undefined) return '—';
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
 }
@@ -88,7 +86,6 @@ export default function CompensationList({
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Stato</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Tipo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden md:table-cell">Community</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden sm:table-cell">Periodo</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500">Importo</th>
@@ -102,7 +99,6 @@ export default function CompensationList({
                   <td className="px-4 py-3">
                     <StatusBadge stato={c.stato} />
                   </td>
-                  <td className="px-4 py-3 text-gray-300">{c.tipo}</td>
                   <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
                     {c.communities?.name ?? '—'}
                   </td>

@@ -12,8 +12,8 @@ export interface NotificationPayload {
   entity_id: string;
 }
 
-type CompensationNotifiableAction = 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid';
-type ExpenseNotifiableAction = 'request_integration' | 'approve_admin' | 'reject' | 'mark_paid';
+type CompensationNotifiableAction = 'approve' | 'reject' | 'mark_liquidated';
+type ExpenseNotifiableAction = 'approve' | 'reject' | 'mark_liquidated';
 
 export function buildCompensationNotification(
   action: CompensationNotifiableAction,
@@ -23,14 +23,7 @@ export function buildCompensationNotification(
 ): NotificationPayload {
   const base = { user_id: userId, entity_type: 'compensation' as const, entity_id: entityId };
   switch (action) {
-    case 'request_integration':
-      return {
-        ...base,
-        tipo: 'integrazioni_richieste',
-        titolo: 'Integrazioni richieste — Compenso',
-        messaggio: note ? `Nota: ${note}` : 'Il tuo compenso richiede integrazioni.',
-      };
-    case 'approve_admin':
+    case 'approve':
       return {
         ...base,
         tipo: 'approvato',
@@ -42,14 +35,14 @@ export function buildCompensationNotification(
         ...base,
         tipo: 'rifiutato',
         titolo: 'Compenso rifiutato',
-        messaggio: 'Il tuo compenso è stato rifiutato.',
+        messaggio: note ? `Motivazione: ${note}` : 'Il tuo compenso è stato rifiutato.',
       };
-    case 'mark_paid':
+    case 'mark_liquidated':
       return {
         ...base,
-        tipo: 'pagato',
-        titolo: 'Compenso pagato',
-        messaggio: 'Il tuo compenso è stato contrassegnato come pagato.',
+        tipo: 'liquidato',
+        titolo: 'Compenso liquidato',
+        messaggio: 'Il tuo compenso è stato contrassegnato come liquidato.',
       };
   }
 }
@@ -62,14 +55,7 @@ export function buildExpenseNotification(
 ): NotificationPayload {
   const base = { user_id: userId, entity_type: 'reimbursement' as const, entity_id: entityId };
   switch (action) {
-    case 'request_integration':
-      return {
-        ...base,
-        tipo: 'integrazioni_richieste',
-        titolo: 'Integrazioni richieste — Rimborso',
-        messaggio: note ? `Nota: ${note}` : 'Il tuo rimborso richiede integrazioni.',
-      };
-    case 'approve_admin':
+    case 'approve':
       return {
         ...base,
         tipo: 'approvato',
@@ -81,30 +67,28 @@ export function buildExpenseNotification(
         ...base,
         tipo: 'rifiutato',
         titolo: 'Rimborso rifiutato',
-        messaggio: 'Il tuo rimborso è stato rifiutato.',
+        messaggio: note ? `Motivazione: ${note}` : 'Il tuo rimborso è stato rifiutato.',
       };
-    case 'mark_paid':
+    case 'mark_liquidated':
       return {
         ...base,
-        tipo: 'pagato',
-        titolo: 'Rimborso pagato',
-        messaggio: 'Il tuo rimborso è stato contrassegnato come pagato.',
+        tipo: 'liquidato',
+        titolo: 'Rimborso liquidato',
+        messaggio: 'Il tuo rimborso è stato contrassegnato come liquidato.',
       };
   }
 }
 
 export const COMPENSATION_NOTIFIED_ACTIONS: CompensationNotifiableAction[] = [
-  'request_integration',
-  'approve_admin',
+  'approve',
   'reject',
-  'mark_paid',
+  'mark_liquidated',
 ];
 
 export const EXPENSE_NOTIFIED_ACTIONS: ExpenseNotifiableAction[] = [
-  'request_integration',
-  'approve_admin',
+  'approve',
   'reject',
-  'mark_paid',
+  'mark_liquidated',
 ];
 
 export function buildTicketReplyNotification(
@@ -131,8 +115,8 @@ export function buildCompensationSubmitNotification(
   return {
     user_id: responsabileUserId,
     tipo: 'comp_inviato',
-    titolo: 'Nuovo compenso da esaminare',
-    messaggio: 'Un collaboratore ha inviato un compenso in attesa di pre-approvazione.',
+    titolo: 'Nuovo compenso da approvare',
+    messaggio: 'Un collaboratore ha inviato un compenso in attesa di approvazione.',
     entity_type: 'compensation',
     entity_id: entityId,
   };
@@ -145,8 +129,8 @@ export function buildExpenseSubmitNotification(
   return {
     user_id: responsabileUserId,
     tipo: 'rimborso_inviato',
-    titolo: 'Nuovo rimborso da esaminare',
-    messaggio: 'Un collaboratore ha inviato un rimborso in attesa di pre-approvazione.',
+    titolo: 'Nuovo rimborso da approvare',
+    messaggio: 'Un collaboratore ha inviato un rimborso in attesa di approvazione.',
     entity_type: 'reimbursement',
     entity_id: entityId,
   };

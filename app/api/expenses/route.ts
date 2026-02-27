@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     .insert({
       collaborator_id: col.id,
       ...parsed.data,
-      stato: 'INVIATO',
+      stato: 'IN_ATTESA',
     })
     .select()
     .single();
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   await supabase.from('expense_history').insert({
     reimbursement_id: reimbursement.id,
     stato_precedente: null,
-    stato_nuovo: 'INVIATO',
+    stato_nuovo: 'IN_ATTESA',
     changed_by: user.id,
     role_label: ROLE_LABELS[profile.role as Role],
     note: null,
