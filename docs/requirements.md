@@ -80,7 +80,8 @@ UserProfile(id, user_id, role, is_active, member_status, must_change_password, c
 UserCommunityAccess(id, user_id, community_id)   -- per Responsabili/Admin
 Collaborator(id, user_id, nome, cognome, codice_fiscale, partita_iva?, data_nascita?,
              indirizzo, telefono, email, iban, note, tshirt_size, foto_profilo_url,
-             data_ingresso, ha_figli_a_carico, figli_dettaglio jsonb?, created_at)
+             data_ingresso, sono_un_figlio_a_carico, figli_dettaglio jsonb?,
+             importo_lordo_massimale decimal?, tipo_contratto[OCCASIONALE], created_at)
 CollaboratorCommunity(id, collaborator_id, community_id)
 
 Compensation(id, collaborator_id, community_id, tipo[OCCASIONALE|PIVA],
@@ -101,7 +102,7 @@ ExpenseAttachment(id, reimbursement_id, file_url, file_name, created_at)
 ExpenseHistory(id, reimbursement_id, stato_precedente, stato_nuovo,
                changed_by, role_label, note?, created_at)
 
-Document(id, collaborator_id, community_id, tipo[CONTRATTO_OCCASIONALE|RICEVUTA_PAGAMENTO|CU],
+Document(id, collaborator_id, community_id, tipo[CONTRATTO_OCCASIONALE|RICEVUTA_PAGAMENTO|CU],  -- CONTRATTO_COCOCO/PIVA rimossi (Block 3)
          anno?, titolo, file_original_url, stato_firma[DA_FIRMARE|FIRMATO|NON_RICHIESTO],
          file_firmato_url?, requested_at, signed_at?, note?, created_at)
 
@@ -310,11 +311,13 @@ Mostrare le ultime 10 voci aggregate da:
 Estensione del profilo attuale (IBAN, tel, indirizzo, tshirt_size).
 
 ### Schema DB — note
-Tutti i campi (`ha_figli_a_carico`, `figli_dettaglio`, `data_ingresso`, `foto_profilo_url`, `partita_iva`) erano già presenti in `001_schema.sql` e nel DB live. Solo il bucket `avatars` è stato aggiunto con migration `008`.
+Campo rinominato in Block 3: `ha_figli_a_carico` → `sono_un_figlio_a_carico` (migration 018).
+Aggiunto `importo_lordo_massimale decimal(10,2) nullable` (migration 019).
+Tipo contratto unificato a solo `OCCASIONALE` (migration 020 — rimosse COCOCO/PIVA).
 
 ### Dati fiscali — Sono fiscalmente a carico
 - Semantica: il collaboratore dichiara se È fiscalmente a carico di un familiare (es. genitore). Non se "ha figli a carico".
-- Campo DB: `ha_figli_a_carico` boolean (nome storico mantenuto per compatibilità)
+- Campo DB: `sono_un_figlio_a_carico` boolean (rinominato in Block 3 da `ha_figli_a_carico`)
 - Checkbox "Sono fiscalmente a carico" + testo esplicativo
 - Se true: mostrare collassabile una guida con soglie reddito/età — contenuto gestito dall'admin tramite Contenuti > Guide (tag: `detrazioni-figli`)
 
@@ -339,3 +342,19 @@ Sezione "I miei pagamenti" posizionata in testa alla pagina `/compensi`, con due
 
 Importi "in attesa" (INVIATO + INTEGRAZIONI_RICHIESTE + PRE_APPROVATO_RESP + APPROVATO_ADMIN) mostrati separatamente sotto le card come riga riepilogativa.
 Calcolato dinamicamente — nessun campo persisted.
+
+### Massimale lordo annuo (`importo_lordo_massimale`)
+- Campo collaborator-editable nel profilo; valore max 5000€; nullable (= nessun massimale impostato).
+- Se impostato: progress bar nella pagina Compensi che mostra `somma importo_lordo compensi PAGATO anno corrente / massimale`.
+  - Progress bar non mostrata se `importo_lordo_massimale IS NULL`.
+  - ⚠️ Lo stato `PAGATO` sarà rivisto nel blocco compensation workflow — aggiornare la logica di calcolo contestualmente.
+- La legislazione italiana prevede due soglie standard di riferimento:
+  - Prestazioni occasionali: 5000€/anno
+  - Figlio fiscalmente a carico: ~2840€/anno (varia; vedi guida `detrazioni-figli`)
+  - Il collaboratore imposta manualmente il proprio massimale in base alle proprie situazioni lavorative aggiuntive.
+
+### Tipo contratto
+- Unico tipo contratto supportato: `OCCASIONALE` (Block 3 — rimossi COCOCO e PIVA).
+- Il campo `tipo_contratto` su `collaborators` non è più editabile dall'utente; hardcodato a `OCCASIONALE` alla creazione.
+- Template contratto: solo template di tipo OCCASIONALE gestito da admin in Impostazioni.
+- Il `tipo` sui record `compensations` (OCCASIONALE/PIVA) rimane distinto e invariato — riguarda la modalità di pagamento, non il template contratto. Da rivedere nel blocco compensation workflow.

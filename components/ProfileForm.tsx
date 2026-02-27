@@ -8,7 +8,6 @@ type Collaborator = {
   cognome: string;
   email: string;
   codice_fiscale: string | null;
-  partita_iva: string | null;
   data_nascita: string | null;
   luogo_nascita: string | null;
   provincia_nascita: string | null;
@@ -21,8 +20,8 @@ type Collaborator = {
   iban: string | null;
   tshirt_size: string | null;
   foto_profilo_url: string | null;
-  // ha_figli_a_carico: true = il collaboratore stesso è fiscalmente a carico di un familiare
-  ha_figli_a_carico: boolean;
+  sono_un_figlio_a_carico: boolean;
+  importo_lordo_massimale: number | null;
 };
 
 type GuideContent = { titolo: string; descrizione: string | null } | null;
@@ -33,7 +32,6 @@ type Props = {
   email: string;
   communities: { name: string }[];
   guidaFigli: GuideContent;
-  guidaPiva: GuideContent;
 };
 
 const TSHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
@@ -80,7 +78,7 @@ function GuideBox({ guide }: { guide: GuideContent }) {
   );
 }
 
-export default function ProfileForm({ collaborator, role, email, communities, guidaFigli, guidaPiva }: Props) {
+export default function ProfileForm({ collaborator, role, email, communities, guidaFigli }: Props) {
   // Editable personal data
   const [emailVal, setEmailVal]       = useState(email);
   const [nome, setNome]               = useState(collaborator?.nome ?? '');
@@ -98,8 +96,11 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
   // Payment
   const [iban, setIban] = useState(collaborator?.iban ?? '');
   // Fiscal
-  const [partitaIva, setPartitaIva]         = useState(collaborator?.partita_iva ?? '');
-  const [haFigliACarico, setHaFigliACarico] = useState(collaborator?.ha_figli_a_carico ?? false);
+  const [sonoFiglio, setSonoFiglio]   = useState(collaborator?.sono_un_figlio_a_carico ?? false);
+  const [massimale, setMassimale]     = useState<string>(
+    collaborator?.importo_lordo_massimale != null ? String(collaborator.importo_lordo_massimale) : '',
+  );
+  const [showGuida, setShowGuida]     = useState(false);
   // Preferences
   const [tshirt, setTshirt]     = useState(collaborator?.tshirt_size ?? '');
   // Avatar
@@ -136,9 +137,9 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
         indirizzo:           indirizzo || null,
         civico_residenza:    civico.trim() || null,
         iban:                iban.toUpperCase().replace(/\s/g, '') || null,
-        tshirt_size:         tshirt || null,
-        partita_iva:         partitaIva.trim() || null,
-        ha_figli_a_carico:   haFigliACarico,
+        tshirt_size:               tshirt || null,
+        sono_un_figlio_a_carico:   sonoFiglio,
+        importo_lordo_massimale:   massimale !== '' ? parseFloat(massimale) : null,
       }),
     });
 
@@ -385,29 +386,24 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
       {/* Dati fiscali */}
       <div className={sectionCls}>
         <div className={sectionHeader}>
-          <h2 className="text-sm font-medium text-gray-200">Dati fiscali</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-gray-200">Dati fiscali</h2>
+            <button
+              type="button"
+              onClick={() => setShowGuida(true)}
+              className="text-xs text-blue-400 hover:text-blue-300 transition underline underline-offset-2"
+            >
+              Come funziona la prestazione occasionale?
+            </button>
+          </div>
         </div>
         <div className="p-5 space-y-5">
-          <div>
-            <label className={labelCls}>Partita IVA <span className="text-gray-600">(se applicabile)</span></label>
-            <input
-              type="text"
-              placeholder="01234567890"
-              value={partitaIva}
-              onChange={(e) => setPartitaIva(e.target.value)}
-              disabled={loading}
-              className={inputCls + ' font-mono'}
-              maxLength={16}
-            />
-            {partitaIva.trim() && <GuideBox guide={guidaPiva} />}
-          </div>
-
           <div>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={haFigliACarico}
-                onChange={(e) => setHaFigliACarico(e.target.checked)}
+                checked={sonoFiglio}
+                onChange={(e) => setSonoFiglio(e.target.checked)}
                 disabled={loading}
                 className="accent-blue-600 w-4 h-4 mt-0.5 flex-shrink-0"
               />
@@ -418,10 +414,118 @@ export default function ProfileForm({ collaborator, role, email, communities, gu
                 </p>
               </div>
             </label>
-            {haFigliACarico && <GuideBox guide={guidaFigli} />}
+            {sonoFiglio && <GuideBox guide={guidaFigli} />}
           </div>
+
+          {role === 'collaboratore' && (
+            <div>
+              <label className={labelCls}>
+                Massimale lordo annuo <span className="text-gray-600">(max €5.000)</span>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={5000}
+                  step={1}
+                  placeholder="es. 2840 o 4000 o 5000"
+                  value={massimale}
+                  onChange={(e) => setMassimale(e.target.value)}
+                  disabled={loading}
+                  required
+                  className={inputCls + ' pl-7'}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5">
+                Importo lordo massimo che vuoi ricevere da noi nell&apos;anno solare.
+                Se hai altre collaborazioni, abbassa questo valore per rispettare i tuoi limiti personali.
+                <button type="button" onClick={() => setShowGuida(true)}
+                  className="ml-1 text-blue-400 hover:text-blue-300 underline underline-offset-2">
+                  Come scegliere il valore?
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Guida fiscale — modal */}
+      {showGuida && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowGuida(false); }}
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-gray-900 border border-gray-800 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 flex-shrink-0">
+              <h2 className="text-base font-semibold text-gray-100">Guida fiscale — prestazione occasionale</h2>
+              <button type="button" onClick={() => setShowGuida(false)}
+                className="text-gray-500 hover:text-gray-300 transition text-xl leading-none">✕</button>
+            </div>
+            <div className="overflow-y-auto p-6 space-y-5 text-sm text-gray-300">
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Cos&apos;è la prestazione occasionale?</h3>
+                <p>Quando lavori con noi vieni pagato come <strong className="text-gray-200">prestatore occasionale</strong>: puoi guadagnare senza aprire la partita IVA, in modo semplice e legale. È lo strumento pensato per chi fa lavori saltuari, come studenti o chi ha pochi committenti.</p>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">La ritenuta d&apos;acconto (−20%)</h3>
+                <p>Sul tuo compenso lordo viene automaticamente trattenuto il <strong className="text-gray-200">20%</strong> come &quot;ritenuta d&apos;acconto&quot;. Lo paga l&apos;azienda al tuo posto all&apos;Agenzia delle Entrate. Nella dichiarazione dei redditi la recuperi o la conguagli.</p>
+                <div className="mt-2 rounded-lg bg-gray-800 px-4 py-3 text-xs font-mono text-gray-300">
+                  Compenso lordo: 100€ → tu ricevi: 80€ → versati al fisco: 20€
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">La soglia dei 5.000€/anno</h3>
+                <p>Puoi guadagnare fino a <strong className="text-gray-200">5.000€ lordi all&apos;anno</strong> da prestazioni occasionali senza dover versare contributi INPS:</p>
+                <ul className="mt-2 space-y-1.5 list-none">
+                  <li className="flex gap-2"><span className="text-green-400">✓</span> Sotto 5.000€: nessun contributo INPS da versare</li>
+                  <li className="flex gap-2"><span className="text-yellow-400">⚠</span> Sopra 5.000€: sulla parte eccedente devi versare ~33% alla Gestione Separata INPS</li>
+                </ul>
+                <p className="mt-2 text-xs text-gray-500">Questa soglia vale sulla <strong className="text-gray-400">somma di tutti i compensi occasionali dell&apos;anno</strong>, non solo quelli con noi.</p>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Se sei figlio fiscalmente a carico</h3>
+                <p>I tuoi genitori hanno diritto a detrazioni fiscali finché sei loro &quot;figlio a carico&quot;. Perdi questo status se il tuo reddito annuo supera:</p>
+                <div className="mt-2 space-y-2">
+                  <div className="rounded-lg bg-blue-950/40 border border-blue-800/30 px-4 py-3">
+                    <p className="text-xs font-semibold text-blue-300 mb-1">Hai fino a 24 anni</p>
+                    <p>Limite reddito: <strong className="text-gray-200">4.000€/anno</strong></p>
+                    <p className="text-xs text-gray-500 mt-0.5">Consiglio: imposta il massimale a 4.000€ o meno</p>
+                  </div>
+                  <div className="rounded-lg bg-purple-950/40 border border-purple-800/30 px-4 py-3">
+                    <p className="text-xs font-semibold text-purple-300 mb-1">Hai più di 24 anni</p>
+                    <p>Limite reddito: <strong className="text-gray-200">2.840,51€/anno</strong></p>
+                    <p className="text-xs text-gray-500 mt-0.5">Consiglio: imposta il massimale a 2.840€ o meno</p>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">Attenzione: il reddito considerato è quello <strong className="text-gray-400">complessivo</strong> — includi anche altri eventuali guadagni.</p>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Come scegliere il massimale?</h3>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-start gap-2"><span className="text-blue-400 font-semibold">2.840€</span><span className="text-gray-400">— sei figlio a carico con più di 24 anni</span></div>
+                  <div className="flex items-start gap-2"><span className="text-blue-400 font-semibold">4.000€</span><span className="text-gray-400">— sei figlio a carico con fino a 24 anni</span></div>
+                  <div className="flex items-start gap-2"><span className="text-blue-400 font-semibold">5.000€</span><span className="text-gray-400">— nessun vincolo, vuoi massimizzare i guadagni</span></div>
+                  <div className="flex items-start gap-2"><span className="text-yellow-400 font-semibold">Meno</span><span className="text-gray-400">— hai già altre collaborazioni o guadagni nell&apos;anno</span></div>
+                </div>
+              </section>
+
+            </div>
+            <div className="px-6 py-4 border-t border-gray-800 flex-shrink-0">
+              <button type="button" onClick={() => setShowGuida(false)}
+                className="w-full rounded-lg bg-gray-800 hover:bg-gray-700 py-2 text-sm text-gray-300 transition">
+                Ho capito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preferences — editable */}
       <div className={sectionCls}>

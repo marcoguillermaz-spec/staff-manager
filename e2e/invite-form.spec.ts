@@ -129,11 +129,9 @@ test.describe.serial('Invite form dual-mode UAT', () => {
     const confirmBtn = page.locator('button[type="submit"]:has-text("Conferma")');
     await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
 
-    // Con solo email e tipo_contratto compilati (nome/cognome vuoti)
+    // Con solo email e ruolo compilati (nome/cognome vuoti) — tipo_contratto è fisso
     await page.fill('input[type="email"]', 'test@example.com');
     await page.locator('select').first().selectOption('collaboratore');
-    // tipo_contratto è il secondo select (dopo ruolo)
-    await page.locator('select').nth(1).selectOption('OCCASIONALE');
 
     // Pulsante ancora disabled (nome vuoto)
     await expect(confirmBtn).toBeDisabled();
@@ -159,7 +157,7 @@ test.describe.serial('Invite form dual-mode UAT', () => {
     // Quick mode attivo di default — compila il form
     await page.fill('input[type="email"]', EMAIL_QUICK);
     await page.locator('select').first().selectOption('collaboratore');
-    await page.locator('select').nth(1).selectOption('OCCASIONALE');
+    // tipo_contratto è hardcoded a OCCASIONALE — nessun dropdown
     await page.fill('input[placeholder="Mario"]', 'Test');
     await page.fill('input[placeholder="Rossi"]', 'Rapido');
 
@@ -206,8 +204,7 @@ test.describe.serial('Invite form dual-mode UAT', () => {
     await expect(communityCheckbox).toBeVisible({ timeout: 5_000 });
     await communityCheckbox.check();
 
-    // Tipo contratto
-    await page.locator('select').nth(1).selectOption('COCOCO');
+    // tipo_contratto è hardcoded a OCCASIONALE — nessun dropdown
 
     // Compila email
     await page.fill('input[type="email"]', EMAIL_FULL);

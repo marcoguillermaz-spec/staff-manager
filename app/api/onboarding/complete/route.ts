@@ -19,8 +19,7 @@ const schema = z.object({
   telefono:            z.string().min(1).max(20),
   iban:                z.string().min(1).max(34),
   tshirt_size:         z.string().min(1),
-  partita_iva:         z.string().nullable().optional(), // required only for PIVA
-  ha_figli_a_carico:   z.boolean(),
+  sono_un_figlio_a_carico:   z.boolean(),
 });
 
 function formatDate(isoDate: string | null | undefined): string {
@@ -109,9 +108,8 @@ export async function POST(request: Request) {
     civico_residenza:    d.civico_residenza,
     telefono:            d.telefono,
     iban:                d.iban,
-    tshirt_size:         d.tshirt_size,
-    partita_iva:         d.partita_iva ?? null,
-    ha_figli_a_carico:   d.ha_figli_a_carico,
+    tshirt_size:               d.tshirt_size,
+    sono_un_figlio_a_carico:   d.sono_un_figlio_a_carico,
   };
 
   if (existingCollab) {
@@ -161,11 +159,9 @@ export async function POST(request: Request) {
       if (templateBuffer) {
         const BLANK = '_______________';
         const vars: Record<string, string> = {
-          // Field names used by OCCASIONALE template
           nome:            d.nome,
           cognome:         d.cognome,
           codice_fiscale:  d.codice_fiscale.toUpperCase(),
-          partita_iva:     d.partita_iva ?? '',
           data_nascita:    formatDate(d.data_nascita),
           luogo_nascita:   d.luogo_nascita,
           comune:          d.comune,
@@ -178,21 +174,6 @@ export async function POST(request: Request) {
           data_fine:       BLANK,
           numero_rate:     BLANK,
           importo_rata:    BLANK,
-          // Field names used by COCOCO template
-          citta_nascita:                d.luogo_nascita,
-          provincia_nascita:            d.provincia_nascita,
-          data_di_nascita:              formatDate(d.data_nascita),
-          citta_residenza:              d.comune,
-          provincia_residenza:          d.provincia_residenza,
-          indirizzo_residenza:          d.indirizzo,
-          civico_residenza:             d.civico_residenza,
-          importo_euro:                 BLANK,
-          importo_in_lettere:           BLANK,
-          numero_soluzioni:             BLANK,
-          importo_singole_soluzioni:    BLANK,
-          importo_in_lettere_soluzione: BLANK,
-          data_inizio_collaborazione:   BLANK,
-          data_fine_collaborazione:     BLANK,
         };
 
         const generated = await generateContract(templateBuffer, vars);

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   const tipo = formData.get('tipo') as string;
   const file = formData.get('file') as File | null;
 
-  if (!tipo || !['OCCASIONALE', 'COCOCO', 'PIVA'].includes(tipo)) {
+  if (!tipo || tipo !== 'OCCASIONALE') {
     return NextResponse.json({ error: 'Tipo non valido' }, { status: 400 });
   }
   if (!file) return NextResponse.json({ error: 'File mancante' }, { status: 400 });

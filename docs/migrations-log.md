@@ -22,3 +22,6 @@
 | 015 | `015_remove_super_admin.sql` | — | Remove `super_admin` role: update CHECK constraint, migrate existing users to `amministrazione`, recreate all RLS policies |
 | 016 | `016_feedback.sql` | — | Table `feedback` + RLS (authenticated insert, admin select/delete) + private bucket `feedback` (5 MB, images) |
 | 017 | `017_roles_rename.sql` | 2026-02-26 | Rename `responsabile` → `responsabile_compensi`; add `responsabile_cittadino` and `responsabile_servizi_individuali`; update CHECK constraint, `can_manage_community()`, all RLS policies; rename test accounts |
+| 018 | `018_rename_ha_figli.sql` | 2026-02-27 | RENAME COLUMN `ha_figli_a_carico` → `sono_un_figlio_a_carico` on collaborators |
+| 019 | `019_importo_lordo_massimale.sql` | 2026-02-27 | ADD COLUMN `importo_lordo_massimale decimal(10,2) NULL` on collaborators |
+| 020 | `020_contract_type_occasionale.sql` | 2026-02-27 | DELETE CONTRATTO_COCOCO/PIVA documents; migrate collaborators COCOCO/PIVA → OCCASIONALE; restrict CHECK constraints on collaborators.tipo_contratto, contract_templates.tipo, documents.tipo to OCCASIONALE only |

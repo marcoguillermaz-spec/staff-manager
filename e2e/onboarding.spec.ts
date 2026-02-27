@@ -1,7 +1,7 @@
 /**
  * UAT — Onboarding flow
- * Scenari S1–S10: admin invite, proxy redirect, wizard 2-step, contract generation,
- * responsabile flow, form validation, PIVA field
+ * Scenari S1–S7: admin invite, proxy redirect, wizard 2-step, contract generation,
+ * responsabile flow
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
@@ -148,15 +148,10 @@ function createMinimalDocx(): Buffer {
 const FLOW_EMAIL        = 'uat-onboarding-flow@test.local';
 const FLOW_INIT_PW      = 'FlowInit1!';
 const FLOW_NEW_PW       = 'FlowNew2024!';
-const PIVA_EMAIL        = 'uat-onboarding-piva@test.local';
-const PIVA_PW           = 'PivaTest1!';
 const ADMIN_S1_EMAIL    = 'uat-onboarding-s1@test.local';
-const ADMIN_S8_EMAIL    = 'uat-onboarding-s8@test.local';
 
 let flowUserId  = '';
-let pivaUserId  = '';
 let adminS1UserId = '';
-let adminS8UserId = '';
 
 // Shared page for sequential S2–S7 flow (persistent browser context)
 let flowPage: Page;
@@ -187,7 +182,7 @@ test.describe.serial('Onboarding flow UAT', () => {
     });
 
     // Clean up any leftover test users from previous runs
-    for (const email of [FLOW_EMAIL, PIVA_EMAIL, ADMIN_S1_EMAIL, ADMIN_S8_EMAIL]) {
+    for (const email of [FLOW_EMAIL, ADMIN_S1_EMAIL]) {
       const row = await dbFirst<{ user_id: string }>(
         'collaborators',
         `email=eq.${encodeURIComponent(email)}&select=user_id`,
@@ -218,30 +213,13 @@ test.describe.serial('Onboarding flow UAT', () => {
       });
     }
 
-    // Create PIVA user (collaboratore, tipo=PIVA, no must_change_password)
-    pivaUserId = (await createAuthUser(PIVA_EMAIL, PIVA_PW)) ?? '';
-    if (pivaUserId) {
-      await dbInsert('user_profiles', {
-        user_id: pivaUserId,
-        role: 'collaboratore',
-        is_active: true,
-        must_change_password: false,
-        onboarding_completed: false,
-      });
-      await dbInsert('collaborators', {
-        user_id: pivaUserId,
-        email: PIVA_EMAIL,
-        tipo_contratto: 'PIVA',
-      });
-    }
-
     // Shared page for S2–S7 flow
     flowPage = await browser.newPage();
   });
 
   test.afterAll(async () => {
     await flowPage.close().catch(() => {});
-    for (const uid of [flowUserId, pivaUserId, adminS1UserId, adminS8UserId]) {
+    for (const uid of [flowUserId, adminS1UserId]) {
       if (uid) await deleteAuthUser(uid);
     }
   });
@@ -253,8 +231,7 @@ test.describe.serial('Onboarding flow UAT', () => {
     await page.waitForLoadState('networkidle');
 
     await page.fill('input[type="email"]', ADMIN_S1_EMAIL);
-    // Role is collaboratore by default — select tipo OCCASIONALE
-    await page.locator('select').nth(1).selectOption('OCCASIONALE');
+    // tipo_contratto is hardcoded to OCCASIONALE — no dropdown needed
 
     const [res] = await Promise.all([
       page.waitForResponse(
@@ -394,88 +371,5 @@ test.describe.serial('Onboarding flow UAT', () => {
     expect(flowPage.url()).toMatch(/\/$/);
   });
 
-  // ── S8 — Admin crea responsabile con tipo COCOCO ──────────────────────────
-  test('S8 — admin crea responsabile con tipo COCOCO, DB corretto', async ({ page }) => {
-    await loginAdmin(page);
-    await page.goto('/impostazioni?tab=utenti');
-    await page.waitForLoadState('networkidle');
-
-    await page.fill('input[type="email"]', ADMIN_S8_EMAIL);
-    // Change role to responsabile
-    await page.locator('select').nth(0).selectOption('responsabile_compensi');
-    await page.waitForTimeout(300);
-    // Select tipo COCOCO
-    await page.locator('select').nth(1).selectOption('COCOCO');
-
-    const [res] = await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes('/api/admin/create-user') && r.request().method() === 'POST',
-        { timeout: 20_000 },
-      ),
-      page.click('button[type="submit"]'),
-    ]);
-    expect(res.status()).toBe(200);
-    await expect(page.locator('span.text-green-400')).toBeVisible({ timeout: 8_000 });
-
-    const collab = await dbFirst<{ user_id: string; tipo_contratto: string }>(
-      'collaborators',
-      `email=eq.${encodeURIComponent(ADMIN_S8_EMAIL)}&select=user_id,tipo_contratto`,
-    );
-    expect(collab).not.toBeNull();
-    expect(collab!.tipo_contratto).toBe('COCOCO');
-    adminS8UserId = collab!.user_id;
-
-    const profile = await dbFirst<{ onboarding_completed: boolean; role: string }>(
-      'user_profiles',
-      `user_id=eq.${adminS8UserId}&select=onboarding_completed,role`,
-    );
-    expect(profile?.role).toBe('responsabile_compensi');
-    expect(profile?.onboarding_completed).toBe(false);
-  });
-
-  // ── S9 — Form: submit disabilitato senza tipo rapporto ───────────────────
-  test('S9 — submit disabilitato se tipo rapporto non selezionato', async ({ page }) => {
-    await loginAdmin(page);
-    await page.goto('/impostazioni?tab=utenti');
-    await page.waitForLoadState('networkidle');
-
-    await page.fill('input[type="email"]', 'no-tipo@test.local');
-    // Role = collaboratore (default) — tipo is empty → button disabled
-    const submitBtn = page.locator('button[type="submit"]');
-    await expect(submitBtn).toBeDisabled();
-
-    // Select tipo → button becomes enabled
-    await page.locator('select').nth(1).selectOption('PIVA');
-    await expect(submitBtn).not.toBeDisabled();
-  });
-
-  // ── S10 — Onboarding PIVA: campo Partita IVA visibile e obbligatorio ──────
-  test('S10 — wizard onboarding tipo PIVA mostra campo Partita IVA obbligatorio', async ({ page }) => {
-    // pivaUser has must_change_password=false and onboarding_completed=false
-    // → proxy sends directly to /onboarding
-    await loginAs(page, PIVA_EMAIL, PIVA_PW);
-    await page.waitForURL((u) => u.toString().includes('/onboarding'), { timeout: 15_000 });
-
-    // P.IVA field should be visible
-    await expect(page.locator('input[placeholder="12345678901"]')).toBeVisible({ timeout: 5_000 });
-
-    // Verify that without P.IVA, the form button is disabled even with all other fields filled
-    await page.fill('input[placeholder="Mario"]', 'PivaUser');
-    await page.fill('input[placeholder="Rossi"]', 'Test');
-    await page.fill('input[placeholder="RSSMRA80A01H501U"]', 'PVTST90A01H501X');
-    await page.fill('input[type="date"]', '1990-01-01');
-    await page.fill('input[placeholder="Roma (RM)"]', 'Roma (RM)');
-    await page.fill('input[placeholder="Milano"]', 'Roma');
-    await page.fill('input[placeholder="Via Roma 1, Milano"]', 'Via Appia 1');
-    await page.fill('input[placeholder="+39 333 0000000"]', '+39 333 9999999');
-    await page.fill('input[placeholder="IT60 X054 2811 1010 0000 0123 456"]', 'IT60X0542811101000000999999');
-    await page.locator('select').selectOption('L');
-    // P.IVA still empty → button should be disabled
-    await expect(page.locator('button[type="submit"]')).toBeDisabled();
-
-    // Fill P.IVA → button enabled
-    await page.fill('input[placeholder="12345678901"]', '12345678901');
-    await expect(page.locator('button[type="submit"]')).not.toBeDisabled();
-  });
-
 });
+

@@ -44,33 +44,25 @@ export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
 // ── Document ─────────────────────────────────────────────────
 export type DocumentType =
   | 'CONTRATTO_OCCASIONALE'
-  | 'CONTRATTO_COCOCO'
-  | 'CONTRATTO_PIVA'
   | 'RICEVUTA_PAGAMENTO'
   | 'CU';
 export type DocumentSignStatus = 'DA_FIRMARE' | 'FIRMATO' | 'NON_RICHIESTO';
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   CONTRATTO_OCCASIONALE: 'Contratto prestazione occasionale',
-  CONTRATTO_COCOCO:      'Contratto collaborazione coordinata',
-  CONTRATTO_PIVA:        'Contratto prestazione P.IVA',
   RICEVUTA_PAGAMENTO:    'Ricevuta di pagamento',
   CU:                    'Certificazione Unica',
 };
 
 // ── Contract template ─────────────────────────────────────────
-export type ContractTemplateType = 'OCCASIONALE' | 'COCOCO' | 'PIVA';
+export type ContractTemplateType = 'OCCASIONALE';
 
 export const CONTRACT_TEMPLATE_LABELS: Record<ContractTemplateType, string> = {
   OCCASIONALE: 'Prestazione occasionale',
-  COCOCO:      'Collaborazione coordinata (CoCoCo)',
-  PIVA:        'Prestazione P.IVA',
 };
 
 export const CONTRACT_TEMPLATE_DOCUMENT_TYPE: Record<ContractTemplateType, DocumentType> = {
   OCCASIONALE: 'CONTRATTO_OCCASIONALE',
-  COCOCO:      'CONTRATTO_COCOCO',
-  PIVA:        'CONTRATTO_PIVA',
 };
 
 export interface ContractTemplate {
@@ -86,8 +78,6 @@ export type DocumentMacroType = 'CONTRATTO' | 'RICEVUTA_PAGAMENTO' | 'CU';
 
 export const DOCUMENT_MACRO_TYPE: Record<DocumentType, DocumentMacroType> = {
   CONTRATTO_OCCASIONALE: 'CONTRATTO',
-  CONTRATTO_COCOCO:      'CONTRATTO',
-  CONTRATTO_PIVA:        'CONTRATTO',
   RICEVUTA_PAGAMENTO:    'RICEVUTA_PAGAMENTO',
   CU:                    'CU',
 };
@@ -295,7 +285,8 @@ export interface Collaborator {
   tshirt_size: string | null;
   foto_profilo_url: string | null;
   data_ingresso: string | null;
-  ha_figli_a_carico: boolean;
+  sono_un_figlio_a_carico: boolean;
+  importo_lordo_massimale: number | null;
   figli_dettaglio: Record<string, unknown> | null;
   created_at: string;
 }

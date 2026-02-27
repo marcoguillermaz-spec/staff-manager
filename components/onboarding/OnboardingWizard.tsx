@@ -18,8 +18,7 @@ type PrefillData = {
   telefono: string | null;
   iban: string | null;
   tshirt_size: string | null;
-  partita_iva: string | null;
-  ha_figli_a_carico: boolean;
+  sono_un_figlio_a_carico: boolean;
 } | null;
 
 interface Props {
@@ -59,8 +58,7 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
   const [telefono, setTelefono]               = useState(prefill?.telefono ?? '');
   const [iban, setIban]                       = useState(prefill?.iban ?? '');
   const [tshirt, setTshirt]                   = useState(prefill?.tshirt_size ?? '');
-  const [partitaIva, setPartitaIva]           = useState(prefill?.partita_iva ?? '');
-  const [haFigli, setHaFigli]                 = useState(prefill?.ha_figli_a_carico ?? false);
+  const [sonoFiglio, setSonoFiglio]           = useState(prefill?.sono_un_figlio_a_carico ?? false);
 
   // Step tracking
   const [step, setStep]           = useState<1 | 2>(1);
@@ -69,15 +67,12 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [contractGenerated, setContractGenerated] = useState(false);
 
-  const isPiva = tipoContratto === 'PIVA';
-
   // Validate step 1
   const step1Valid =
     nome.trim() && cognome.trim() && codiceFiscale.trim() &&
     dataNascita && luogoNascita.trim() && provinciaNascita.trim() &&
     comune.trim() && provinciaRes.trim() && indirizzo.trim() && civico.trim() &&
-    telefono.trim() && iban.trim() && tshirt &&
-    (!isPiva || partitaIva.trim());
+    telefono.trim() && iban.trim() && tshirt;
 
   const handleCompleteOnboarding = async () => {
     setLoading(true);
@@ -100,8 +95,7 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
         telefono:            telefono.trim(),
         iban:                iban.trim(),
         tshirt_size:         tshirt,
-        partita_iva:         isPiva ? partitaIva.trim() || null : null,
-        ha_figli_a_carico:   haFigli,
+        sono_un_figlio_a_carico: sonoFiglio,
       }),
     });
 
@@ -310,14 +304,6 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
                 onChange={(e) => setProvinciaNascita(e.target.value.toUpperCase())}
                 required maxLength={2} className={inputCls + ' font-mono uppercase'} />
             </div>
-            {isPiva && (
-              <div>
-                <label className={labelCls}>Partita IVA <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="12345678901" value={partitaIva}
-                  onChange={(e) => setPartitaIva(e.target.value)}
-                  required={isPiva} maxLength={11} className={inputCls + ' font-mono'} />
-              </div>
-            )}
           </div>
         </div>
 
@@ -383,7 +369,7 @@ export default function OnboardingWizard({ prefill, tipoContratto, tipoLabel }: 
               </div>
               <div className="flex items-end pb-0.5">
                 <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="checkbox" checked={haFigli} onChange={(e) => setHaFigli(e.target.checked)}
+                  <input type="checkbox" checked={sonoFiglio} onChange={(e) => setSonoFiglio(e.target.checked)}
                     className="accent-blue-600 w-4 h-4 rounded" />
                   <span className="text-sm text-gray-300">Sono fiscalmente a carico</span>
                 </label>

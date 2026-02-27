@@ -95,7 +95,7 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
     const collab = await dbFirst<{
       foto_profilo_url: string | null;
       partita_iva: string | null;
-      ha_figli_a_carico: boolean;
+      sono_un_figlio_a_carico: boolean;
       data_ingresso: string | null;
       nome: string;
       cognome: string;
@@ -105,12 +105,12 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
       provincia_residenza: string | null;
       indirizzo: string | null;
       civico_residenza: string | null;
-    }>('collaborators', `id=eq.${COLLAB_ID}&select=foto_profilo_url,partita_iva,ha_figli_a_carico,data_ingresso,nome,cognome,luogo_nascita,provincia_nascita,comune,provincia_residenza,indirizzo,civico_residenza`);
+    }>('collaborators', `id=eq.${COLLAB_ID}&select=foto_profilo_url,partita_iva,sono_un_figlio_a_carico,data_ingresso,nome,cognome,luogo_nascita,provincia_nascita,comune,provincia_residenza,indirizzo,civico_residenza`);
 
     if (collab) {
       originalAvatarUrl       = collab.foto_profilo_url;
       originalPartitaIva      = collab.partita_iva;
-      originalHaFigli         = collab.ha_figli_a_carico;
+      originalHaFigli         = collab.sono_un_figlio_a_carico;
       originalDataIngresso    = collab.data_ingresso;
       originalNome            = collab.nome;
       originalCognome         = collab.cognome;
@@ -141,7 +141,7 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
     await dbPatch('collaborators', `id=eq.${COLLAB_ID}`, {
       foto_profilo_url:    originalAvatarUrl,
       partita_iva:         originalPartitaIva,
-      ha_figli_a_carico:   originalHaFigli,
+      sono_un_figlio_a_carico:   originalHaFigli,
       data_ingresso:       originalDataIngresso,
       nome:                originalNome,
       cognome:             originalCognome,
@@ -293,9 +293,9 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
 
     await expect(page.locator('text=✓ Salvato')).toBeVisible({ timeout: 5_000 });
 
-    const collab = await dbFirst<{ ha_figli_a_carico: boolean }>('collaborators', `id=eq.${COLLAB_ID}&select=ha_figli_a_carico`);
-    expect(collab?.ha_figli_a_carico).toBe(true);
-    console.log('  ✅ S5 — ha_figli_a_carico=true salvato, DB aggiornato');
+    const collab = await dbFirst<{ sono_un_figlio_a_carico: boolean }>('collaborators', `id=eq.${COLLAB_ID}&select=sono_un_figlio_a_carico`);
+    expect(collab?.sono_un_figlio_a_carico).toBe(true);
+    console.log('  ✅ S5 — sono_un_figlio_a_carico=true salvato, DB aggiornato');
   });
 
   // ── S6: Disattiva "Sono fiscalmente a carico" ─────────────────────────────
@@ -320,9 +320,9 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
 
     await expect(page.locator('text=✓ Salvato')).toBeVisible({ timeout: 5_000 });
 
-    const collab = await dbFirst<{ ha_figli_a_carico: boolean }>('collaborators', `id=eq.${COLLAB_ID}&select=ha_figli_a_carico`);
-    expect(collab?.ha_figli_a_carico).toBe(false);
-    console.log('  ✅ S6 — ha_figli_a_carico=false salvato, DB aggiornato');
+    const collab = await dbFirst<{ sono_un_figlio_a_carico: boolean }>('collaborators', `id=eq.${COLLAB_ID}&select=sono_un_figlio_a_carico`);
+    expect(collab?.sono_un_figlio_a_carico).toBe(false);
+    console.log('  ✅ S6 — sono_un_figlio_a_carico=false salvato, DB aggiornato');
   });
 
   // ── S7: Admin imposta data_ingresso in Impostazioni > Collaboratori ───────
@@ -416,15 +416,15 @@ test.describe.serial('Profilo collaboratore esteso UAT', () => {
   });
 
   // ── S11: DB verify — dati fiscali ─────────────────────────────────────────
-  test('S11 — DB: ha_figli_a_carico=false, partita_iva valorizzata dopo S4/S6', async () => {
+  test('S11 — DB: sono_un_figlio_a_carico=false, partita_iva valorizzata dopo S4/S6', async () => {
     const collab = await dbFirst<{
-      ha_figli_a_carico: boolean;
+      sono_un_figlio_a_carico: boolean;
       partita_iva: string | null;
-    }>('collaborators', `id=eq.${COLLAB_ID}&select=ha_figli_a_carico,partita_iva`);
+    }>('collaborators', `id=eq.${COLLAB_ID}&select=sono_un_figlio_a_carico,partita_iva`);
 
-    expect(collab?.ha_figli_a_carico).toBe(false);
+    expect(collab?.sono_un_figlio_a_carico).toBe(false);
     expect(collab?.partita_iva).toBe('01234567890');
-    console.log(`  ✅ S11 — ha_figli_a_carico=${collab?.ha_figli_a_carico}, partita_iva=${collab?.partita_iva}`);
+    console.log(`  ✅ S11 — sono_un_figlio_a_carico=${collab?.sono_un_figlio_a_carico}, partita_iva=${collab?.partita_iva}`);
   });
 
 });

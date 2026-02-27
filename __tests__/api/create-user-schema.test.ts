@@ -15,7 +15,7 @@ const schema = z.object({
     'responsabile_servizi_individuali',
     'amministrazione',
   ]),
-  tipo_contratto: z.enum(['OCCASIONALE', 'COCOCO', 'PIVA']).optional(),
+  tipo_contratto: z.literal('OCCASIONALE').optional(),
 });
 
 describe('create-user role schema', () => {

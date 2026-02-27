@@ -130,8 +130,6 @@ export default function DocumentUploadForm({ collaborators, isAdmin }: Props) {
             <option value="">— Seleziona —</option>
             <optgroup label={DOCUMENT_MACRO_TYPE_LABELS['CONTRATTO']}>
               <option value="CONTRATTO_OCCASIONALE">{DOCUMENT_TYPE_LABELS['CONTRATTO_OCCASIONALE']}</option>
-              <option value="CONTRATTO_COCOCO">{DOCUMENT_TYPE_LABELS['CONTRATTO_COCOCO']}</option>
-              <option value="CONTRATTO_PIVA">{DOCUMENT_TYPE_LABELS['CONTRATTO_PIVA']}</option>
             </optgroup>
             <optgroup label="Altro">
               <option value="RICEVUTA_PAGAMENTO">{DOCUMENT_TYPE_LABELS['RICEVUTA_PAGAMENTO']}</option>

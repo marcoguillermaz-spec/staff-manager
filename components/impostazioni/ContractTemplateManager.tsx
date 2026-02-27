@@ -12,37 +12,22 @@ type Template = {
 
 type Props = { templates: Template[] };
 
-const TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];
-
 const PLACEHOLDERS = [
-  // ── Occasionale / P.IVA ──────────────────────────────────────────────────
   { key: '{nome}',           desc: 'Nome collaboratore' },
   { key: '{cognome}',        desc: 'Cognome collaboratore' },
   { key: '{codice_fiscale}', desc: 'Codice fiscale' },
-  { key: '{partita_iva}',    desc: 'Partita IVA (solo P.IVA)' },
   { key: '{data_nascita}',   desc: 'Data di nascita' },
   { key: '{luogo_nascita}',  desc: 'Luogo di nascita' },
   { key: '{comune}',         desc: 'Comune di residenza' },
   { key: '{indirizzo}',      desc: 'Via e numero civico' },
+  { key: '{email}',          desc: 'Email collaboratore' },
+  { key: '{telefono}',       desc: 'Telefono collaboratore' },
+  { key: '{iban}',           desc: 'IBAN' },
   { key: '{compenso_lordo}', desc: 'Compenso lordo (€)' },
   { key: '{data_inizio}',    desc: 'Data inizio contratto' },
   { key: '{data_fine}',      desc: 'Data fine contratto' },
-  { key: '{numero_rate}',    desc: 'Numero di rate (CoCoCo/P.IVA)' },
-  { key: '{importo_rata}',   desc: 'Importo rata (€, CoCoCo/P.IVA)' },
-  // ── CoCoCo ───────────────────────────────────────────────────────────────
-  { key: '{citta_nascita}',                desc: 'Città di nascita (CoCoCo)' },
-  { key: '{provincia_nascita}',            desc: 'Provincia di nascita — sigla (CoCoCo)' },
-  { key: '{data_di_nascita}',              desc: 'Data di nascita formattata (CoCoCo)' },
-  { key: '{citta_residenza}',              desc: 'Comune di residenza (CoCoCo)' },
-  { key: '{provincia_residenza}',          desc: 'Provincia di residenza — sigla (CoCoCo)' },
-  { key: '{indirizzo_residenza}',          desc: 'Via/Piazza di residenza (CoCoCo)' },
-  { key: '{civico_residenza}',             desc: 'Numero civico (CoCoCo)' },
-  { key: '{importo_euro}',                 desc: 'Compenso totale in €  (CoCoCo)' },
-  { key: '{importo_in_lettere}',           desc: 'Compenso in lettere (CoCoCo)' },
-  { key: '{numero_soluzioni}',             desc: 'Numero rate (CoCoCo)' },
-  { key: '{importo_singole_soluzioni}',    desc: 'Importo singola rata (CoCoCo)' },
-  { key: '{data_inizio_collaborazione}',   desc: 'Data inizio collaborazione (CoCoCo)' },
-  { key: '{data_fine_collaborazione}',     desc: 'Data fine collaborazione (CoCoCo)' },
+  { key: '{numero_rate}',    desc: 'Numero di rate' },
+  { key: '{importo_rata}',   desc: 'Importo rata (€)' },
 ];
 
 const sectionCls = 'rounded-2xl bg-gray-900 border border-gray-800';
@@ -88,13 +73,13 @@ export default function ContractTemplateManager({ templates: initial }: Props) {
             Carica un file .docx per ogni tipologia. Il template viene sostituito ad ogni caricamento.
           </p>
         </div>
-        <div className="p-5 space-y-3">
-          {TIPOS.map((tipo) => {
+        <div className="p-5">
+          {(() => {
+            const tipo: ContractTemplateType = 'OCCASIONALE';
             const tpl = templateMap[tipo];
             const isUploading = uploading === tipo;
             return (
-              <div key={tipo}
-                className="flex items-center justify-between rounded-xl bg-gray-800 border border-gray-700 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl bg-gray-800 border border-gray-700 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-200">{CONTRACT_TEMPLATE_LABELS[tipo]}</p>
                   {tpl ? (
@@ -128,7 +113,7 @@ export default function ContractTemplateManager({ templates: initial }: Props) {
                 </label>
               </div>
             );
-          })}
+          })()}
           {error && (
             <div className="rounded-lg bg-red-900/30 border border-red-800/40 px-3 py-2 text-xs text-red-400">
               {error}

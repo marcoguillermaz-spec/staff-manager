@@ -1,7 +1,7 @@
 /**
- * UAT — Template contratti + Onboarding automatizzato + campi CoCoCo
+ * UAT — Template contratti + Onboarding automatizzato
  * Scenari S1–S10: tab contratti, upload template, crea utente + nuovi campi DB,
- * onboarding COCOCO → contratto generato, profilo editing con province e civico
+ * onboarding OCCASIONALE → contratto generato, profilo editing con province e civico
  *
  * Prerequisiti:
  *   - Dev server attivo su localhost:3000
@@ -16,7 +16,6 @@ import path from 'path';
 // ── Real template fixtures (stored in e2e/fixtures/) ─────────────────────────
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const FIXTURE_OCCASIONALE = path.join(FIXTURES_DIR, 'Contratto_Occasionale_Testbusters.docx');
-const FIXTURE_COCOCO      = path.join(FIXTURES_DIR, 'Contratto_Cococo_Testbusters.docx');
 
 // ── Supabase REST helpers ─────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -78,7 +77,7 @@ async function uploadToStorage(bucket: string, storagePath: string, buffer: Buff
 async function createDbUser(
   email: string,
   password: string,
-  tipoContratto: 'COCOCO' | 'OCCASIONALE' | 'PIVA',
+  tipoContratto: 'OCCASIONALE',
 ): Promise<string | null> {
   const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
@@ -203,26 +202,19 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     tmpPdfPath = path.join(os.tmpdir(), 'uat_test.pdf');
     fs.writeFileSync(tmpPdfPath, Buffer.from('%PDF-1.4 test file'));
 
-    // Pre-upload real templates to storage
+    // Pre-upload real template to storage
     const occasionaleBuf = fs.readFileSync(FIXTURE_OCCASIONALE);
-    const cococoBuf      = fs.readFileSync(FIXTURE_COCOCO);
     await uploadToStorage('contracts', 'templates/occasionale.docx', occasionaleBuf, docxContentType);
-    await uploadToStorage('contracts', 'templates/cococo.docx',      cococoBuf,      docxContentType);
 
-    // Ensure contract_templates records exist
+    // Ensure contract_templates record exists
     await fetch(`${SUPABASE_URL}/rest/v1/contract_templates`, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
       body: JSON.stringify({ tipo: 'OCCASIONALE', file_url: 'templates/occasionale.docx', file_name: 'Contratto_Occasionale_Testbusters.docx' }),
     });
-    await fetch(`${SUPABASE_URL}/rest/v1/contract_templates`, {
-      method: 'POST',
-      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify({ tipo: 'COCOCO', file_url: 'templates/cococo.docx', file_name: 'Contratto_Cococo_Testbusters.docx' }),
-    });
 
-    // Create S7 test user (COCOCO, onboarding not yet completed) programmatically
-    const s7UserId = await createDbUser(TEST_CREDS_S7.email, TEST_CREDS_S7.password, 'COCOCO');
+    // Create S7 test user (OCCASIONALE, onboarding not yet completed) programmatically
+    const s7UserId = await createDbUser(TEST_CREDS_S7.email, TEST_CREDS_S7.password, 'OCCASIONALE');
     if (s7UserId) createdUserIds.push(s7UserId);
 
     // Backup collaboratore's current profile (restored in afterAll)
@@ -266,17 +258,15 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
   });
 
   // S1 — Tab Contratti visibile
-  test('S1 — admin accede al tab Contratti, 3 tipologie visibili', async ({ page }) => {
+  test('S1 — admin accede al tab Contratti, tipologia OCCASIONALE visibile', async ({ page }) => {
     await login(page, 'admin');
     await page.goto('/impostazioni?tab=contratti');
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('a[href="?tab=contratti"].bg-blue-600')).toBeVisible();
 
-    // 3 tipologie
+    // Solo OCCASIONALE
     await expect(page.locator('p.text-sm.font-medium').filter({ hasText: 'Prestazione occasionale' })).toBeVisible();
-    await expect(page.locator('p.text-sm.font-medium').filter({ hasText: 'Collaborazione coordinata' })).toBeVisible();
-    await expect(page.locator('p.text-sm.font-medium').filter({ hasText: 'Prestazione P.IVA' })).toBeVisible();
   });
 
   // S2 — Upload template .docx
@@ -311,11 +301,11 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     await page.goto('/impostazioni?tab=contratti');
     await page.waitForLoadState('networkidle');
 
-    const pivaCard = page.locator('div.rounded-xl').filter({
-      has: page.locator('p.font-medium:has-text("Prestazione P.IVA")'),
+    const ocasionaleCard = page.locator('div.rounded-xl').filter({
+      has: page.locator('p.font-medium:has-text("Prestazione occasionale")'),
     });
 
-    const fileInput = pivaCard.locator('input[type="file"]');
+    const fileInput = ocasionaleCard.locator('input[type="file"]');
     const [response] = await Promise.all([
       page.waitForResponse(
         (res) => res.url().includes('/api/admin/contract-templates') && res.request().method() === 'POST',
@@ -328,8 +318,8 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     await expect(page.locator('div.text-red-400')).toBeVisible({ timeout: 5_000 });
   });
 
-  // S4 — Segnaposto: verifica variabili OCCASIONALE e CoCoCo
-  test('S4 — sezione segnaposto mostra variabili OCCASIONALE e CoCoCo', async ({ page }) => {
+  // S4 — Segnaposto: verifica variabili OCCASIONALE
+  test('S4 — sezione segnaposto mostra variabili OCCASIONALE', async ({ page }) => {
     await login(page, 'admin');
     await page.goto('/impostazioni?tab=contratti');
     await page.waitForLoadState('networkidle');
@@ -341,21 +331,16 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     await expect(page.locator('code').filter({ hasText: '{nome}' }).first()).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('code').filter({ hasText: '{cognome}' }).first()).toBeVisible();
     await expect(page.locator('code').filter({ hasText: '{compenso_lordo}' }).first()).toBeVisible();
-    // CoCoCo vars (added in this session)
-    await expect(page.locator('code').filter({ hasText: '{citta_nascita}' }).first()).toBeVisible();
-    await expect(page.locator('code').filter({ hasText: '{provincia_nascita}' }).first()).toBeVisible();
-    await expect(page.locator('code').filter({ hasText: '{civico_residenza}' }).first()).toBeVisible();
   });
 
-  // S5 — Crea collaboratore PIVA, nuovi campi provincia_nascita/residenza/civico in DB
-  test('S5 — admin crea collaboratore PIVA, nuovi campi anagrafica salvati in DB', async ({ page }) => {
+  // S5 — Crea collaboratore OCCASIONALE, nuovi campi provincia_nascita/residenza/civico in DB
+  test('S5 — admin crea collaboratore OCCASIONALE, nuovi campi anagrafica salvati in DB', async ({ page }) => {
     await login(page, 'admin');
     await page.goto('/impostazioni?tab=utenti');
     await page.waitForLoadState('networkidle');
 
     await page.fill('input[type="email"]', TEST_EMAILS.s5);
-    // Select PIVA (tipo_contratto required for collaboratore)
-    await page.locator('select').nth(1).selectOption('PIVA');
+    // tipo_contratto is hardcoded to OCCASIONALE — no dropdown needed
 
     // Fill anagrafica with new split fields
     await page.fill('input[placeholder="Mario"]',            'Uat');
@@ -402,14 +387,14 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     if (collab?.user_id) createdUserIds.push(collab.user_id);
   });
 
-  // S6 — Crea collaboratore OCCASIONALE, nuovi campi in DB
+  // S6 — Crea collaboratore OCCASIONALE (2), nuovi campi in DB
   test('S6 — admin crea collaboratore OCCASIONALE, nuovi campi in DB', async ({ page }) => {
     await login(page, 'admin');
     await page.goto('/impostazioni?tab=utenti');
     await page.waitForLoadState('networkidle');
 
     await page.fill('input[type="email"]', TEST_EMAILS.s6);
-    await page.locator('select').nth(1).selectOption('OCCASIONALE');
+    // tipo_contratto is hardcoded to OCCASIONALE
 
     await page.fill('input[placeholder="Mario"]',            'Lucia');
     await page.fill('input[placeholder="Rossi"]',            'S6Test');
@@ -453,8 +438,8 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     if (collab?.user_id) createdUserIds.push(collab.user_id);
   });
 
-  // S7 — Onboarding CoCoCo: wizard completo → CONTRATTO_COCOCO DA_FIRMARE in DB
-  test('S7 — Onboarding CoCoCo: wizard step 1+2, documento CONTRATTO_COCOCO generato', async ({ page }) => {
+  // S7 — Onboarding OCCASIONALE: wizard completo → CONTRATTO_OCCASIONALE DA_FIRMARE in DB
+  test('S7 — Onboarding OCCASIONALE: wizard step 1+2, documento CONTRATTO_OCCASIONALE generato', async ({ page }) => {
     // Login as S7 user (created in beforeAll, must_change_password=false, onboarding_completed=false)
     await loginAs(page, TEST_CREDS_S7.email, TEST_CREDS_S7.password);
 
@@ -505,7 +490,7 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     await expect(page.locator('span.text-green-400').filter({ hasText: 'Contratto generato' })).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('button').filter({ hasText: 'Scarica contratto' })).toBeVisible();
 
-    // DB check: CONTRATTO_COCOCO with DA_FIRMARE
+    // DB check: CONTRATTO_OCCASIONALE with DA_FIRMARE
     const s7Collab = await dbFirst<{ id: string }>(
       'collaborators',
       `email=eq.${encodeURIComponent(TEST_CREDS_S7.email)}&select=id`,
@@ -515,7 +500,7 @@ test.describe.serial('Template contratti + Onboarding UAT', () => {
     await page.waitForTimeout(500);
     const docs = await dbGet<{ id: string; stato_firma: string; tipo: string }>(
       'documents',
-      `collaborator_id=eq.${s7Collab!.id}&tipo=eq.CONTRATTO_COCOCO&select=id,stato_firma,tipo`,
+      `collaborator_id=eq.${s7Collab!.id}&tipo=eq.CONTRATTO_OCCASIONALE&select=id,stato_firma,tipo`,
     );
     expect(docs.length).toBe(1);
     expect(docs[0].stato_firma).toBe('DA_FIRMARE');

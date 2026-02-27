@@ -18,7 +18,6 @@ export default async function ProfiloPage({
     { data: profile },
     { data: collaborator },
     { data: guidaFigliRow },
-    { data: guidaPivaRow },
   ] = await Promise.all([
     supabase
       .from('user_profiles')
@@ -28,11 +27,11 @@ export default async function ProfiloPage({
     supabase
       .from('collaborators')
       .select(`
-        nome, cognome, email, codice_fiscale, partita_iva,
+        nome, cognome, email, codice_fiscale,
         data_nascita, luogo_nascita, provincia_nascita,
         comune, provincia_residenza, data_ingresso,
         telefono, indirizzo, civico_residenza, iban, tshirt_size,
-        foto_profilo_url, ha_figli_a_carico,
+        foto_profilo_url, sono_un_figlio_a_carico, importo_lordo_massimale,
         collaborator_communities ( communities ( name ) )
       `)
       .eq('user_id', user.id)
@@ -41,12 +40,6 @@ export default async function ProfiloPage({
       .from('resources')
       .select('titolo, descrizione')
       .contains('tag', ['detrazioni-figli'])
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('resources')
-      .select('titolo, descrizione')
-      .contains('tag', ['procedura-piva'])
       .limit(1)
       .maybeSingle(),
   ]);
@@ -93,7 +86,6 @@ export default async function ProfiloPage({
           email={user.email ?? ''}
           communities={communities}
           guidaFigli={guidaFigliRow ?? null}
-          guidaPiva={guidaPivaRow ?? null}
         />
       </div>
     );
@@ -121,7 +113,6 @@ export default async function ProfiloPage({
             email={user.email ?? ''}
             communities={communities}
             guidaFigli={guidaFigliRow ?? null}
-            guidaPiva={guidaPivaRow ?? null}
           />
         </div>
       )}

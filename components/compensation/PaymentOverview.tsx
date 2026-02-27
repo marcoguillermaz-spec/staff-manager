@@ -8,6 +8,9 @@ type Props = {
   compensPending: number;
   expensePaidByYear: YearBreakdown[];
   expensePending: number;
+  massimale: number | null;
+  paidCurrentYear: number;
+  currentYear: number;
 };
 
 function OverviewCard({
@@ -56,28 +59,64 @@ function OverviewCard({
   );
 }
 
-export default function PaymentOverview({ compensPaidByYear, compensPending, expensePaidByYear, expensePending }: Props) {
+export default function PaymentOverview({
+  compensPaidByYear, compensPending,
+  expensePaidByYear, expensePending,
+  massimale, paidCurrentYear, currentYear,
+}: Props) {
   const hasData =
     compensPaidByYear.length > 0 || compensPending > 0 ||
     expensePaidByYear.length > 0 || expensePending > 0;
 
-  if (!hasData) return null;
+  const showMassimale = massimale != null && massimale > 0;
+  const pct = showMassimale ? Math.min(100, (paidCurrentYear / massimale) * 100) : 0;
+  const isNearLimit = pct >= 80;
+  const barColor = pct >= 100 ? 'bg-red-500' : isNearLimit ? 'bg-yellow-400' : 'bg-green-500';
+
+  if (!hasData && !showMassimale) return null;
 
   return (
-    <div className="mb-6">
-      <h2 className="text-sm font-medium text-gray-400 mb-3">I miei pagamenti</h2>
-      <div className="flex gap-4 flex-wrap">
-        <OverviewCard
-          title="Compensi liquidati"
-          paidByYear={compensPaidByYear}
-          pending={compensPending}
-        />
-        <OverviewCard
-          title="Rimborsi liquidati"
-          paidByYear={expensePaidByYear}
-          pending={expensePending}
-        />
-      </div>
+    <div className="mb-6 space-y-4">
+      {showMassimale && (
+        <div className="rounded-2xl bg-gray-900 border border-gray-800 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-medium text-gray-200">Massimale annuo {currentYear}</h2>
+            <span className={`text-xs font-mono ${pct >= 100 ? 'text-red-400' : isNearLimit ? 'text-yellow-400' : 'text-gray-400'}`}>
+              {fmt(paidCurrentYear)} / {fmt(massimale)}
+            </span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-gray-700 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${barColor}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          {pct >= 100 && (
+            <p className="text-xs text-red-400 mt-2">Hai raggiunto il massimale impostato.</p>
+          )}
+          {isNearLimit && pct < 100 && (
+            <p className="text-xs text-yellow-400 mt-2">Stai avvicinandoti al massimale ({pct.toFixed(0)}%).</p>
+          )}
+        </div>
+      )}
+
+      {hasData && (
+        <>
+          <h2 className="text-sm font-medium text-gray-400">I miei pagamenti</h2>
+          <div className="flex gap-4 flex-wrap">
+            <OverviewCard
+              title="Compensi liquidati"
+              paidByYear={compensPaidByYear}
+              pending={compensPending}
+            />
+            <OverviewCard
+              title="Rimborsi liquidati"
+              paidByYear={expensePaidByYear}
+              pending={expensePending}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

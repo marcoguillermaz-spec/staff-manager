@@ -56,11 +56,14 @@ export default async function CompensiPage() {
   if (profile.role !== 'collaboratore') redirect('/');
   if (profile.member_status === 'uscente_senza_compenso') redirect('/profilo?tab=documenti');
 
+  const currentYear = new Date().getFullYear();
+
   const [
     { data: compensations },
     { data: allCompens },
     { data: allExpenses },
     { data: expenses },
+    { data: collabRecord },
   ] = await Promise.all([
     supabase
       .from('compensations')
@@ -68,7 +71,7 @@ export default async function CompensiPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('compensations')
-      .select('tipo, stato, importo_netto, totale_fattura, paid_at'),
+      .select('tipo, stato, importo_lordo, importo_netto, totale_fattura, paid_at'),
     supabase
       .from('expense_reimbursements')
       .select('importo, stato, paid_at'),
@@ -76,12 +79,26 @@ export default async function CompensiPage() {
       .from('expense_reimbursements')
       .select('*')
       .order('created_at', { ascending: false }),
+    supabase
+      .from('collaborators')
+      .select('importo_lordo_massimale')
+      .eq('user_id', user.id)
+      .single(),
   ]);
 
   const { paidByYear: compensPaidByYear, pending: compensPending } =
     groupByYear(allCompens ?? [], ACTIVE_STATES);
   const { paidByYear: expensePaidByYear, pending: expensePending } =
     groupByYear(allExpenses ?? [], ACTIVE_STATES);
+
+  const massimale = collabRecord?.importo_lordo_massimale ?? null;
+  // Sum gross amount of OCCASIONALE compensations paid in the current year
+  const paidCurrentYear = massimale != null
+    ? (allCompens ?? [])
+        .filter((c) => c.tipo === 'OCCASIONALE' && c.stato === 'PAGATO' && c.paid_at &&
+          new Date(c.paid_at).getFullYear() === currentYear)
+        .reduce((sum, c) => sum + (c.importo_lordo ?? 0), 0)
+    : 0;
 
   return (
     <div className="p-6 max-w-5xl">
@@ -100,6 +117,9 @@ export default async function CompensiPage() {
         compensPending={compensPending}
         expensePaidByYear={expensePaidByYear}
         expensePending={expensePending}
+        massimale={massimale}
+        paidCurrentYear={paidCurrentYear}
+        currentYear={currentYear}
       />
 
       <div className="mt-8">

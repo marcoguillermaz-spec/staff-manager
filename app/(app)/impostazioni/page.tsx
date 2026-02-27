@@ -184,7 +184,7 @@ export default async function ImpostazioniPage({
 
       {activeTab === 'contratti' && (
         <ContractTemplateManager
-          templates={contractTemplates as { id: string; tipo: 'OCCASIONALE' | 'COCOCO' | 'PIVA'; file_name: string; uploaded_at: string }[]}
+          templates={contractTemplates as { id: string; tipo: 'OCCASIONALE'; file_name: string; uploaded_at: string }[]}
         />
       )}
 

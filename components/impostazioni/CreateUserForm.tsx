@@ -16,7 +16,6 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'amministrazione',                  label: 'Amministrazione' },
 ];
 
-const CONTRACT_TIPOS: ContractTemplateType[] = ['OCCASIONALE', 'COCOCO', 'PIVA'];
 
 // Roles that require tipo_contratto and have anagrafica pre-fill
 const ROLES_WITH_CONTRACT: Role[] = ['collaboratore', 'responsabile_compensi'];
@@ -55,8 +54,7 @@ export default function CreateUserForm() {
   const [civico, setCivico]           = useState('');
   const [telefono, setTelefono]       = useState('');
 
-  // Tipo rapporto (required for collaboratore and responsabile)
-  const [tipoContratto, setTipoContratto] = useState<ContractTemplateType | ''>('');
+  // Tipo rapporto: always OCCASIONALE
 
   // Template status (which tipos have templates uploaded)
   const [templateStatus, setTemplateStatus]   = useState<TemplateStatus[]>([]);
@@ -111,7 +109,7 @@ export default function CreateUserForm() {
 
     if (needsContract) {
       Object.assign(body, {
-        tipo_contratto:      tipoContratto || undefined,
+        tipo_contratto:      'OCCASIONALE',
         nome:                nome.trim() || undefined,
         cognome:             cognome.trim() || undefined,
         codice_fiscale:      codiceFiscale.trim().toUpperCase() || null,
@@ -144,7 +142,6 @@ export default function CreateUserForm() {
     setNome(''); setCognome(''); setCodiceFiscale(''); setDataNascita('');
     setLuogoNascita(''); setProvinciaNascita(''); setComuneRes(''); setPrvinciaRes('');
     setIndirizzo(''); setCivico(''); setTelefono('');
-    setTipoContratto('');
   };
 
   if (credentials) {
@@ -233,7 +230,7 @@ export default function CreateUserForm() {
           <div>
             <label className={labelCls}>Ruolo</label>
             <select value={role}
-              onChange={(e) => { setRole(e.target.value as Role); setSelectedCommunities([]); setTipoContratto(''); }}
+              onChange={(e) => { setRole(e.target.value as Role); setSelectedCommunities([]); }}
               disabled={loading} className={selectCls}>
               {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -259,27 +256,18 @@ export default function CreateUserForm() {
         </div>
       )}
 
-      {/* Tipo rapporto (required for collaboratore and responsabile) */}
+      {/* Tipo rapporto — sempre OCCASIONALE */}
       {needsContract && (
         <div>
           <p className={sectionTitle}>Tipo rapporto</p>
-          <div>
-            <label className={labelCls}>Tipologia contratto <span className="text-red-500">*</span></label>
-            <select value={tipoContratto}
-              onChange={(e) => setTipoContratto(e.target.value as ContractTemplateType | '')}
-              required disabled={loading} className={selectCls}>
-              <option value="">— Seleziona tipologia —</option>
-              {CONTRACT_TIPOS.map((t) => (
-                <option key={t} value={t}>
-                  {CONTRACT_TEMPLATE_LABELS[t]}{!hasTemplate(t) ? ' (template mancante)' : ''}
-                </option>
-              ))}
-            </select>
-            {tipoContratto && !hasTemplate(tipoContratto) && (
-              <p className="text-xs text-yellow-600 mt-1.5">
-                Nessun template caricato per questa tipologia. L&apos;utente potrà comunque completare l&apos;onboarding, ma il contratto non verrà generato automaticamente.
-              </p>
-            )}
+          <div className="flex items-center justify-between rounded-xl bg-gray-800 border border-gray-700 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-gray-200">{CONTRACT_TEMPLATE_LABELS['OCCASIONALE']}</p>
+              {!hasTemplate('OCCASIONALE') && (
+                <p className="text-xs text-yellow-600 mt-0.5">Nessun template caricato — il contratto non sarà generato automaticamente.</p>
+              )}
+            </div>
+            <span className="text-xs text-gray-500 ml-4">Tipo fisso</span>
           </div>
         </div>
       )}
@@ -393,7 +381,7 @@ export default function CreateUserForm() {
       )}
 
       <button type="submit"
-        disabled={loading || !email || (needsContract && (!tipoContratto || (mode === 'quick' && (!nome.trim() || !cognome.trim()))))}
+        disabled={loading || !email || (needsContract && (mode === 'quick' && (!nome.trim() || !cognome.trim())))}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-medium text-white transition disabled:opacity-50 flex items-center justify-center gap-2">
         {loading ? (
           <>

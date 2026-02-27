@@ -10,8 +10,8 @@ const schema = z.object({
   email: z.string().email(),
   role: z.enum(['collaboratore', 'responsabile_cittadino', 'responsabile_compensi', 'responsabile_servizi_individuali', 'amministrazione']),
   community_ids: z.array(z.string().uuid()).optional(),
-  // Tipo rapporto (obbligatorio per collaboratore e responsabile)
-  tipo_contratto: z.enum(['OCCASIONALE', 'COCOCO', 'PIVA']).optional(),
+  // Tipo rapporto: always OCCASIONALE
+  tipo_contratto: z.literal('OCCASIONALE').optional(),
   // Anagrafica (opzionale — pre-fill per l'onboarding)
   nome:                z.string().min(1).max(100).optional(),
   cognome:             z.string().min(1).max(100).optional(),
