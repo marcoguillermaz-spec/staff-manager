@@ -48,21 +48,30 @@ interface DocumentRow {
   created_at: string;
 }
 
+interface CollabData {
+  id: string;
+  nome: string | null;
+  cognome: string | null;
+  codice_fiscale: string | null;
+  telefono: string | null;
+  email: string | null;
+  tipo_contratto: string | null;
+  data_ingresso: string | null;
+  luogo_nascita: string | null;
+  provincia_nascita: string | null;
+  comune: string | null;
+  provincia_residenza: string | null;
+  indirizzo: string | null;
+  civico_residenza: string | null;
+  data_nascita: string | null;
+  tshirt_size: string | null;
+  sono_un_figlio_a_carico: boolean;
+  importo_lordo_massimale: number | null;
+  username: string | null;
+}
+
 interface CollaboratoreDetailProps {
-  collab: {
-    id: string;
-    nome: string | null;
-    cognome: string | null;
-    codice_fiscale: string | null;
-    telefono: string | null;
-    email: string | null;
-    tipo_contratto: string | null;
-    data_ingresso: string | null;
-    luogo_nascita: string | null;
-    comune: string | null;
-    indirizzo: string | null;
-    username: string | null;
-  };
+  collab: CollabData;
   memberStatus: string | null;
   communityNames: string[];
   compensations: CompensationRow[];
@@ -110,6 +119,89 @@ export default function CollaboratoreDetail({
   const [usernameEdit, setUsernameEdit] = useState(collab.username ?? '');
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  // ── Profile edit mode ─────────────────────────────────────────────────────
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSaved, setProfileSaved] = useState(false);
+  // Form fields
+  const [fNome, setFNome]                       = useState(collab.nome ?? '');
+  const [fCognome, setFCognome]                 = useState(collab.cognome ?? '');
+  const [fCF, setFCF]                           = useState(collab.codice_fiscale ?? '');
+  const [fDataNascita, setFDataNascita]         = useState(collab.data_nascita ?? '');
+  const [fLuogoNascita, setFLuogoNascita]       = useState(collab.luogo_nascita ?? '');
+  const [fProvinciaNascita, setFProvinciaNascita] = useState(collab.provincia_nascita ?? '');
+  const [fComune, setFComune]                   = useState(collab.comune ?? '');
+  const [fProvinciaRes, setFProvinciaRes]       = useState(collab.provincia_residenza ?? '');
+  const [fIndirizzo, setFIndirizzo]             = useState(collab.indirizzo ?? '');
+  const [fCivico, setFCivico]                   = useState(collab.civico_residenza ?? '');
+  const [fTelefono, setFTelefono]               = useState(collab.telefono ?? '');
+  const [fTshirt, setFTshirt]                   = useState(collab.tshirt_size ?? '');
+  const [fSonoFiglio, setFSonoFiglio]           = useState(collab.sono_un_figlio_a_carico);
+  const [fMassimale, setFMassimale]             = useState<string>(
+    collab.importo_lordo_massimale != null ? String(collab.importo_lordo_massimale) : '',
+  );
+  const [fUsername, setFUsername]               = useState(collab.username ?? '');
+
+  const openProfileEdit = () => {
+    setFNome(collab.nome ?? '');
+    setFCognome(collab.cognome ?? '');
+    setFCF(collab.codice_fiscale ?? '');
+    setFDataNascita(collab.data_nascita ?? '');
+    setFLuogoNascita(collab.luogo_nascita ?? '');
+    setFProvinciaNascita(collab.provincia_nascita ?? '');
+    setFComune(collab.comune ?? '');
+    setFProvinciaRes(collab.provincia_residenza ?? '');
+    setFIndirizzo(collab.indirizzo ?? '');
+    setFCivico(collab.civico_residenza ?? '');
+    setFTelefono(collab.telefono ?? '');
+    setFTshirt(collab.tshirt_size ?? '');
+    setFSonoFiglio(collab.sono_un_figlio_a_carico);
+    setFMassimale(collab.importo_lordo_massimale != null ? String(collab.importo_lordo_massimale) : '');
+    setFUsername(collab.username ?? '');
+    setProfileError(null);
+    setProfileSaved(false);
+    setEditingProfile(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileError(null);
+    const body: Record<string, unknown> = {
+      nome:                fNome.trim() || undefined,
+      cognome:             fCognome.trim() || undefined,
+      codice_fiscale:      fCF.trim().toUpperCase() || null,
+      data_nascita:        fDataNascita || null,
+      luogo_nascita:       fLuogoNascita.trim() || null,
+      provincia_nascita:   fProvinciaNascita.trim().toUpperCase() || null,
+      comune:              fComune.trim() || null,
+      provincia_residenza: fProvinciaRes.trim().toUpperCase() || null,
+      indirizzo:           fIndirizzo.trim() || null,
+      civico_residenza:    fCivico.trim() || null,
+      telefono:            fTelefono.trim() || null,
+      tshirt_size:         fTshirt || null,
+      sono_un_figlio_a_carico: fSonoFiglio,
+      importo_lordo_massimale: fMassimale !== '' ? parseFloat(fMassimale) : null,
+    };
+    if (fUsername.trim().length >= 3) body.username = fUsername.trim();
+
+    const res = await fetch(`/api/admin/collaboratori/${collab.id}/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    setProfileSaving(false);
+    if (res.ok) {
+      setProfileSaved(true);
+      setEditingProfile(false);
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setProfileError(data.error ?? 'Errore durante il salvataggio');
+    }
+  };
 
   const handleSaveUsername = async () => {
     setUsernameSaving(true);
@@ -280,25 +372,171 @@ export default function CollaboratoreDetail({
           )}
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-          {[
-            ['Codice fiscale', collab.codice_fiscale],
-            ['Telefono', collab.telefono],
-            ['Email', collab.email],
-            ['Tipo contratto', collab.tipo_contratto],
-            ['Data ingresso', collab.data_ingresso ? formatDate(collab.data_ingresso) : null],
-            ['Luogo nascita', collab.luogo_nascita],
-            ['Comune residenza', collab.comune],
-            ['Indirizzo', collab.indirizzo],
-          ].map(([label, value]) =>
-            value ? (
-              <div key={label as string}>
-                <dt className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">{label}</dt>
-                <dd className="text-gray-200 font-mono text-xs">{value}</dd>
-              </div>
-            ) : null
+        {/* Profile edit toggle */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">Anagrafica</span>
+          {!editingProfile && (
+            <button
+              type="button"
+              onClick={openProfileEdit}
+              className="text-xs text-blue-400 hover:text-blue-300 transition"
+            >
+              Modifica profilo
+            </button>
           )}
-        </dl>
+        </div>
+
+        {editingProfile ? (
+          /* ── Edit form ───────────────────────────────────────────────── */
+          <form onSubmit={handleSaveProfile} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Nome</label>
+                <input type="text" value={fNome} onChange={(e) => setFNome(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Cognome</label>
+                <input type="text" value={fCognome} onChange={(e) => setFCognome(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Username</label>
+              <input type="text" value={fUsername}
+                onChange={(e) => setFUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                maxLength={50} placeholder="username"
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 font-mono focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Codice fiscale</label>
+              <input type="text" value={fCF}
+                onChange={(e) => setFCF(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                maxLength={16}
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 font-mono focus:outline-none focus:border-blue-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Data di nascita</label>
+                <input type="date" value={fDataNascita} onChange={(e) => setFDataNascita(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Città di nascita</label>
+                <input type="text" value={fLuogoNascita} onChange={(e) => setFLuogoNascita(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Provincia di nascita</label>
+              <input type="text" value={fProvinciaNascita}
+                onChange={(e) => setFProvinciaNascita(e.target.value.toUpperCase())}
+                maxLength={2}
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 font-mono uppercase focus:outline-none focus:border-blue-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Comune di residenza</label>
+                <input type="text" value={fComune} onChange={(e) => setFComune(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Provincia residenza</label>
+                <input type="text" value={fProvinciaRes}
+                  onChange={(e) => setFProvinciaRes(e.target.value.toUpperCase())}
+                  maxLength={2}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 font-mono uppercase focus:outline-none focus:border-blue-500" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className="block text-[11px] text-gray-500 mb-1">Indirizzo</label>
+                <input type="text" value={fIndirizzo} onChange={(e) => setFIndirizzo(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Civico</label>
+                <input type="text" value={fCivico} onChange={(e) => setFCivico(e.target.value)}
+                  maxLength={10}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Telefono</label>
+              <input type="tel" value={fTelefono} onChange={(e) => setFTelefono(e.target.value)}
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Taglia t-shirt</label>
+              <select value={fTshirt} onChange={(e) => setFTshirt(e.target.value)}
+                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-2.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+                <option value="">— Non specificata —</option>
+                {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" checked={fSonoFiglio}
+                  onChange={(e) => setFSonoFiglio(e.target.checked)}
+                  className="accent-blue-600 w-4 h-4" />
+                <span className="text-sm text-gray-300">Fiscalmente a carico</span>
+              </label>
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Massimale lordo annuo (max €5.000)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                <input type="number" min={1} max={5000} step={1} value={fMassimale}
+                  onChange={(e) => setFMassimale(e.target.value)}
+                  className="w-full rounded-lg bg-gray-800 border border-gray-700 pl-7 pr-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500" />
+              </div>
+            </div>
+
+            {profileError && (
+              <p className="text-xs text-red-400 bg-red-900/20 px-3 py-2 rounded-lg">{profileError}</p>
+            )}
+
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => { setEditingProfile(false); setProfileError(null); }}
+                className="px-3 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition"
+              >
+                Annulla
+              </button>
+              <button
+                type="submit"
+                disabled={profileSaving}
+                className="px-4 py-1.5 rounded-md text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50"
+              >
+                {profileSaving ? 'Salvataggio…' : 'Salva'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* ── Read-only dl grid ──────────────────────────────────────── */
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            {[
+              ['Codice fiscale', collab.codice_fiscale],
+              ['Telefono', collab.telefono],
+              ['Email', collab.email],
+              ['Tipo contratto', collab.tipo_contratto],
+              ['Data ingresso', collab.data_ingresso ? formatDate(collab.data_ingresso) : null],
+              ['Luogo nascita', collab.luogo_nascita],
+              ['Comune residenza', collab.comune],
+              ['Indirizzo', collab.indirizzo],
+            ].map(([label, value]) =>
+              value ? (
+                <div key={label as string}>
+                  <dt className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">{label}</dt>
+                  <dd className="text-gray-200 font-mono text-xs">{value}</dd>
+                </div>
+              ) : null
+            )}
+          </dl>
+        )}
       </div>
 
       {/* ── Compensi ────────────────────────────────────────────────────── */}

@@ -4,8 +4,26 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
+// All profile fields that admin/responsabile can update on a collaborator's record.
+// IBAN is excluded — it is sensitive and only the collaborator or admin can set it.
+// (Admin note: admin CAN set IBAN via direct DB; this endpoint intentionally omits it
+//  to enforce the same restriction for responsabile_compensi.)
 const patchSchema = z.object({
-  username: z.string().min(3).max(50).regex(/^[a-z0-9_]+$/, 'Solo lettere minuscole, numeri e _'),
+  username:            z.string().min(3).max(50).regex(/^[a-z0-9_]+$/, 'Solo lettere minuscole, numeri e _').optional(),
+  nome:                z.string().min(1).max(100).optional(),
+  cognome:             z.string().min(1).max(100).optional(),
+  codice_fiscale:      z.string().regex(/^[A-Z0-9]{16}$/, 'Codice fiscale non valido (16 caratteri alfanumerici)').nullable().optional(),
+  data_nascita:        z.string().nullable().optional(),
+  luogo_nascita:       z.string().max(100).nullable().optional(),
+  provincia_nascita:   z.string().regex(/^[A-Z]{2}$/, 'Sigla provincia non valida').nullable().optional(),
+  comune:              z.string().max(100).nullable().optional(),
+  provincia_residenza: z.string().regex(/^[A-Z]{2}$/, 'Sigla provincia non valida').nullable().optional(),
+  telefono:            z.string().max(20).nullable().optional(),
+  indirizzo:           z.string().max(200).nullable().optional(),
+  civico_residenza:    z.string().max(20).nullable().optional(),
+  tshirt_size:         z.enum(['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']).nullable().optional(),
+  sono_un_figlio_a_carico: z.boolean().optional(),
+  importo_lordo_massimale: z.number().min(1).max(5000).nullable().optional(),
 });
 
 export async function PATCH(
@@ -64,24 +82,35 @@ export async function PATCH(
     return NextResponse.json({ error: 'Dati non validi', issues: parsed.error.issues }, { status: 400 });
   }
 
-  // Uniqueness check — exclude the target record itself
-  const { data: existing } = await admin
-    .from('collaborators')
-    .select('id')
-    .eq('username', parsed.data.username)
-    .neq('id', id)
-    .maybeSingle();
+  const { username, ...profileFields } = parsed.data;
 
-  if (existing) {
-    return NextResponse.json({ error: 'Username già in uso' }, { status: 409 });
+  // Username uniqueness check (if provided)
+  if (username !== undefined) {
+    const { data: existing } = await admin
+      .from('collaborators')
+      .select('id')
+      .eq('username', username)
+      .neq('id', id)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({ error: 'Username già in uso' }, { status: 409 });
+    }
+  }
+
+  const update: Record<string, unknown> = { ...profileFields };
+  if (username !== undefined) update.username = username;
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'Nessun campo da aggiornare' }, { status: 400 });
   }
 
   const { error } = await admin
     .from('collaborators')
-    .update({ username: parsed.data.username })
+    .update(update)
     .eq('id', id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, username: parsed.data.username });
+  return NextResponse.json({ ok: true });
 }

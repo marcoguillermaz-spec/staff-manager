@@ -372,3 +372,12 @@ Calcolato dinamicamente — nessun campo persisted.
 - **IBAN**: uppercase + rimozione spazi (già esistente); regex Zod: `/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/`.
 - **Telefono**: formato permissivo — cifre, `+`, `-`, spazi, parentesi; min 7 cifre.
 - **Provincia**: 2 lettere uppercase; regex `/^[A-Z]{2}$/`.
+
+### Modifica profilo collaboratore da responsabile_compensi (Block 5)
+- `responsabile_compensi` e `amministrazione` possono modificare tutti i campi profilo di un collaboratore **ad eccezione di IBAN** (dato sensibile).
+- Il `responsabile_compensi` può modificare solo i collaboratori nelle proprie community gestite.
+- Endpoint: `PATCH /api/admin/collaboratori/[id]/profile` — gestisce tutti i campi profilo + username.
+- Username incluso nello stesso endpoint; logica identica all'admin: validazione unicità server-side → 409 se già in uso.
+- Fix security: aggiunto community check anche al PATCH username esistente (`/api/admin/collaboratori/[id]`).
+- UI: sezione "Modifica profilo" toggle-able in CollaboratoreDetail — form inline con tutti i campi editabili.
+- **Regola di coerenza profilo**: documentata in `docs/profile-editing-contract.md`. Ogni blocco che tocca dati profilo collaboratore deve verificare allineamento tra onboarding, admin edit e responsabile edit (vedere file per matrice campi × entry point).
