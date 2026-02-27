@@ -23,43 +23,35 @@ Internal portal for managing collaborators, compensation/reimbursement approvals
 
 ## Compensation Flow (State Machine)
 
+Compensations created by `responsabile_compensi` or `amministrazione` — always start as `IN_ATTESA`.
+
 ```
-BOZZA → INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
-                ↘ INTEGRAZIONI_RICHIESTE ↗
-                                        ↘ RIFIUTATO
+IN_ATTESA → APPROVATO → LIQUIDATO
+          ↘ RIFIUTATO (rejection_note obbligatoria)
+RIFIUTATO → IN_ATTESA (reopen, collaboratore)
 ```
 
 | Action | From | To | Role |
 |--------|------|----|------|
-| submit | BOZZA | INVIATO | collaboratore |
-| withdraw | INVIATO | BOZZA | collaboratore |
-| resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
-| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile_compensi |
-| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile_compensi |
-| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile_compensi |
-| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
-| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
-| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
+| reopen | RIFIUTATO | IN_ATTESA | collaboratore |
+| approve | IN_ATTESA | APPROVATO | responsabile_compensi, amministrazione |
+| reject | IN_ATTESA | RIFIUTATO | responsabile_compensi, amministrazione |
+| mark_liquidated | APPROVATO | LIQUIDATO | responsabile_compensi, amministrazione |
 
 ## Reimbursement Flow (State Machine)
 
-No BOZZA state — reimbursements are submitted directly as INVIATO.
+Reimbursements created by `collaboratore` — submitted directly as `IN_ATTESA`.
 
 ```
-INVIATO → PRE_APPROVATO_RESP → APPROVATO_ADMIN → PAGATO
-        ↘ INTEGRAZIONI_RICHIESTE ↗
-                                ↘ RIFIUTATO
+IN_ATTESA → APPROVATO → LIQUIDATO
+          ↘ RIFIUTATO
 ```
 
 | Action | From | To | Role |
 |--------|------|----|------|
-| resubmit | INTEGRAZIONI_RICHIESTE | INVIATO | collaboratore |
-| approve_manager | INVIATO / INTEGRAZIONI_RICHIESTE | PRE_APPROVATO_RESP | responsabile_compensi |
-| request_integration | INVIATO | INTEGRAZIONI_RICHIESTE | responsabile_compensi |
-| reject_manager | INVIATO / INTEGRAZIONI_RICHIESTE | RIFIUTATO | responsabile_compensi |
-| approve_admin | PRE_APPROVATO_RESP | APPROVATO_ADMIN | amministrazione |
-| reject | PRE_APPROVATO_RESP | RIFIUTATO | amministrazione |
-| mark_paid | APPROVATO_ADMIN | PAGATO | amministrazione |
+| approve | IN_ATTESA | APPROVATO | responsabile_compensi, amministrazione |
+| reject | IN_ATTESA | RIFIUTATO | responsabile_compensi, amministrazione |
+| mark_liquidated | APPROVATO | LIQUIDATO | responsabile_compensi, amministrazione |
 
 ## Project Structure
 
@@ -71,12 +63,13 @@ app/
     profilo/page.tsx             → Profile editor + tab Documenti for collaboratore (avatar, fiscal data, editable IBAN/phone/address/tshirt | DocumentList)
     impostazioni/page.tsx        → Settings: 5-tab server component — Users (create), Community (CRUD + responsabile assignment), Collaborators (member_status), Contratti (template upload), Notifiche (in-app + email toggles per event)
     compensi/page.tsx            → Collaboratore: unified Compensi e Rimborsi page (PaymentOverview + CompensationList + ExpenseList + TicketQuickModal)
-    compensi/nuova/page.tsx      → Redirects all roles (collaboratore → /compensi; others → /)
+    compensi/nuova/page.tsx      → (removed in Block 7)
     compensi/[id]/page.tsx       → Compensation detail + timeline + actions
     rimborsi/page.tsx            → Redirect → /compensi (unified page)
     rimborsi/nuova/page.tsx      → Reimbursement creation form (single step)
     rimborsi/[id]/page.tsx       → Reimbursement detail + timeline + actions
-    approvazioni/page.tsx        → Responsabile: pending queue (?tab=compensi|rimborsi)
+    approvazioni/page.tsx        → Responsabile: pending queue (?tab=compensi|rimborsi) + "Carica compensi" button
+    approvazioni/carica/page.tsx → Responsabile/admin: choice screen (Singolo per docente | Excel placeholder) + CompensationCreateWizard
     collaboratori/page.tsx       → Responsabile + admin: paginated list (20/page) with URL-driven filters (all/doc-da-firmare/stallo)
     collaboratori/[id]/page.tsx  → Collaborator detail: anagrafica + compensi/rimborsi/documenti + inline pre-approva/integrazioni
     coda/page.tsx                → Admin: pre-approved + approved queue (?tab=compensi|rimborsi)
@@ -105,13 +98,13 @@ app/
     admin/members/[id]/status/   → PATCH update member_status for a collaboratore
     admin/members/[id]/data-ingresso/ → PATCH update data_ingresso (admin only)
     admin/contract-templates/    → GET list templates + POST upload/replace .docx per type (OCCASIONALE/COCOCO/PIVA)
+    admin/collaboratori/route.ts → GET search collaborators (q, community_id, active_only) scoped for responsabile
     admin/blocks/clear-flag/     → POST clear must_change_password flag for a user (admin only)
     admin/notification-settings/ → GET list all 15 settings + PATCH toggle inapp_enabled/email_enabled (admin only)
     feedback/route.ts            → POST create feedback entry (authenticated; FormData: categoria/pagina/messaggio/screenshot)
-    compensations/route.ts       → GET (list, role-filtered) + POST (create)
-    compensations/[id]/route.ts  → GET (detail + history + attachments)
-    compensations/[id]/transition/route.ts → POST (state machine transition)
-    compensations/[id]/attachments/route.ts → POST (register uploaded file)
+    compensations/route.ts       → GET (list, role-filtered) + POST (create, responsabile/admin only, always IN_ATTESA)
+    compensations/[id]/route.ts  → GET (detail + history)
+    compensations/[id]/transition/route.ts → POST (state machine: reopen/approve/reject/mark_liquidated)
     compensations/communities/route.ts → GET (collaboratore's communities)
     expenses/route.ts            → GET (list) + POST (create, always INVIATO)
     expenses/[id]/route.ts       → GET (detail + history + attachments)
@@ -164,7 +157,7 @@ components/
     PaymentOverview.tsx          → Server component: payments by year (PAGATO) + pending balance
   compensation/
     StatusBadge.tsx              → Pill badge for CompensationStatus | ExpenseStatus
-    CompensationWizard.tsx       → 3-step creation wizard (client)
+    CompensationCreateWizard.tsx → 3-step creation wizard for responsabile/admin (choice→search collab→data→summary+create)
     CompensationList.tsx         → Table with status filter
     CompensationDetail.tsx       → Read-only detail card
     Timeline.tsx                 → Chronological event list (accepts HistoryEvent[])
@@ -207,7 +200,7 @@ lib/
   supabase/server.ts             → Server Supabase client (SSR)
   types.ts                       → Role, status enums, DB row interfaces (Compensation, Expense, HistoryEvent)
   nav.ts                         → NAV_BY_ROLE config; NavItem supports comingSoon flag (collaboratore: 8 voci semantiche)
-  compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (9 actions incl. reject_manager)
+  compensation-transitions.ts    → Pure state machine: canTransition, applyTransition (4 actions: reopen/approve/reject/mark_liquidated)
   expense-transitions.ts         → Pure state machine: canExpenseTransition, applyExpenseTransition (7 actions incl. reject_manager)
   export-utils.ts                → Pure functions: buildCSV, buildXLSXWorkbook, ExportItem type
   documents-storage.ts           → buildStoragePath, getSignedUrl, getDocumentUrls (1h TTL, service role)
@@ -234,16 +227,27 @@ supabase/migrations/
   015_remove_super_admin.sql     → Remove super_admin role: update CHECK constraint, migrate existing users to amministrazione, recreate all RLS policies
   016_feedback.sql               → feedback table + RLS (insert for authenticated, select/delete for amministrazione) + private `feedback` bucket (5 MB, images)
   017_roles_rename.sql           → Rename `responsabile` → `responsabile_compensi`; add `responsabile_cittadino` + `responsabile_servizi_individuali`; update CHECK constraint, can_manage_community(), all RLS policies; rename test accounts
+  018_sono_figlio_a_carico.sql   → Rename ha_figli_a_carico → sono_un_figlio_a_carico
+  019_importo_lordo_massimale.sql → ADD COLUMN importo_lordo_massimale on collaborators
+  020_consolidate_occasionale.sql → Remove COCOCO/PIVA tipo_contratto options; consolidate as OCCASIONALE
+  021_username.sql               → ADD COLUMN username TEXT UNIQUE on collaborators
+  022_expense_descrizione_nullable.sql → ALTER TABLE expense_reimbursements ALTER COLUMN descrizione DROP NOT NULL
+  023_workflow_refactor.sql      → (skipped — superseded by 024)
+  024_remove_bozza_add_corso.sql → Remove BOZZA state (migrate→IN_ATTESA, update CHECK, DEFAULT IN_ATTESA); ADD COLUMN corso_appartenenza TEXT on compensations
 
-__tests__/
-  compensation-transitions.test.ts → State machine unit tests for compensations (20 cases)
-  expense-transitions.test.ts      → State machine unit tests for reimbursements (36 cases)
-  export-utils.test.ts             → Unit tests for CSV/XLSX builders (7 cases)
+__tests__/                         → 156 tests total (vitest)
+  compensation-transitions.test.ts → State machine unit tests for compensations (22 cases)
+  expense-transitions.test.ts      → State machine unit tests for reimbursements
+  export-utils.test.ts             → Unit tests for CSV/XLSX builders
   cu-batch-parser.test.ts          → Unit tests for CU batch CSV parser + dedup logic (11 cases)
-  notification-utils.test.ts       → Unit tests for notification payload builders (12 cases)
+  notification-utils.test.ts       → Unit tests for notification payload builders
   ticket-notification.test.ts      → Unit tests for buildTicketReplyNotification (6 cases)
   api/
     create-user-schema.test.ts     → Unit tests for create-user Zod schema validation (9 cases)
+    collaboratore-profile.test.ts  → Unit tests for collaboratore profile PATCH schema (12 cases)
+    expense-form.test.ts           → Unit tests for expense form Zod schema (12 cases)
+    transition-schema.test.ts      → Unit tests for compensation/expense/mark-paid/approve-all Zod schemas (22 cases)
+    username.test.ts               → Unit tests for username generation and validation (23 cases)
 
 e2e/
   rimborsi.spec.ts                 → Playwright UAT: reimbursement full flow (S1–S10, 11 tests)

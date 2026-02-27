@@ -2,7 +2,7 @@
 
 > Aggiornare questo file al termine di ogni blocco funzionale (Fase 8 della pipeline).
 > È la fonte di verità sullo stato dei lavori. Leggere prima di iniziare un nuovo blocco.
-> **In revisione** — da ricompilare al termine della revisione di `docs/requirements.md` (Step D del piano attivo in `MEMORY.md`).
+> Aggiornato 2026-02-27. Blocco 7 ✅ Blocco 8 ✅. Prossimo: definire Blocco 9.
 
 ---
 
@@ -16,6 +16,7 @@
 | 2026-02-27 | Blocco 4 — Username generation + validazioni CF/IBAN | ✅ | tsc ✅, build ✅, vitest 129/129 ✅, e2e ⏸ (sospeso) | Migration 021 (username TEXT UNIQUE). `lib/username.ts`. Username auto-generato in create-user, inline edit in CollaboratoreDetail, readonly badge in ProfileForm e OnboardingWizard. CF normalization (alphanumeric+uppercase) in tutti i form. Zod: CF `/^[A-Z0-9]{16}$/` in profile+onboarding, IBAN regex in onboarding. |
 | 2026-02-27 | Blocco 5 — Editing profilo responsabile_compensi + security fix + contratto profilo | ✅ | tsc ✅, build ✅, vitest 141/141 ✅, e2e ⏸ (sospeso) | Fix community check su PATCH username. Nuovo `PATCH /api/admin/collaboratori/[id]/profile` (no IBAN). Form edit in CollaboratoreDetail. `docs/profile-editing-contract.md`. Username `collaboratore_test` generato per utente canonico. |
 | 2026-02-27 | Blocco 6 — Wizard rimborso 3-step + aggiornamento categorie | ✅ | tsc ✅, build ✅, vitest 153/153 ✅, e2e ⏸ (sospeso), smoke test OK | Migration 022 (descrizione nullable). ExpenseForm refactored wizard 3-step (Dati→Allegati→Riepilogo+Conferma). EXPENSE_CATEGORIES: Trasporti/Materiali/Cancelleria. TICKET_CATEGORIES: Generale/Compensi/Documenti/Accesso/Altro. |
+| 2026-02-27 | Blocco 7 — Refactor workflow compensi + Blocco 8 — Wizard carico compensi | ✅ | tsc ✅, build ✅, vitest 156/156 ✅, e2e ⏸ (sospeso), smoke test OK | Migration 024 (rimozione BOZZA, DEFAULT IN_ATTESA, cors_appartenenza). Workflow: IN_ATTESA→APPROVATO→LIQUIDATO/RIFIUTATO; reopen RIFIUTATO→IN_ATTESA. POST /api/compensations riscritto (responsabile/admin only). GET /api/admin/collaboratori (ricerca community-scoped). CompensationCreateWizard 3-step. /approvazioni/carica. |
 
 ---
 
@@ -153,6 +154,39 @@ Unit test da aggiornare:
 | 6b — ExpenseForm wizard 3-step | ✅ | Step 1 (dati), Step 2 (allegati), Step 3 (riepilogo+conferma). Submit unico in Step 3. |
 | 6c — EXPENSE_CATEGORIES aggiornate | ✅ | Trasporti, Vitto, Alloggio, Materiali, Cancelleria, Altro. API Zod aggiornato. |
 | 6d — TICKET_CATEGORIES aggiornate | ✅ | Generale, Compensi, Documenti, Accesso, Altro. TicketQuickModal e TicketForm auto-aggiornati. |
+
+---
+
+## Blocco 7 — Refactor workflow compensi ✅
+
+> Requisito: `docs/requirements.md` §4 — Workflow operativi
+> Dipendenze: tutti i blocchi precedenti
+
+| Sotto-blocco | Stato | Note |
+|---|---|---|
+| 7a — Migration 024 + types + state machine | ✅ | BOZZA rimosso, DEFAULT IN_ATTESA, `corso_appartenenza` aggiunto |
+| 7b — UI components + pages | ✅ | StatusBadge, ActionPanel, CompensationList, CompensationDetail, page.tsx aggiornati |
+| 7c — POST API + test + eliminazione file obsoleti | ✅ | POST riscritto responsabile/admin only; attachments rimossi; test aggiornati |
+
+### Workflow implementato
+```
+Compensi:  IN_ATTESA → APPROVATO → LIQUIDATO  /  ↘ RIFIUTATO (rejection_note)
+           RIFIUTATO → IN_ATTESA (reopen, collaboratore)
+Rimborsi:  IN_ATTESA → APPROVATO → LIQUIDATO  /  ↘ RIFIUTATO
+```
+
+---
+
+## Blocco 8 — Wizard carico compensi (responsabile) ✅
+
+> Requisito: `docs/requirements.md` §4 — Creazione compensi da responsabile
+> Dipendenze: Blocco 7
+
+| Sotto-blocco | Stato | Note |
+|---|---|---|
+| 8a — GET /api/admin/collaboratori (ricerca) | ✅ | Scoped per community del responsabile, filtri q/community_id/active_only |
+| 8b — CompensationCreateWizard (3-step) | ✅ | choice→cerca collab→dati (ritenuta 20% auto)→riepilogo+crea |
+| 8c — /approvazioni/carica + bottone | ✅ | Server page con managedCommunities prop; bottone in /approvazioni |
 
 ---
 
