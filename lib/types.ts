@@ -30,12 +30,11 @@ export type ExpenseStatus =
   | 'PAGATO';
 
 export const EXPENSE_CATEGORIES = [
-  'Trasporto',
+  'Trasporti',
   'Vitto',
   'Alloggio',
-  'Materiale di consumo',
-  'Formazione',
-  'Telefonia',
+  'Materiali',
+  'Cancelleria',
   'Altro',
 ] as const;
 
@@ -116,11 +115,10 @@ export type TicketStatus = 'APERTO' | 'IN_LAVORAZIONE' | 'CHIUSO';
 export type TicketPriority = 'BASSA' | 'NORMALE' | 'ALTA';
 
 export const TICKET_CATEGORIES = [
-  'Compensi e pagamenti',
-  'Rimborsi spese',
+  'Generale',
+  'Compensi',
   'Documenti',
-  'Accesso e account',
-  'Problemi tecnici',
+  'Accesso',
   'Altro',
 ] as const;
 

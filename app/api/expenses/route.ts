@@ -17,7 +17,7 @@ const createSchema = z.object({
   categoria: z.enum(EXPENSE_CATEGORIES),
   data_spesa: z.string().min(1, 'Data spesa obbligatoria'),
   importo: z.number().positive('Importo deve essere positivo'),
-  descrizione: z.string().min(1, 'Descrizione obbligatoria'),
+  descrizione: z.string().optional(),
 });
 
 export async function GET(request: Request) {

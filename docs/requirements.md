@@ -381,3 +381,22 @@ Calcolato dinamicamente — nessun campo persisted.
 - Fix security: aggiunto community check anche al PATCH username esistente (`/api/admin/collaboratori/[id]`).
 - UI: sezione "Modifica profilo" toggle-able in CollaboratoreDetail — form inline con tutti i campi editabili.
 - **Regola di coerenza profilo**: documentata in `docs/profile-editing-contract.md`. Ogni blocco che tocca dati profilo collaboratore deve verificare allineamento tra onboarding, admin edit e responsabile edit (vedere file per matrice campi × entry point).
+
+### Richiesta rimborso spese e ticket da compensi (Block 6)
+
+#### Rimborso spese — wizard 3-step
+Il collaboratore crea una richiesta di rimborso da `/rimborsi/nuova` tramite wizard 3-step.
+Tutti i dati sono raccolti in stato React locale; la submit reale avviene solo al "Conferma e invia" in Step 3.
+
+- **Step 1 — Dati rimborso**: Categoria (obbligatoria), Data spesa (obbligatoria), Importo in € (obbligatorio), Descrizione (opzionale — testare nota libera sulla spesa). Avanti abilitato solo con categoria + data + importo validi.
+- **Step 2 — Allegati**: Upload documenti giustificativi (PDF, JPG, PNG, max 10 MB ciascuno). Allegati opzionali. Bucket Supabase Storage `expenses`, path `{user_id}/{expenseId}/{filename}`. Il campo `community_id` è ignorato in questo blocco.
+- **Step 3 — Riepilogo + Conferma**: mostra tutti i dati inseriti + nomi file allegati. "Conferma e invia" → `POST /api/expenses` → upload allegati → redirect `/rimborsi`.
+
+**Categorie rimborso** (Block 6 — aggiornate): `Trasporti, Vitto, Alloggio, Materiali, Cancelleria, Altro`.
+
+**`descrizione`** — resa opzionale (Block 6): migration `022_expense_descrizione_nullable.sql` rimuove il `NOT NULL`. Campo opzionale nel form e nell'API.
+
+#### Ticket da sezione Compensi e Rimborsi
+- Disponibile solo via `TicketQuickModal` nella pagina `/compensi` (header in alto a destra).
+- Categorie ticket (Block 6 — aggiornate): `Generale, Compensi, Documenti, Accesso, Altro`.
+- Destinatario implicito: `responsabile_compensi` (workflow da rivedere in blocco dedicato).
