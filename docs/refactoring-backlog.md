@@ -13,7 +13,6 @@ Non bloccanti per le funzionalità correnti salvo dove indicato **CRITICO/ALTO**
 |----|--------|---------|
 | SEC7 | PAT Supabase in plain text in MEMORY.md | CRITICO |
 | TC5 | Nessun test RLS su leakage compensation_history | ALTO |
-| B1 | `ha_figli_a_carico` semanticamente invertita | ALTO |
 | B4 | Typo `data_compenso` vs `data_competenza` nel transition route | ALTO |
 | SEC1 | Password temporanea restituita in chiaro dalla API | ALTO |
 | S5 | Operazione mark-paid non atomica (no transazione) | ALTO |
@@ -51,12 +50,6 @@ Non bloccanti per le funzionalità correnti salvo dove indicato **CRITICO/ALTO**
 ---
 
 ## B — Naming DB / Semantica schema
-
-### B1 — `collaborators.ha_figli_a_carico` semanticamente invertita
-- **Problema**: `ha_figli_a_carico = true` significa che il collaboratore stesso è fiscalmente a carico di un familiare, non che ha figli a carico. Nome colonna invertito.
-- **File**: `lib/types.ts`, `supabase/migrations/001_schema.sql:59`, `components/ProfileForm.tsx`
-- **Impatto**: ALTO
-- **Fix**: Rinominare `ha_figli_a_carico` → `e_fiscalmente_a_carico` + migration ALTER TABLE + aggiornare tutti i riferimenti TS + label UI già corretta ("Sono fiscalmente a carico").
 
 ### B2 — Naming disuniforme tabella rimborsi e FK columns
 - **Problema**: Tabella `expense_reimbursements`, interfaccia TS `Expense`, FK nelle tabelle collegate si chiama `reimbursement_id`. Tre naming diversi per lo stesso concetto.
