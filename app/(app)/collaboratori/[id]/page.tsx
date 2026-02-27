@@ -92,18 +92,16 @@ export default async function CollaboratoreDetailPage({
   // ── Fetch compensations ──────────────────────────────────────────────────
   const { data: rawComp } = await svc
     .from('compensations')
-    .select('id, tipo, periodo_riferimento, importo_lordo, importo_netto, totale_fattura, stato, community_id, created_at')
+    .select('id, periodo_riferimento, importo_lordo, importo_netto, stato, community_id, created_at')
     .eq('collaborator_id', id)
     .order('created_at', { ascending: false })
     .limit(50);
 
   const compensations = (rawComp ?? []).map((c: {
     id: string;
-    tipo: string;
     periodo_riferimento: string | null;
     importo_lordo: number | null;
     importo_netto: number | null;
-    totale_fattura: number | null;
     stato: CompensationStatus;
     community_id: string | null;
     created_at: string;

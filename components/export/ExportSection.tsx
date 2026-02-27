@@ -101,7 +101,6 @@ export default function ExportSection({ tab, items }: Props) {
       {/* Tab bar */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         <Link href="?tab=occasionali" className={tabCls('occasionali')}>Occasionali</Link>
-        <Link href="?tab=piva" className={tabCls('piva')}>P.IVA</Link>
         <Link href="?tab=rimborsi" className={tabCls('rimborsi')}>Rimborsi</Link>
       </div>
 

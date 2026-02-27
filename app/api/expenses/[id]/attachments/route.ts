@@ -28,8 +28,8 @@ export async function POST(
     return NextResponse.json({ error: 'Rimborso non trovato' }, { status: 404 });
   }
 
-  if (!['INVIATO', 'INTEGRAZIONI_RICHIESTE'].includes(expense.stato)) {
-    return NextResponse.json({ error: 'Allegati consentiti solo in INVIATO o INTEGRAZIONI_RICHIESTE' }, { status: 403 });
+  if (expense.stato !== 'IN_ATTESA') {
+    return NextResponse.json({ error: 'Allegati consentiti solo in IN_ATTESA' }, { status: 403 });
   }
 
   const body = await request.json();

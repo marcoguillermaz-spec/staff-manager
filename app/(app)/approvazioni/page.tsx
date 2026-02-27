@@ -32,7 +32,7 @@ export default async function ApprovazioniPage({
     ? await supabase
         .from('compensations')
         .select('*, communities(name)')
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE'])
+        .eq('stato', 'IN_ATTESA')
         .order('created_at', { ascending: true })
         .then((r) => r.data ?? [])
     : [];
@@ -41,7 +41,7 @@ export default async function ApprovazioniPage({
     ? await supabase
         .from('expense_reimbursements')
         .select('*')
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE'])
+        .eq('stato', 'IN_ATTESA')
         .order('created_at', { ascending: true })
         .then((r) => r.data ?? [])
     : [];

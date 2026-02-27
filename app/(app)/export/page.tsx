@@ -24,17 +24,15 @@ export default async function ExportPage({
 
   const { tab: rawTab } = await searchParams;
   const tab: ExportTab =
-    rawTab === 'piva' ? 'piva' :
-    rawTab === 'rimborsi' ? 'rimborsi' :
-    'occasionali';
+    rawTab === 'rimborsi' ? 'rimborsi' : 'occasionali';
 
   let items: ExportItem[] = [];
 
   if (tab === 'rimborsi') {
     const { data } = await supabase
       .from('expense_reimbursements')
-      .select('id, importo, categoria, data_spesa, collaborators(nome, cognome, codice_fiscale, iban, partita_iva)')
-      .eq('stato', 'APPROVATO_ADMIN')
+      .select('id, importo, categoria, data_spesa, collaborators(nome, cognome, codice_fiscale, iban)')
+      .eq('stato', 'APPROVATO')
       .order('created_at', { ascending: true });
 
     items = (data ?? []).map((row) => {
@@ -45,7 +43,7 @@ export default async function ExportPage({
         cognome: col?.cognome ?? '',
         codice_fiscale: col?.codice_fiscale ?? null,
         iban: col?.iban ?? null,
-        partita_iva: col?.partita_iva ?? null,
+        partita_iva: null,
         community_name: null,
         periodo_riferimento: null,
         categoria: row.categoria,
@@ -54,32 +52,27 @@ export default async function ExportPage({
       };
     });
   } else {
-    const tipo = tab === 'piva' ? 'PIVA' : 'OCCASIONALE';
     const { data } = await supabase
       .from('compensations')
-      .select('id, tipo, importo_netto, totale_fattura, periodo_riferimento, collaborators(nome, cognome, codice_fiscale, iban, partita_iva), communities(name)')
-      .eq('stato', 'APPROVATO_ADMIN')
-      .eq('tipo', tipo)
+      .select('id, importo_netto, periodo_riferimento, collaborators(nome, cognome, codice_fiscale, iban), communities(name)')
+      .eq('stato', 'APPROVATO')
       .order('created_at', { ascending: true });
 
     items = (data ?? []).map((row) => {
       const col = Array.isArray(row.collaborators) ? row.collaborators[0] : row.collaborators;
       const com = Array.isArray(row.communities) ? row.communities[0] : row.communities;
-      const importo = tipo === 'OCCASIONALE'
-        ? (row.importo_netto ?? 0)
-        : (row.totale_fattura ?? 0);
       return {
         id: row.id,
         nome: col?.nome ?? '',
         cognome: col?.cognome ?? '',
         codice_fiscale: col?.codice_fiscale ?? null,
         iban: col?.iban ?? null,
-        partita_iva: col?.partita_iva ?? null,
+        partita_iva: null,
         community_name: com?.name ?? null,
         periodo_riferimento: row.periodo_riferimento ?? null,
         categoria: null,
         data_spesa: null,
-        importo,
+        importo: row.importo_netto ?? 0,
       };
     });
   }
@@ -89,7 +82,7 @@ export default async function ExportPage({
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-100">Export</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Compensi e rimborsi approvati in attesa di pagamento. Esporta in CSV/XLSX o segna come pagati.
+          Compensi e rimborsi approvati in attesa di liquidazione. Esporta in CSV/XLSX o segna come liquidati.
         </p>
       </div>
 

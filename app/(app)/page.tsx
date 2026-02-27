@@ -7,27 +7,23 @@ import type { AdminDashboardData } from '@/components/admin/types';
 
 // ── Constants ──────────────────────────────────────────────
 const ACTIVE_STATES = new Set([
-  'BOZZA', 'INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP', 'APPROVATO_ADMIN',
+  'BOZZA', 'IN_ATTESA', 'APPROVATO',
 ]);
 
 const ACTION_LABELS: Record<string, string> = {
-  submit:              'inviato',
-  withdraw:            'ritirato',
-  resubmit:            'reinviato',
-  approve_manager:     'pre-approvato dal responsabile',
-  request_integration: 'integrazioni richieste',
-  approve_admin:       'approvato',
-  reject:              'rifiutato',
-  mark_paid:           'pagato',
+  submit:         'inviato',
+  withdraw:       'ritirato',
+  reopen:         'riaperto',
+  approve:        'approvato',
+  reject:         'rifiutato',
+  mark_liquidated: 'liquidato',
 };
 
 // ── Types ──────────────────────────────────────────────────
 type CompRow = {
   id: string;
-  tipo: string;
   stato: string;
   importo_netto: number | null;
-  totale_fattura: number | null;
 };
 
 type ExpRow = { id: string; stato: string; importo: number | null };
@@ -58,7 +54,7 @@ function eur(n: number) {
 }
 
 function compAmount(c: CompRow) {
-  return c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0);
+  return c.importo_netto ?? 0;
 }
 
 // ── Sub-components ─────────────────────────────────────────
@@ -85,7 +81,7 @@ function StatCard({
       </div>
       {pendingCount > 0 && (
         <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/30 px-3 py-2 flex items-center justify-between">
-          <span className="text-xs text-emerald-400">In attesa pagamento ({pendingCount})</span>
+          <span className="text-xs text-emerald-400">In attesa liquidazione ({pendingCount})</span>
           <span className="text-xs font-medium text-emerald-300 tabular-nums">{eur(pendingTotal)}</span>
         </div>
       )}
@@ -290,11 +286,11 @@ export default async function DashboardPage() {
         .select('id, nome, cognome').in('id', allCollabIds),
       noCollabs ? resolve<PComp>([]) : svc.from('compensations')
         .select('id, collaborator_id, community_id, created_at')
-        .in('collaborator_id', allCollabIds).eq('stato', 'INVIATO')
+        .in('collaborator_id', allCollabIds).eq('stato', 'IN_ATTESA')
         .order('created_at', { ascending: false }).limit(20),
       noCollabs ? resolve<PExp>([]) : svc.from('expense_reimbursements')
         .select('id, collaborator_id, created_at')
-        .in('collaborator_id', allCollabIds).eq('stato', 'INVIATO')
+        .in('collaborator_id', allCollabIds).eq('stato', 'IN_ATTESA')
         .order('created_at', { ascending: false }).limit(20),
       noCollabs ? resolve<DocRow2>([]) : svc.from('documents')
         .select('id, collaborator_id, community_id')
@@ -302,11 +298,11 @@ export default async function DashboardPage() {
       noCollabs ? resolve<SComp>([]) : svc.from('compensations')
         .select('id, collaborator_id, community_id')
         .in('collaborator_id', allCollabIds)
-        .neq('stato', 'PAGATO').neq('stato', 'RIFIUTATO').neq('stato', 'BOZZA'),
+        .neq('stato', 'LIQUIDATO').neq('stato', 'RIFIUTATO').neq('stato', 'BOZZA'),
       noCollabs ? resolve<SExp>([]) : svc.from('expense_reimbursements')
         .select('id, collaborator_id')
         .in('collaborator_id', allCollabIds)
-        .neq('stato', 'PAGATO').neq('stato', 'RIFIUTATO'),
+        .neq('stato', 'LIQUIDATO').neq('stato', 'RIFIUTATO'),
     ]);
 
     const allCollabs   = (collabsResult.data ?? []) as CollabRow[];
@@ -338,11 +334,11 @@ export default async function DashboardPage() {
     const collabsWithDocs = new Set(docsToSign.map(d => d.collaborator_id)).size;
     const rCosaDevoFare = [
       pendingComps.length > 0 && {
-        text: `${pendingComps.length} compensi in attesa di pre-approvazione`,
+        text: `${pendingComps.length} compensi in attesa di approvazione`,
         href: '/approvazioni?tab=compensi',
       },
       pendingExps.length > 0 && {
-        text: `${pendingExps.length} rimborsi in attesa di pre-approvazione`,
+        text: `${pendingExps.length} rimborsi in attesa di approvazione`,
         href: '/approvazioni?tab=rimborsi',
       },
       collabsWithDocs > 0 && {
@@ -480,21 +476,21 @@ export default async function DashboardPage() {
       mustChangePwdRes,
       onboardingIncompleteRes,
     ] = await Promise.all([
-      // pending comps (INVIATO, INTEGRAZIONI_RICHIESTE, PRE_APPROVATO_RESP)
+      // pending comps (IN_ATTESA)
       svc.from('compensations').select('id', { count: 'exact', head: true })
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP']),
+        .eq('stato', 'IN_ATTESA'),
       // pending exps
       svc.from('expense_reimbursements').select('id', { count: 'exact', head: true })
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP']),
-      // in approval amount (APPROVATO_ADMIN comps)
-      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
-        .eq('stato', 'APPROVATO_ADMIN'),
-      // to pay comps (APPROVATO_ADMIN — same states but different label)
-      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
-        .eq('stato', 'APPROVATO_ADMIN'),
+        .eq('stato', 'IN_ATTESA'),
+      // in approval amount (APPROVATO comps)
+      svc.from('compensations').select('importo_netto')
+        .eq('stato', 'APPROVATO'),
+      // to pay comps (APPROVATO)
+      svc.from('compensations').select('importo_netto')
+        .eq('stato', 'APPROVATO'),
       // to pay exps
       svc.from('expense_reimbursements').select('importo')
-        .eq('stato', 'APPROVATO_ADMIN'),
+        .eq('stato', 'APPROVATO'),
       // docs to sign
       svc.from('documents').select('id', { count: 'exact', head: true })
         .eq('stato_firma', 'DA_FIRMARE'),
@@ -508,23 +504,23 @@ export default async function DashboardPage() {
       // collab breakdown by contract
       svc.from('collaborators').select('tipo_contratto'),
       // paid comps this month
-      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
-        .eq('stato', 'PAGATO').gte('updated_at', startOfMonth),
+      svc.from('compensations').select('importo_netto')
+        .eq('stato', 'LIQUIDATO').gte('updated_at', startOfMonth),
       // paid comps last month
-      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
-        .eq('stato', 'PAGATO').gte('updated_at', startOfLastMonth).lt('updated_at', startOfMonth),
+      svc.from('compensations').select('importo_netto')
+        .eq('stato', 'LIQUIDATO').gte('updated_at', startOfLastMonth).lt('updated_at', startOfMonth),
       // paid comps ytd
-      svc.from('compensations').select('importo_netto, totale_fattura, tipo')
-        .eq('stato', 'PAGATO').gte('updated_at', startOfYear),
+      svc.from('compensations').select('importo_netto')
+        .eq('stato', 'LIQUIDATO').gte('updated_at', startOfYear),
       // approved comps this month
       svc.from('compensations').select('id', { count: 'exact', head: true })
-        .in('stato', ['APPROVATO_ADMIN', 'PAGATO']).gte('updated_at', startOfMonth),
+        .in('stato', ['APPROVATO', 'LIQUIDATO']).gte('updated_at', startOfMonth),
       // approved comps last month
       svc.from('compensations').select('id', { count: 'exact', head: true })
-        .in('stato', ['APPROVATO_ADMIN', 'PAGATO']).gte('updated_at', startOfLastMonth).lt('updated_at', startOfMonth),
+        .in('stato', ['APPROVATO', 'LIQUIDATO']).gte('updated_at', startOfLastMonth).lt('updated_at', startOfMonth),
       // approved comps ytd
       svc.from('compensations').select('id', { count: 'exact', head: true })
-        .in('stato', ['APPROVATO_ADMIN', 'PAGATO']).gte('updated_at', startOfYear),
+        .in('stato', ['APPROVATO', 'LIQUIDATO']).gte('updated_at', startOfYear),
       // new collabs this month
       svc.from('collaborators').select('id', { count: 'exact', head: true })
         .gte('created_at', startOfMonth),
@@ -534,30 +530,30 @@ export default async function DashboardPage() {
       // new collabs ytd
       svc.from('collaborators').select('id', { count: 'exact', head: true })
         .gte('created_at', startOfYear),
-      // stalled comps (>3 days in actionable states)
+      // stalled comps (>3 days in IN_ATTESA)
       svc.from('compensations')
-        .select('id, stato, importo_netto, totale_fattura, tipo, created_at, community_id, collaborator_id')
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP'])
+        .select('id, stato, importo_netto, created_at, community_id, collaborator_id')
+        .eq('stato', 'IN_ATTESA')
         .lt('created_at', stalledThreshold)
         .order('created_at', { ascending: true })
         .limit(20),
       // stalled exps
       svc.from('expense_reimbursements')
         .select('id, stato, importo, created_at, community_id, collaborator_id')
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP'])
+        .eq('stato', 'IN_ATTESA')
         .lt('created_at', stalledThreshold)
         .order('created_at', { ascending: true })
         .limit(20),
       // feed comps (recent, actionable)
       svc.from('compensations')
-        .select('id, stato, importo_netto, totale_fattura, tipo, created_at, community_id, collaborator_id')
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP', 'APPROVATO_ADMIN', 'PAGATO'])
+        .select('id, stato, importo_netto, created_at, community_id, collaborator_id')
+        .in('stato', ['IN_ATTESA', 'APPROVATO', 'LIQUIDATO', 'RIFIUTATO'])
         .order('created_at', { ascending: false })
         .limit(30),
       // feed exps
       svc.from('expense_reimbursements')
         .select('id, stato, importo, created_at, community_id, collaborator_id')
-        .in('stato', ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP', 'APPROVATO_ADMIN', 'PAGATO'])
+        .in('stato', ['IN_ATTESA', 'APPROVATO', 'LIQUIDATO', 'RIFIUTATO'])
         .order('created_at', { ascending: false })
         .limit(30),
       // users with must_change_password
@@ -603,10 +599,10 @@ export default async function DashboardPage() {
 
     // ── KPIs ──
     const inApprovalAmount = (inApprovalRes.data ?? []).reduce((sum, c) => {
-      return sum + (c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0));
+      return sum + (c.importo_netto ?? 0);
     }, 0);
     const toPayAmount = (toPayCompsRes.data ?? []).reduce((sum, c) => {
-      return sum + (c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0));
+      return sum + (c.importo_netto ?? 0);
     }, 0) + (toPayExpsRes.data ?? []).reduce((sum, e) => sum + (e.importo ?? 0), 0);
 
     const kpis = {
@@ -654,7 +650,6 @@ export default async function DashboardPage() {
     const contractLabels: Record<string, string> = {
       OCCASIONALE: 'Occasionale',
       COCOCO: 'CoCoCo',
-      PIVA: 'P.IVA',
     };
     const statusCounts = new Map<string, number>();
     const contractCounts = new Map<string, number>();
@@ -676,8 +671,8 @@ export default async function DashboardPage() {
     };
 
     // ── Period metrics ──
-    function sumPaidComps(rows: { importo_netto: number | null; totale_fattura: number | null; tipo: string }[]) {
-      return rows.reduce((s, c) => s + (c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0)), 0);
+    function sumPaidComps(rows: { importo_netto: number | null }[]) {
+      return rows.reduce((s, c) => s + (c.importo_netto ?? 0), 0);
     }
     const periodMetrics = {
       currentMonth: {
@@ -701,7 +696,6 @@ export default async function DashboardPage() {
     const urgentItems = [
       ...(stalledCompsRes.data ?? []).map((c: {
         id: string; stato: string; importo_netto: number | null;
-        totale_fattura: number | null; tipo: string;
         created_at: string; community_id: string; collaborator_id: string;
       }) => {
         const collab = collabMap.get(c.collaborator_id);
@@ -717,7 +711,7 @@ export default async function DashboardPage() {
           communityName: commMap.get(c.community_id) ?? '',
           daysWaiting: days,
           stato: c.stato,
-          amount: c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0),
+          amount: c.importo_netto ?? 0,
           href: `/coda?tab=compensi&id=${c.id}`,
         };
       }),
@@ -748,7 +742,6 @@ export default async function DashboardPage() {
     const feedItems = [
       ...(feedCompsRes.data ?? []).map((c: {
         id: string; stato: string; importo_netto: number | null;
-        totale_fattura: number | null; tipo: string;
         created_at: string; community_id: string; collaborator_id: string;
       }) => {
         const collab = collabMap.get(c.collaborator_id);
@@ -763,7 +756,7 @@ export default async function DashboardPage() {
           communityName: commMap.get(c.community_id) ?? '',
           stato: c.stato,
           createdAt: c.created_at,
-          amount: c.tipo === 'PIVA' ? (c.totale_fattura ?? 0) : (c.importo_netto ?? 0),
+          amount: c.importo_netto ?? 0,
           href: `/coda?tab=compensi&id=${c.id}`,
         };
       }),
@@ -898,7 +891,7 @@ export default async function DashboardPage() {
     { data: allTickets },
     { data: announcements },
   ] = await Promise.all([
-    supabase.from('compensations').select('id, tipo, stato, importo_netto, totale_fattura'),
+    supabase.from('compensations').select('id, stato, importo_netto'),
     supabase.from('expense_reimbursements').select('id, stato, importo'),
     docsQuery,
     supabase.from('tickets').select('id, oggetto, stato').eq('creator_user_id', user.id),
@@ -951,22 +944,17 @@ export default async function DashboardPage() {
   // Cards — compensi
   const activeComps    = (compensations ?? []).filter((c: CompRow) => ACTIVE_STATES.has(c.stato));
   const compTotal      = activeComps.reduce((s: number, c: CompRow) => s + compAmount(c), 0);
-  const pendingComps   = activeComps.filter((c: CompRow) => c.stato === 'APPROVATO_ADMIN');
+  const pendingComps   = activeComps.filter((c: CompRow) => c.stato === 'APPROVATO');
   const compPendingTot = pendingComps.reduce((s: number, c: CompRow) => s + compAmount(c), 0);
 
   // Cards — rimborsi
   const activeExps    = (expenses ?? []).filter((e: ExpRow) => ACTIVE_STATES.has(e.stato));
   const expTotal      = activeExps.reduce((s: number, e: ExpRow) => s + (e.importo ?? 0), 0);
-  const pendingExps   = activeExps.filter((e: ExpRow) => e.stato === 'APPROVATO_ADMIN');
+  const pendingExps   = activeExps.filter((e: ExpRow) => e.stato === 'APPROVATO');
   const expPendingTot = pendingExps.reduce((s: number, e: ExpRow) => s + (e.importo ?? 0), 0);
 
   // Card — documenti da firmare
   const daFirmareCount = (docsToSign ?? []).length;
-
-  // Cosa mi manca
-  const integrazioniCount =
-    (compensations ?? []).filter((c: CompRow) => c.stato === 'INTEGRAZIONI_RICHIESTE').length +
-    (expenses ?? []).filter((e: ExpRow) => e.stato === 'INTEGRAZIONI_RICHIESTE').length;
 
   // Ticket senza risposta: last message per ticket not from current user
   const lastMsgByTicket: Record<string, MsgRow> = {};
@@ -981,10 +969,6 @@ export default async function DashboardPage() {
   const profiloIncompleto = !collaborator?.iban || !collaborator?.codice_fiscale;
 
   const cosaMiManca = [
-    integrazioniCount > 0 && {
-      text: `${integrazioniCount} richiesta${integrazioniCount === 1 ? '' : 'e'} che richied${integrazioniCount === 1 ? 'e' : 'ono'} integrazione`,
-      href: '/compensi',
-    },
     daFirmareCount > 0 && {
       text: `${daFirmareCount} documento${daFirmareCount === 1 ? '' : 'i'} da firmare`,
       href: '/documenti',

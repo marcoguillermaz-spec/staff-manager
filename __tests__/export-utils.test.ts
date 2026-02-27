@@ -16,20 +16,6 @@ const occasionaleItem: ExportItem = {
   importo: 1234.56,
 };
 
-const pivaItem: ExportItem = {
-  id: '2',
-  nome: 'Giulia',
-  cognome: 'Bianchi',
-  codice_fiscale: 'BNCGLI85B41H501A',
-  iban: null,
-  partita_iva: '12345678901',
-  community_name: 'Community B',
-  periodo_riferimento: '2026-02',
-  categoria: null,
-  data_spesa: null,
-  importo: 2500.00,
-};
-
 const rimborsoItem: ExportItem = {
   id: '3',
   nome: 'Luca',
@@ -69,16 +55,6 @@ describe('buildCSV', () => {
     expect(row).toContain('1234.56');
   });
 
-  it('1 item piva → colonne P.IVA (partita_iva invece di IBAN)', () => {
-    const csv = buildCSV([pivaItem], 'piva');
-    const lines = csv.split('\r\n').filter(Boolean);
-    expect(lines[0]).toContain('Partita IVA');
-    expect(lines[0]).not.toContain('IBAN');
-    const row = lines[1];
-    expect(row).toContain('12345678901');
-    expect(row).toContain('2500.00');
-  });
-
   it('1 item rimborso → colonne categoria + data spesa', () => {
     const csv = buildCSV([rimborsoItem], 'rimborsi');
     const lines = csv.split('\r\n').filter(Boolean);
@@ -90,12 +66,9 @@ describe('buildCSV', () => {
     expect(row).toContain('75.00');
   });
 
-  it('header occasionali vs piva vs rimborsi sono diversi', () => {
+  it('header occasionali vs rimborsi sono diversi', () => {
     const hOcc = buildCSV([], 'occasionali').split('\r\n')[0];
-    const hPiva = buildCSV([], 'piva').split('\r\n')[0];
     const hRim = buildCSV([], 'rimborsi').split('\r\n')[0];
-    expect(hOcc).not.toBe(hPiva);
-    expect(hPiva).not.toBe(hRim);
     expect(hOcc).not.toBe(hRim);
   });
 

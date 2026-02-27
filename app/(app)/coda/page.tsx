@@ -35,7 +35,7 @@ export default async function CodaPage({
     ? await supabase
         .from('compensations')
         .select('*, communities(name)')
-        .in('stato', ['PRE_APPROVATO_RESP', 'APPROVATO_ADMIN'])
+        .eq('stato', 'APPROVATO')
         .order('created_at', { ascending: true })
         .then((r) => r.data ?? [])
     : [];
@@ -44,7 +44,7 @@ export default async function CodaPage({
     ? await supabase
         .from('expense_reimbursements')
         .select('*')
-        .in('stato', ['PRE_APPROVATO_RESP', 'APPROVATO_ADMIN'])
+        .eq('stato', 'APPROVATO')
         .order('created_at', { ascending: true })
         .then((r) => r.data ?? [])
     : [];
@@ -70,7 +70,7 @@ export default async function CodaPage({
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-100">Coda lavoro</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Richieste pre-approvate in attesa di approvazione definitiva o pagamento.
+          Richieste approvate in attesa di liquidazione.
         </p>
       </div>
 

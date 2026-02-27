@@ -80,13 +80,13 @@ export default async function CollaboratoriPage({
         svc
           .from('compensations')
           .select('collaborator_id')
-          .neq('stato', 'PAGATO')
+          .neq('stato', 'LIQUIDATO')
           .neq('stato', 'RIFIUTATO')
           .in('collaborator_id', allCollaboratorIds),
         svc
           .from('expense_reimbursements')
           .select('collaborator_id')
-          .neq('stato', 'PAGATO')
+          .neq('stato', 'LIQUIDATO')
           .neq('stato', 'RIFIUTATO')
           .in('collaborator_id', allCollaboratorIds),
       ]);

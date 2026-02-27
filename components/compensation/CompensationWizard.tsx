@@ -4,40 +4,26 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-type CompensationType = 'OCCASIONALE' | 'PIVA';
-
 interface Community {
   id: string;
   name: string;
 }
 
-// ── Step 1 form state ─────────────────────────────────────────
+// ── Form state ─────────────────────────────────────────────────
 interface FormData {
-  tipo: CompensationType;
   community_id: string;
   periodo_riferimento: string;
   data_competenza: string;
   descrizione: string;
-  // Occasionale
   importo_lordo: string;
-  // PIVA
-  numero_fattura: string;
-  data_fattura: string;
-  imponibile: string;
-  iva_percentuale: string;
 }
 
 const INITIAL_FORM: FormData = {
-  tipo: 'OCCASIONALE',
   community_id: '',
   periodo_riferimento: '',
   data_competenza: '',
   descrizione: '',
   importo_lordo: '',
-  numero_fattura: '',
-  data_fattura: '',
-  imponibile: '',
-  iva_percentuale: '22',
 };
 
 const inputCls =
@@ -57,11 +43,6 @@ function deriveOccasionale(lordo: number) {
   const ritenuta = Math.round(lordo * 0.2 * 100) / 100;
   const netto = Math.round((lordo - ritenuta) * 100) / 100;
   return { ritenuta, netto };
-}
-
-function derivePiva(imponibile: number, iva: number) {
-  const totale = Math.round((imponibile + imponibile * (iva / 100)) * 100) / 100;
-  return { totale };
 }
 
 export default function CompensationWizard() {
@@ -97,16 +78,11 @@ export default function CompensationWizard() {
     ? deriveOccasionale(lordo)
     : { ritenuta: 0, netto: 0 };
 
-  const imp = parseFloat(form.imponibile);
-  const ivaP = parseFloat(form.iva_percentuale);
-  const pivaValid = !isNaN(imp) && imp > 0 && !isNaN(ivaP);
-  const { totale } = pivaValid ? derivePiva(imp, ivaP) : { totale: 0 };
-
   // Step 1 validation
   const step1Valid =
     form.community_id !== '' &&
     form.descrizione.trim() !== '' &&
-    (form.tipo === 'OCCASIONALE' ? occasionaleValid : pivaValid);
+    occasionaleValid;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
@@ -127,34 +103,17 @@ export default function CompensationWizard() {
 
     try {
       // 1. Build payload — always create as BOZZA first so attachments can be uploaded
-      // (RLS only allows attachment inserts in BOZZA/INTEGRAZIONI_RICHIESTE)
-      // If the user clicked "Invia" we'll transition to INVIATO after uploads.
-      let payload: Record<string, unknown> = {
-        tipo: form.tipo,
+      // If the user clicked "Invia" we'll transition to IN_ATTESA after uploads.
+      const payload: Record<string, unknown> = {
         community_id: form.community_id,
         descrizione: form.descrizione.trim(),
         periodo_riferimento: form.periodo_riferimento.trim() || undefined,
         data_competenza: form.data_competenza || undefined,
         stato: 'BOZZA',
+        importo_lordo: lordo,
+        ritenuta_acconto: ritenuta,
+        importo_netto: netto,
       };
-
-      if (form.tipo === 'OCCASIONALE') {
-        payload = {
-          ...payload,
-          importo_lordo: lordo,
-          ritenuta_acconto: ritenuta,
-          importo_netto: netto,
-        };
-      } else {
-        payload = {
-          ...payload,
-          numero_fattura: form.numero_fattura.trim() || undefined,
-          data_fattura: form.data_fattura || undefined,
-          imponibile: imp,
-          iva_percentuale: ivaP,
-          totale_fattura: totale,
-        };
-      }
 
       // 2. Create compensation record
       const createRes = await fetch('/api/compensations', {
@@ -203,8 +162,7 @@ export default function CompensationWizard() {
         return;
       }
 
-      // 6. If user clicked "Invia" (not draft), transition BOZZA → INVIATO now that
-      //    all attachments are registered (RLS requires BOZZA for attachment inserts)
+      // 6. If user clicked "Invia" (not draft), transition BOZZA → IN_ATTESA
       if (!draft) {
         const transRes = await fetch(`/api/compensations/${compId}/transition`, {
           method: 'POST',
@@ -254,31 +212,6 @@ export default function CompensationWizard() {
       {step === 1 && (
         <div className="rounded-2xl bg-gray-900 border border-gray-800 p-6 space-y-5">
           <h2 className="text-base font-semibold text-gray-100">Dati compenso</h2>
-
-          {/* Tipo */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-2">Tipologia</label>
-            <div className="flex gap-3">
-              {(['OCCASIONALE', 'PIVA'] as const).map((t) => (
-                <label
-                  key={t}
-                  className={`flex-1 flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition ${
-                    form.tipo === t ? 'border-blue-600 bg-blue-900/20' : 'border-gray-700 hover:border-gray-600'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="tipo"
-                    value={t}
-                    checked={form.tipo === t}
-                    onChange={() => set('tipo', t)}
-                    className="accent-blue-600"
-                  />
-                  <span className="text-sm text-gray-200">{t === 'OCCASIONALE' ? 'Prestazione occasionale' : 'P.IVA / Fattura'}</span>
-                </label>
-              ))}
-            </div>
-          </div>
 
           {/* Community */}
           <div>
@@ -332,96 +265,34 @@ export default function CompensationWizard() {
             />
           </div>
 
-          {/* OCCASIONALE fields */}
-          {form.tipo === 'OCCASIONALE' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1.5">Importo lordo (€) <span className="text-red-500">*</span></label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={form.importo_lordo}
-                  onChange={(e) => set('importo_lordo', e.target.value)}
-                  placeholder="0.00"
-                  className={inputCls}
-                  required
-                />
-              </div>
-              {occasionaleValid && (
-                <div className="rounded-lg bg-gray-800/60 border border-gray-700 px-4 py-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500">Ritenuta acconto (20%)</p>
-                    <p className="text-sm font-medium text-red-400">− {formatCurrency(ritenuta)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Importo netto</p>
-                    <p className="text-sm font-medium text-green-400">{formatCurrency(netto)}</p>
-                  </div>
-                </div>
-              )}
+          {/* Importo lordo */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5">Importo lordo (€) <span className="text-red-500">*</span></label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={form.importo_lordo}
+                onChange={(e) => set('importo_lordo', e.target.value)}
+                placeholder="0.00"
+                className={inputCls}
+                required
+              />
             </div>
-          )}
-
-          {/* PIVA fields */}
-          {form.tipo === 'PIVA' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {occasionaleValid && (
+              <div className="rounded-lg bg-gray-800/60 border border-gray-700 px-4 py-3 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">N. Fattura</label>
-                  <input
-                    type="text"
-                    value={form.numero_fattura}
-                    onChange={(e) => set('numero_fattura', e.target.value)}
-                    placeholder="Es. 001/2025"
-                    className={inputCls}
-                  />
+                  <p className="text-xs text-gray-500">Ritenuta acconto (20%)</p>
+                  <p className="text-sm font-medium text-red-400">− {formatCurrency(ritenuta)}</p>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Data fattura</label>
-                  <input
-                    type="date"
-                    value={form.data_fattura}
-                    onChange={(e) => set('data_fattura', e.target.value)}
-                    className={inputCls}
-                  />
+                  <p className="text-xs text-gray-500">Importo netto</p>
+                  <p className="text-sm font-medium text-green-400">{formatCurrency(netto)}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Imponibile (€) <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={form.imponibile}
-                    onChange={(e) => set('imponibile', e.target.value)}
-                    placeholder="0.00"
-                    className={inputCls}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">IVA (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={form.iva_percentuale}
-                    onChange={(e) => set('iva_percentuale', e.target.value)}
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-              {pivaValid && (
-                <div className="rounded-lg bg-gray-800/60 border border-gray-700 px-4 py-3">
-                  <p className="text-xs text-gray-500">Totale fattura (imponibile + IVA)</p>
-                  <p className="text-sm font-medium text-green-400">{formatCurrency(totale)}</p>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="flex justify-end">
             <button
@@ -439,14 +310,6 @@ export default function CompensationWizard() {
       {step === 2 && (
         <div className="rounded-2xl bg-gray-900 border border-gray-800 p-6 space-y-5">
           <h2 className="text-base font-semibold text-gray-100">Allegati</h2>
-
-          {form.tipo === 'PIVA' && (
-            <div className="rounded-lg bg-blue-900/20 border border-blue-700/40 px-4 py-3">
-              <p className="text-xs text-blue-300">
-                Per P.IVA si raccomanda di allegare la fattura (PDF).
-              </p>
-            </div>
-          )}
 
           {/* File input */}
           <div>
@@ -516,24 +379,13 @@ export default function CompensationWizard() {
           {/* Summary table */}
           <div className="rounded-xl bg-gray-800/50 border border-gray-700 divide-y divide-gray-700">
             {[
-              ['Tipologia', form.tipo],
               ['Community', communities.find((c) => c.id === form.community_id)?.name ?? '—'],
               ['Periodo', form.periodo_riferimento || '—'],
               ['Data competenza', form.data_competenza || '—'],
               ['Descrizione', form.descrizione],
-              ...(form.tipo === 'OCCASIONALE'
-                ? [
-                    ['Importo lordo', formatCurrency(lordo)],
-                    ['Ritenuta (20%)', `− ${formatCurrency(ritenuta)}`],
-                    ['Importo netto', formatCurrency(netto)],
-                  ]
-                : [
-                    ['N. Fattura', form.numero_fattura || '—'],
-                    ['Data fattura', form.data_fattura || '—'],
-                    ['Imponibile', formatCurrency(imp)],
-                    ['IVA', `${form.iva_percentuale}%`],
-                    ['Totale', formatCurrency(totale)],
-                  ]),
+              ['Importo lordo', formatCurrency(lordo)],
+              ['Ritenuta (20%)', `− ${formatCurrency(ritenuta)}`],
+              ['Importo netto', formatCurrency(netto)],
             ].map(([label, value]) => (
               <div key={label} className="flex gap-3 px-4 py-2.5">
                 <span className="w-36 shrink-0 text-xs text-gray-500">{label}</span>

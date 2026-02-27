@@ -29,8 +29,8 @@ export async function POST(
     return NextResponse.json({ error: 'Compenso non trovato' }, { status: 404 });
   }
 
-  if (!['BOZZA', 'INTEGRAZIONI_RICHIESTE'].includes(comp.stato)) {
-    return NextResponse.json({ error: 'Allegati consentiti solo in BOZZA o INTEGRAZIONI_RICHIESTE' }, { status: 403 });
+  if (comp.stato !== 'BOZZA') {
+    return NextResponse.json({ error: 'Allegati consentiti solo in BOZZA' }, { status: 403 });
   }
 
   const body = await request.json();

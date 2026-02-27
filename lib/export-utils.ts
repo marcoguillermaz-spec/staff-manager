@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 
-export type ExportTab = 'occasionali' | 'piva' | 'rimborsi';
+export type ExportTab = 'occasionali' | 'rimborsi';
 
 export interface ExportItem {
   id: string;
@@ -20,7 +20,6 @@ export interface ExportItem {
 
 const HEADERS: Record<ExportTab, string[]> = {
   occasionali: ['Nome', 'Cognome', 'Codice Fiscale', 'IBAN', 'Community', 'Periodo', 'Importo Netto'],
-  piva:        ['Nome', 'Cognome', 'Codice Fiscale', 'Partita IVA', 'Community', 'Periodo', 'Totale Fattura'],
   rimborsi:    ['Nome', 'Cognome', 'Codice Fiscale', 'IBAN', 'Categoria', 'Data Spesa', 'Importo'],
 };
 
@@ -34,17 +33,6 @@ function toRow(item: ExportItem, tab: ExportTab): string[] {
       item.cognome,
       item.codice_fiscale ?? '',
       item.iban ?? '',
-      item.community_name ?? '',
-      item.periodo_riferimento ?? '',
-      importoStr,
-    ];
-  }
-  if (tab === 'piva') {
-    return [
-      item.nome,
-      item.cognome,
-      item.codice_fiscale ?? '',
-      item.partita_iva ?? '',
       item.community_name ?? '',
       item.periodo_riferimento ?? '',
       importoStr,

@@ -9,7 +9,7 @@ import type { Role } from '@/lib/types';
 type YearBreakdown = { year: number; total: number };
 
 function groupByYear(
-  rows: { stato: string; paid_at: string | null; importo_netto?: number | null; totale_fattura?: number | null; tipo?: string; importo?: number }[],
+  rows: { stato: string; liquidated_at: string | null; importo_netto?: number | null; importo?: number }[],
   activeStates: string[],
 ): { paidByYear: YearBreakdown[]; pending: number } {
   const map: Record<number, number> = {};
@@ -19,12 +19,10 @@ function groupByYear(
     const amount =
       'importo' in row
         ? (row.importo ?? 0)
-        : row.tipo === 'PIVA'
-          ? (row.totale_fattura ?? 0)
-          : (row.importo_netto ?? 0);
+        : (row.importo_netto ?? 0);
 
-    if (row.stato === 'PAGATO' && row.paid_at) {
-      const year = new Date(row.paid_at).getFullYear();
+    if (row.stato === 'LIQUIDATO' && row.liquidated_at) {
+      const year = new Date(row.liquidated_at).getFullYear();
       map[year] = (map[year] ?? 0) + amount;
     } else if (activeStates.includes(row.stato)) {
       pending += amount;
@@ -38,7 +36,7 @@ function groupByYear(
   return { paidByYear, pending };
 }
 
-const ACTIVE_STATES = ['INVIATO', 'INTEGRAZIONI_RICHIESTE', 'PRE_APPROVATO_RESP', 'APPROVATO_ADMIN'];
+const ACTIVE_STATES = ['IN_ATTESA', 'APPROVATO'];
 
 export default async function CompensiPage() {
   const supabase = await createClient();
@@ -71,10 +69,10 @@ export default async function CompensiPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('compensations')
-      .select('tipo, stato, importo_lordo, importo_netto, totale_fattura, paid_at'),
+      .select('stato, importo_lordo, importo_netto, liquidated_at'),
     supabase
       .from('expense_reimbursements')
-      .select('importo, stato, paid_at'),
+      .select('importo, stato, liquidated_at'),
     supabase
       .from('expense_reimbursements')
       .select('*')
@@ -92,11 +90,11 @@ export default async function CompensiPage() {
     groupByYear(allExpenses ?? [], ACTIVE_STATES);
 
   const massimale = collabRecord?.importo_lordo_massimale ?? null;
-  // Sum gross amount of OCCASIONALE compensations paid in the current year
+  // Sum gross amount of compensations liquidated in the current year
   const paidCurrentYear = massimale != null
     ? (allCompens ?? [])
-        .filter((c) => c.tipo === 'OCCASIONALE' && c.stato === 'PAGATO' && c.paid_at &&
-          new Date(c.paid_at).getFullYear() === currentYear)
+        .filter((c) => c.stato === 'LIQUIDATO' && c.liquidated_at &&
+          new Date(c.liquidated_at).getFullYear() === currentYear)
         .reduce((sum, c) => sum + (c.importo_lordo ?? 0), 0)
     : 0;
 

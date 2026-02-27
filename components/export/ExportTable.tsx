@@ -20,7 +20,7 @@ export default function ExportTable({ tab, items, selected, onToggle, onSelectAl
   if (items.length === 0) {
     return (
       <div className="rounded-xl bg-gray-900 border border-gray-800 p-8 text-center">
-        <p className="text-sm text-gray-500">Nessun record in attesa di pagamento.</p>
+        <p className="text-sm text-gray-500">Nessun record in attesa di liquidazione.</p>
       </div>
     );
   }
@@ -41,10 +41,8 @@ export default function ExportTable({ tab, items, selected, onToggle, onSelectAl
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Nome</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden sm:table-cell">Cod. Fiscale</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden md:table-cell">
-              {tab === 'piva' ? 'Partita IVA' : 'IBAN'}
-            </th>
-            {(tab === 'occasionali' || tab === 'piva') && (
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden md:table-cell">IBAN</th>
+            {tab === 'occasionali' && (
               <>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden lg:table-cell">Community</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 hidden lg:table-cell">Periodo</th>
@@ -82,11 +80,9 @@ export default function ExportTable({ tab, items, selected, onToggle, onSelectAl
                 {item.codice_fiscale ?? '—'}
               </td>
               <td className="px-4 py-3 text-gray-400 hidden md:table-cell font-mono text-xs">
-                {tab === 'piva'
-                  ? (item.partita_iva ?? '—')
-                  : (item.iban ?? '—')}
+                {item.iban ?? '—'}
               </td>
-              {(tab === 'occasionali' || tab === 'piva') && (
+              {tab === 'occasionali' && (
                 <>
                   <td className="px-4 py-3 text-gray-400 hidden lg:table-cell">
                     {item.community_name ?? '—'}
