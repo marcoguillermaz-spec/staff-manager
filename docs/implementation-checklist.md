@@ -13,6 +13,7 @@
 | 2026-02-26 | Blocco 1 — Revisione ruoli e utenze di test | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso temporaneamente) | `017_roles_rename.sql` applicata. Bug fix `importo`/`data_compenso` in transition route. |
 | 2026-02-26 | Blocco 2 — Ristrutturazione menu collaboratore | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso), smoke test OK | 8 voci nav, unified Compensi e Rimborsi, TicketQuickModal, Profilo e Documenti tabs, 3 nuove pagine (eventi/comunicazioni/opportunita). |
 | 2026-02-27 | Blocco 3 — Correzioni sezione profilo + consolidamento OCCASIONALE | ✅ | tsc ✅, build ✅, vitest 106/106 ✅, e2e ⏸ (sospeso) | Rename `ha_figli_a_carico` → `sono_un_figlio_a_carico`, add `importo_lordo_massimale` + progress bar + guide modale, rimozione P.IVA e COCOCO, consolidamento OCCASIONALE. Migrations 018-020. |
+| 2026-02-27 | Blocco 4 — Username generation + validazioni CF/IBAN | ✅ | tsc ✅, build ✅, vitest 129/129 ✅, e2e ⏸ (sospeso) | Migration 021 (username TEXT UNIQUE). `lib/username.ts`. Username auto-generato in create-user, inline edit in CollaboratoreDetail, readonly badge in ProfileForm e OnboardingWizard. CF normalization (alphanumeric+uppercase) in tutti i form. Zod: CF `/^[A-Z0-9]{16}$/` in profile+onboarding, IBAN regex in onboarding. |
 
 ---
 
@@ -107,6 +108,20 @@ Unit test da aggiornare:
 | 3a — Rename `ha_figli_a_carico` → `sono_un_figlio_a_carico` | ✅ | Migration 018, 46 occorrenze in 16 file |
 | 3b — Campo `importo_lordo_massimale` + progress bar | ✅ | Migration 019, ProfileForm + PaymentOverview |
 | 3c — Consolidamento OCCASIONALE (rimozione COCOCO/PIVA) | ✅ | Migration 020, rimozione P.IVA, aggiornamento e2e |
+
+---
+
+## Blocco 4 — Username generation + validazioni CF/IBAN ✅
+
+> Requisito: `docs/requirements.md` §4 — Username e validazioni
+> Dipendenze: Blocco 1, Blocco 3
+
+| Sotto-blocco | Stato | Note |
+|---|---|---|
+| 4a — Migration 021 + lib/username.ts | ✅ | `ADD COLUMN username TEXT UNIQUE`; `generateUsername` + `generateUniqueUsername` |
+| 4b — create-user API + PATCH endpoint | ✅ | Auto-generation con suffix loop; explicit → 409; PATCH `/api/admin/collaboratori/[id]` |
+| 4c — UI: badge + inline edit + form preview | ✅ | CollaboratoreDetail, ProfileForm, CreateUserForm (quick+full), OnboardingWizard |
+| 4d — Validazioni server-side | ✅ | CF regex in profile+onboarding; IBAN regex in onboarding |
 
 ---
 
